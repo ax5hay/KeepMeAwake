@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Tray, off: a closed eye. Dimmer so it recedes when nothing is happening. -->
-  <path d="M6 30 C 16 45, 48 45, 58 30"
-        fill="none" stroke="#FFFFFF" stroke-opacity="0.72" stroke-width="5" stroke-linecap="round"/>
+  <!-- Off: the sun has set; only its top edge shows beneath the horizon. -->
+  <path d="M19 46 A13 13 0 0 1 45 46 Z" fill="#FFFFFF" fill-opacity="0.45"/>
+  <rect x="8" y="43" width="48" height="5" rx="2.5" fill="#FFFFFF" fill-opacity="0.8"/>
 </svg>
