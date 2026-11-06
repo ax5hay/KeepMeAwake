@@ -268,6 +268,7 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
         started_at_unix_ms: st.session.started_at().map(to_unix),
         ends_at_unix_ms: st.session.deadline().map(to_unix),
         remaining_secs: st.session.remaining(now).map(|d| millis(d).div_ceil(1000)),
+        plan_secs: st.session.plan_duration().map(|d| d.as_secs()),
         guards: st.guards,
         paused: st.paused,
         battery: st.battery,
@@ -396,6 +397,7 @@ mod tests {
         let snap = r.engine.set_plan(PlanRequest::For { seconds: 90 });
         assert_eq!(snap.mode, Mode::Timed);
         assert_eq!(snap.remaining_secs, Some(90));
+        assert_eq!(snap.plan_secs, Some(90));
         assert_eq!(snap.ends_at_unix_ms, Some(before + 90_000));
     }
 
