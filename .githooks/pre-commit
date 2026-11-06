@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+# Fast, scoped checks on staged files only. CI runs the full suite.
+set -e
+staged="$(git diff --cached --name-only --diff-filter=ACMR)"
+[ -z "$staged" ] && exit 0
+
+if printf '%s\n' "$staged" | grep -Eq '\.(ts|js|svelte|css|json|md|yml|yaml)$'; then
+  echo "pre-commit: prettier"
+  printf '%s\n' "$staged" | grep -E '\.(ts|js|svelte|css|json|md|yml|yaml)$' \
+    | xargs npx --no-install prettier --check --log-level warn
+fi
+if printf '%s\n' "$staged" | grep -Eq '^src/.*\.(ts|js|svelte)$'; then
+  echo "pre-commit: eslint"
+  printf '%s\n' "$staged" | grep -E '^src/.*\.(ts|js|svelte)$' \
+    | xargs npx --no-install eslint --max-warnings=0
+fi
+if printf '%s\n' "$staged" | grep -Eq '\.rs$'; then
+  echo "pre-commit: rustfmt"
+  cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+fi

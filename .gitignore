@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# Tooling caches
+.vite/
+.svelte-kit/
+coverage/
+*.tsbuildinfo
+
+# Local environment and editors
+.env
+.env.*
+!.env.example
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
