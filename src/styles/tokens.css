@@ -1,0 +1,85 @@
+/*
+  Design tokens. Two palettes, paper and night, both built from warm neutrals
+  with a single accent: the sun. Nothing else in the UI is coloured.
+*/
+
+@font-face {
+  font-family: 'Fraunces';
+  src: url('../assets/fonts/fraunces-latin.woff2') format('woff2');
+  font-weight: 300 600;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  src: url('../assets/fonts/fraunces-italic-latin.woff2') format('woff2');
+  font-weight: 300 600;
+  font-style: italic;
+  font-display: block;
+}
+
+:root {
+  --font-display: 'Fraunces', 'Georgia', 'Times New Roman', serif;
+  --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+
+  /* Paper */
+  --paper: #f4f0e7;
+  --paper-2: #ebe6da;
+  --ink: #1c1b18;
+  --ink-2: #5f5b52;
+  --ink-3: #9a948a;
+  --hair: rgb(28 27 24 / 0.14);
+  --hair-strong: rgb(28 27 24 / 0.34);
+  --sun: #dca544;
+  --sun-dim: #cdb98c;
+  --sky-off: #cfd5d8;
+  --sky-on: #dfe8ea;
+  --sky-paused: #d5d3cd;
+  --ground-off: #e3dfd4;
+  --ground-on: #e8dfca;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --shadow: 0 1px 2px rgb(28 27 24 / 0.08);
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-fast: 140ms;
+  --t-mid: 320ms;
+  --t-slow: 720ms;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  /* Night */
+  --paper: #0f1216;
+  --paper-2: #161b21;
+  --ink: #ebe4d6;
+  --ink-2: #a79f91;
+  --ink-3: #6d685f;
+  --hair: rgb(235 228 214 / 0.12);
+  --hair-strong: rgb(235 228 214 / 0.3);
+  --sun: #e3b458;
+  --sun-dim: #7f7050;
+  --sky-off: #131920;
+  --sky-on: #1f2a38;
+  --sky-paused: #1b1e23;
+  --ground-off: #14171b;
+  --ground-on: #1b1e20;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-mid: 0ms;
+    --t-slow: 0ms;
+  }
+}
