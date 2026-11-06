@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Tray, awake: open eye with an accent pupil so state is legible at 16px. -->
-  <path d="M6 32 C 16 17, 48 17, 58 32 C 48 47, 16 47, 6 32 Z"
-        fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
-  <circle cx="32" cy="32" r="8" fill="#8B7CFF"/>
+  <!-- Awake: full sun above the horizon. -->
+  <circle cx="32" cy="27" r="13" fill="#FFFFFF"/>
+  <rect x="8" y="46" width="48" height="5" rx="2.5" fill="#FFFFFF"/>
 </svg>
