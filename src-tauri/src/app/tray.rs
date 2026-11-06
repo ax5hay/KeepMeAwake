@@ -212,6 +212,7 @@ mod tests {
             started_at_unix_ms: None,
             ends_at_unix_ms: None,
             remaining_secs: remaining,
+            plan_secs: None,
             guards: GuardState::default(),
             paused,
             battery: BatteryState::default(),

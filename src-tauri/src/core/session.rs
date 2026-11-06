@@ -34,8 +34,9 @@ pub struct Session {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ActiveMode {
-    started_at: Instant,
-    ends_at: Option<Instant>,
+    started: Instant,
+    planned: Instant,
+    deadline: Option<Instant>,
 }
 
 impl Session {
@@ -48,9 +49,9 @@ impl Session {
     pub fn mode(&self) -> Mode {
         match self.mode {
             None => Mode::Off,
-            Some(ActiveMode { ends_at: None, .. }) => Mode::Indefinite,
+            Some(ActiveMode { deadline: None, .. }) => Mode::Indefinite,
             Some(ActiveMode {
-                ends_at: Some(_), ..
+                deadline: Some(_), ..
             }) => Mode::Timed,
         }
     }
@@ -62,12 +63,21 @@ impl Session {
 
     /// When the current session began, if active.
     pub fn started_at(&self) -> Option<Instant> {
-        self.mode.map(|m| m.started_at)
+        self.mode.map(|m| m.started)
     }
 
     /// The deadline of a timed session.
     pub fn deadline(&self) -> Option<Instant> {
-        self.mode.and_then(|m| m.ends_at)
+        self.mode.and_then(|m| m.deadline)
+    }
+
+    /// Full length of the current timed plan, measured from when it was set.
+    /// Lets the UI show progress even when the plan came from the tray.
+    pub fn plan_duration(&self) -> Option<Duration> {
+        self.mode.and_then(|m| {
+            m.deadline
+                .map(|end| end.saturating_duration_since(m.planned))
+        })
     }
 
     /// Time left in a timed session. `None` for off or indefinite sessions.
@@ -88,19 +98,24 @@ impl Session {
     ///
     /// Returns `true` when the session actually changed.
     pub fn apply(&mut self, request: PlanRequest, now: Instant) -> bool {
-        let started_at = self.started_at().unwrap_or(now);
+        let started = self.started_at().unwrap_or(now);
         let next = match request {
             PlanRequest::Off | PlanRequest::Until { .. } => None,
             PlanRequest::Indefinite => Some(ActiveMode {
-                started_at,
-                ends_at: None,
+                started,
+                planned: now,
+                deadline: None,
             }),
             PlanRequest::For { seconds } => Some(ActiveMode {
-                started_at,
-                ends_at: Some(now + Duration::from_secs(seconds.max(1))),
+                started,
+                planned: now,
+                deadline: Some(now + Duration::from_secs(seconds.max(1))),
             }),
         };
-        let changed = next != self.mode;
+        let changed = match (self.mode, next) {
+            (Some(a), Some(b)) => a.deadline != b.deadline,
+            (a, b) => a.is_some() != b.is_some(),
+        };
         self.mode = next;
         changed
     }
@@ -197,6 +212,16 @@ mod tests {
         assert!(s.apply(PlanRequest::For { seconds: 10 }, later));
         assert_eq!(s.started_at(), Some(now));
         assert_eq!(s.deadline(), Some(later + Duration::from_secs(10)));
+        assert_eq!(s.plan_duration(), Some(Duration::from_secs(10)));
+    }
+
+    #[test]
+    fn plan_duration_is_none_unless_timed() {
+        let now = t0();
+        let mut s = Session::off();
+        assert_eq!(s.plan_duration(), None);
+        s.apply(PlanRequest::Indefinite, now);
+        assert_eq!(s.plan_duration(), None);
     }
 
     #[test]

@@ -50,6 +50,8 @@ pub struct Snapshot {
     pub ends_at_unix_ms: Option<u64>,
     /// Seconds left in a timed session, rounded up.
     pub remaining_secs: Option<u64>,
+    /// Full length of the current timed plan in seconds, for progress display.
+    pub plan_secs: Option<u64>,
     /// Guards actually applied right now (may differ from the plan when paused).
     pub guards: GuardState,
     /// Why the session is active but not guarding, if so.
@@ -79,6 +81,7 @@ mod tests {
             started_at_unix_ms: None,
             ends_at_unix_ms: None,
             remaining_secs: None,
+            plan_secs: None,
             guards: GuardState::default(),
             paused: None,
             battery: BatteryState::default(),
