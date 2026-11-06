@@ -30,13 +30,12 @@
         "resizable": true,
         "maximizable": false,
         "decorations": false,
-        "transparent": true,
+        "transparent": false,
         "shadow": true,
         "center": true,
         "visible": false,
         "skipTaskbar": false,
-        "zoomHotkeysEnabled": false,
-        "windowEffects": { "effects": ["mica"] }
+        "zoomHotkeysEnabled": false
       }
     ]
   },

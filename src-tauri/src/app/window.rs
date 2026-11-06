@@ -6,12 +6,17 @@
 //! With `free_memory_when_hidden` off, the window is hidden instead so it
 //! reopens instantly.
 
+use std::time::Duration;
+
 use tauri::{AppHandle, Manager, WebviewWindowBuilder, WindowEvent};
 
 use super::AppState;
 
 /// Label of the one and only window, matching `tauri.conf.json`.
 pub const MAIN: &str = "main";
+
+/// How long to wait for the UI to call `show()` before forcing it.
+const SHOW_FALLBACK: Duration = Duration::from_millis(2500);
 
 /// Shows the main window, creating it first if needed. Safe to call from any
 /// thread, including tray and plugin callbacks.
@@ -41,7 +46,20 @@ fn create(app: &AppHandle) -> tauri::Result<()> {
         .cloned()
         .ok_or_else(|| tauri::Error::WindowNotFound)?;
 
+    // The window starts hidden; the UI shows it once it has rendered its first
+    // state, so there is never a blank flash. If the UI fails to do so, show
+    // it anyway after a grace period so the user is never locked out.
     let window = WebviewWindowBuilder::from_config(app, &config)?.build()?;
+    {
+        let window = window.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(SHOW_FALLBACK);
+            if !window.is_visible().unwrap_or(true) {
+                log::warn!("UI did not report ready; showing window anyway");
+                let _ = window.show();
+            }
+        });
+    }
 
     let handle = app.clone();
     window.on_window_event(move |event| {
@@ -60,7 +78,5 @@ fn create(app: &AppHandle) -> tauri::Result<()> {
         }
     });
 
-    window.show()?;
-    window.set_focus()?;
     Ok(())
 }
