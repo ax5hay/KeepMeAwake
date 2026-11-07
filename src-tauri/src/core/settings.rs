@@ -72,8 +72,13 @@ pub struct Settings {
     pub hotkey: Option<String>,
 }
 
-/// The hotkey a fresh install gets.
-pub const DEFAULT_HOTKEY: &str = "Ctrl+Alt+K";
+/// The hotkey a fresh install gets: `⌘⌥K` on a Mac, `Ctrl+Alt+K` elsewhere.
+/// A settings file carried across keeps whatever it stored.
+pub const DEFAULT_HOTKEY: &str = if cfg!(target_os = "macos") {
+    "Cmd+Alt+K"
+} else {
+    "Ctrl+Alt+K"
+};
 
 /// One switch per kind of toast.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -287,9 +292,14 @@ mod tests {
 
     #[test]
     fn hotkey_defaults_on_and_off_survives_a_round_trip() {
-        assert_eq!(Settings::default().hotkey.as_deref(), Some("Ctrl+Alt+K"));
+        let native = if cfg!(target_os = "macos") {
+            "Cmd+Alt+K"
+        } else {
+            "Ctrl+Alt+K"
+        };
+        assert_eq!(Settings::default().hotkey.as_deref(), Some(native));
         let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
-        assert_eq!(old.hotkey.as_deref(), Some("Ctrl+Alt+K"));
+        assert_eq!(old.hotkey.as_deref(), Some(native));
         let off = Settings {
             hotkey: None,
             ..Settings::default()
