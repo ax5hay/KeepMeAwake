@@ -9,9 +9,10 @@
   import Segmented from './Segmented.svelte';
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
-  import { AUTHOR, tipsWith } from '$lib/copy';
+  import { AUTHOR, PLATFORM_COPY, tipsWith } from '$lib/copy';
   import { displayAccelerator } from '$lib/hotkey';
   import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
+  import { isMac } from '$lib/platform';
   import { store } from '$lib/state.svelte';
   import type { Notifications, Schedule, StartupPlan, Theme } from '$lib/types';
 
@@ -87,7 +88,7 @@
       <h2 class="eyebrow">Startup</h2>
       <Row
         label="Launch at sign-in"
-        hint={autostart === null ? 'Unavailable' : 'Starts quietly in the tray.'}
+        hint={autostart === null ? 'Unavailable' : PLATFORM_COPY.launchHint}
       >
         <Switch
           checked={autostart === true}
@@ -115,7 +116,7 @@
 
     <section>
       <h2 class="eyebrow">Waking</h2>
-      <Row label="Default length" hint="Used by the sun, the tray and Space.">
+      <Row label="Default length" hint={PLATFORM_COPY.lengthHint}>
         <Stepper
           options={durationOptions}
           value={settings.default_duration_secs === null
@@ -249,7 +250,7 @@
 
     <section>
       <h2 class="eyebrow">Hotkey</h2>
-      <Row label="Hotkey" hint="Works in any app. Needs at least one of Ctrl, Alt, Win.">
+      <Row label="Hotkey" hint={PLATFORM_COPY.hotkeyHint}>
         <HotkeyField
           value={settings.hotkey}
           onchange={(v) => void store.updateSettings({ hotkey: v })}
@@ -260,7 +261,7 @@
     <section>
       <h2 class="eyebrow">Tips</h2>
       <dl class="tips">
-        {#each tipsWith(settings.hotkey ? displayAccelerator(settings.hotkey) : null) as tip (tip.keys)}
+        {#each tipsWith(settings.hotkey ? displayAccelerator(settings.hotkey, isMac) : null) as tip (tip.keys)}
           <dt>{tip.keys}</dt>
           <dd>{tip.does}</dd>
         {/each}
@@ -275,8 +276,8 @@
         <span class="version">{store.snapshot?.app_version}</span>
       </p>
       <p class="hint">
-        Holds a Windows power request while awake, the same mechanism a video player uses. See it
-        under <code>powercfg /requests</code>. Nothing is typed, nothing moves.
+        {PLATFORM_COPY.about.before}
+        <code>{PLATFORM_COPY.about.code}</code>{PLATFORM_COPY.about.after}
       </p>
       <p class="hint">
         Made by <a href={AUTHOR.site} onclick={open(AUTHOR.site)}>{AUTHOR.name}</a>

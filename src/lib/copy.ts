@@ -1,7 +1,11 @@
 /**
  * Every piece of UI copy that is more than a label lives here, so tone stays
- * consistent and the words can be tested without a DOM.
+ * consistent and the words can be tested without a DOM. Copy that names the
+ * OS, the tray or a shortcut is written once per platform, as a function of
+ * `mac`, and resolved through `isMac` for the window.
  */
+
+import { isMac } from './platform';
 
 /** Who made this, and where to find more. Used in About and the wordmark. */
 export const AUTHOR = {
@@ -14,19 +18,35 @@ export const AUTHOR = {
 /** Whispered when the wordmark is clicked. */
 export const CREDIT = `Made in the small hours by ${AUTHOR.name}.`;
 
-/** Tips revealed by clicking the horizon line, in order, then around again. */
-export const HORIZON_TIPS: readonly string[] = [
-  'The sun is the switch. Click it, or press Space.',
-  'Pick a stop on the rule and the sun will set when the time is up.',
-  'Closing this window keeps the sun in your tray. Esc does the same.',
-  'Right-click the sun in the tray for everything without opening this window.',
-  'Below 20% battery the sun pauses and waits for the charger.',
-  'Until… takes a time of day. If it has already passed, it means tomorrow.',
-  'Ctrl+, opens settings. Esc brings you back here.',
-  'Windows lists this under powercfg /requests, by name.',
-  'The sun has nothing to do with daylight. It is how awake your laptop is.',
-  'A schedule keeps the sun up for you. Settings → Schedule.',
-];
+/**
+ * Tips revealed by clicking the horizon line, in order, then around again.
+ * The ones that name the tray, a shortcut or the OS read right on each.
+ */
+export function horizonTips(mac: boolean): readonly string[] {
+  return [
+    'The sun is the switch. Click it, or press Space.',
+    'Pick a stop on the rule and the sun will set when the time is up.',
+    mac
+      ? 'Closing this window keeps the sun in the menu bar. ⌘W does the same.'
+      : 'Closing this window keeps the sun in your tray. Esc does the same.',
+    mac
+      ? 'Right-click the sun in the menu bar for everything, no window needed.'
+      : 'Right-click the sun in the tray for everything without opening this window.',
+    'Below 20% battery the sun pauses and waits for the charger.',
+    'Until… takes a time of day. If it has already passed, it means tomorrow.',
+    mac
+      ? '⌘, opens settings. Esc brings you back here.'
+      : 'Ctrl+, opens settings. Esc brings you back here.',
+    mac
+      ? 'macOS lists this under pmset -g assertions, by name.'
+      : 'Windows lists this under powercfg /requests, by name.',
+    'The sun has nothing to do with daylight. It is how awake your laptop is.',
+    'A schedule keeps the sun up for you. Settings → Schedule.',
+  ];
+}
+
+/** The horizon tips for this platform. */
+export const HORIZON_TIPS: readonly string[] = horizonTips(isMac);
 
 /** Tip `n` (0-based), wrapping. */
 export function horizonTip(n: number): string {
@@ -106,19 +126,101 @@ export const HOTKEY_RECORDING = 'Press keys…';
 /** The Tips row for the global hotkey. */
 export const HOTKEY_TIP = 'Toggle from anywhere';
 
-/** Keyboard and tray help shown in Settings → Tips. */
-export const TIPS: ReadonlyArray<{ keys: string; does: string }> = [
-  { keys: 'Space', does: 'Toggle awake and resting' },
-  { keys: 'Esc', does: 'Back, or close to the tray' },
-  { keys: 'Ctrl+,', does: 'Settings' },
-  { keys: 'Tray · left click', does: 'Open this window' },
-  { keys: 'Tray · right click', does: 'Every action, no window' },
-  { keys: 'Horizon', does: 'Click the line for a tip' },
-];
+/** One row of Settings → Tips. */
+export interface Tip {
+  keys: string;
+  does: string;
+}
+
+/** Keyboard and tray (or menu bar) help shown in Settings → Tips. */
+export function tips(mac: boolean): readonly Tip[] {
+  if (mac) {
+    return [
+      { keys: 'Space', does: 'Toggle awake and resting' },
+      { keys: 'Esc', does: 'Back, or close the window' },
+      { keys: '⌘,', does: 'Settings' },
+      { keys: '⌘W', does: 'Close to the menu bar' },
+      { keys: '⌘Q', does: 'Quit' },
+      { keys: 'Menu bar · click', does: 'Open this window' },
+      { keys: 'Menu bar · right click', does: 'Every action, no window' },
+      { keys: 'Horizon', does: 'Click the line for a tip' },
+    ];
+  }
+  return [
+    { keys: 'Space', does: 'Toggle awake and resting' },
+    { keys: 'Esc', does: 'Back, or close to the tray' },
+    { keys: 'Ctrl+,', does: 'Settings' },
+    { keys: 'Tray · left click', does: 'Open this window' },
+    { keys: 'Tray · right click', does: 'Every action, no window' },
+    { keys: 'Horizon', does: 'Click the line for a tip' },
+  ];
+}
+
+/** The Tips rows for this platform. */
+export const TIPS: readonly Tip[] = tips(isMac);
 
 /** The Tips rows with the current global hotkey (if any) after Space. */
-export function tipsWith(hotkey: string | null): ReadonlyArray<{ keys: string; does: string }> {
-  if (hotkey === null) return TIPS;
-  const [first, ...rest] = TIPS;
+export function tipsWith(hotkey: string | null, list: readonly Tip[] = TIPS): readonly Tip[] {
+  if (hotkey === null) return list;
+  const [first, ...rest] = list;
   return [...(first ? [first] : []), { keys: hotkey, does: HOTKEY_TIP }, ...rest];
 }
+
+/** The strings in the window that name the OS, the tray or a shortcut. */
+export interface PlatformCopy {
+  /** Title bar close button, for screen readers. */
+  closeLabel: string;
+  /** Title bar close button tooltip. */
+  closeTitle: string;
+  /** Title bar settings button tooltip. */
+  settingsTitle: string;
+  /** Settings → Launch at sign-in. */
+  launchHint: string;
+  /** Settings → Default length. */
+  lengthHint: string;
+  /** Settings → Hotkey. */
+  hotkeyHint: string;
+  /** Settings → About: what holds the machine awake and where to see it. */
+  about: { before: string; code: string; after: string };
+  /** Status line when the OS turns the request down. */
+  refused: string;
+}
+
+/** {@link PlatformCopy} for a Mac (`true`) or Windows. */
+export function platformCopy(mac: boolean): PlatformCopy {
+  const mechanism = 'the same mechanism a video player uses. See it under';
+  const after = '. Nothing is typed, nothing moves.';
+  if (mac) {
+    return {
+      closeLabel: 'Close to the menu bar',
+      closeTitle: 'Close to the menu bar (⌘W). The sun stays up.',
+      settingsTitle: 'Settings (⌘,)',
+      launchHint: 'Starts quietly in the menu bar.',
+      lengthHint: 'Used by the sun, the menu bar and Space.',
+      hotkeyHint: 'Works in any app. Needs at least one of ⌘, ⌃, ⌥.',
+      about: {
+        before: `Holds a power assertion while awake, ${mechanism}`,
+        code: 'pmset -g assertions',
+        after,
+      },
+      refused: 'macOS refused the request',
+    };
+  }
+  return {
+    closeLabel: 'Close to tray',
+    closeTitle: 'Close to tray (Esc). The sun stays up.',
+    settingsTitle: 'Settings (Ctrl+,)',
+    launchHint: 'Starts quietly in the tray.',
+    lengthHint: 'Used by the sun, the tray and Space.',
+    hotkeyHint: 'Works in any app. Needs at least one of Ctrl, Alt, Win.',
+    about: {
+      before: `Holds a Windows power request while awake, ${mechanism}`,
+      code: 'powercfg /requests',
+      after,
+    },
+    refused: 'Windows refused the request',
+  };
+}
+
+/** {@link PlatformCopy} for this window. */
+export const PLATFORM_COPY: PlatformCopy = platformCopy(isMac);

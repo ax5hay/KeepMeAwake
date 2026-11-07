@@ -41,6 +41,19 @@ describe('toAccelerator', () => {
   });
 });
 
+describe('toAccelerator on a Mac', () => {
+  it('records Command as Cmd, the form the plugin registers', () => {
+    expect(toAccelerator(press('KeyK', { metaKey: true, altKey: true }), true)).toBe('Alt+Cmd+K');
+    expect(toAccelerator(press('KeyK', { metaKey: true, shiftKey: true }), true)).toBe(
+      'Shift+Cmd+K',
+    );
+  });
+
+  it('still needs Command, Control or Option', () => {
+    expect(toAccelerator(press('KeyK', { shiftKey: true }), true)).toBeNull();
+  });
+});
+
 describe('toAccelerator without a code', () => {
   it('falls back to the key', () => {
     const synthetic = { ...press('', { ctrlKey: true, shiftKey: true }), key: 'K' };
@@ -65,5 +78,19 @@ describe('displayAccelerator', () => {
   it('calls Super Win', () => {
     expect(displayAccelerator('Super+Shift+F9')).toBe('Win+Shift+F9');
     expect(displayAccelerator('Ctrl+Alt+K')).toBe('Ctrl+Alt+K');
+  });
+
+  it('shows Mac glyphs in the order macOS menus use: ⌃ ⌥ ⇧ ⌘', () => {
+    expect(displayAccelerator('Cmd+Alt+K', true)).toBe('⌥⌘K');
+    expect(displayAccelerator('Shift+Cmd+K', true)).toBe('⇧⌘K');
+    expect(displayAccelerator('Ctrl+Alt+Shift+Super+A', true)).toBe('⌃⌥⇧⌘A');
+    expect(displayAccelerator('Ctrl+Alt+K', true)).toBe('⌃⌥K');
+  });
+
+  it('draws arrows and Return as macOS does, and leaves other keys alone', () => {
+    expect(displayAccelerator('Cmd+Up', true)).toBe('⌘↑');
+    expect(displayAccelerator('Ctrl+Enter', true)).toBe('⌃↩');
+    expect(displayAccelerator('Alt+Space', true)).toBe('⌥Space');
+    expect(displayAccelerator('Cmd+F9', true)).toBe('⌘F9');
   });
 });

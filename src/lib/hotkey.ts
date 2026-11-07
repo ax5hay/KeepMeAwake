@@ -45,11 +45,11 @@ export function keyName(code: string): string | null {
 
 /**
  * The accelerator for a key press, modifiers in the order Ctrl, Alt, Shift,
- * Super, then the key. `null` while only modifiers are down, for keys the
- * hotkey cannot use, and without at least one of Ctrl, Alt or Win (Shift
- * alone would steal ordinary typing).
+ * Super (Cmd on a Mac), then the key. `null` while only modifiers are down,
+ * for keys the hotkey cannot use, and without at least one of Ctrl, Alt or
+ * Win (Shift alone would steal ordinary typing).
  */
-export function toAccelerator(event: KeyLike): string | null {
+export function toAccelerator(event: KeyLike, mac = false): string | null {
   const key = keyName(event.code || codeFromKey(event.key ?? ''));
   if (key === null) return null;
   if (!(event.ctrlKey || event.altKey || event.metaKey)) return null;
@@ -57,15 +57,40 @@ export function toAccelerator(event: KeyLike): string | null {
   if (event.ctrlKey) parts.push('Ctrl');
   if (event.altKey) parts.push('Alt');
   if (event.shiftKey) parts.push('Shift');
-  if (event.metaKey) parts.push('Super');
+  if (event.metaKey) parts.push(mac ? 'Cmd' : 'Super');
   parts.push(key);
   return parts.join('+');
 }
 
-/** How an accelerator reads on screen: Windows calls Super "Win". */
-export function displayAccelerator(accelerator: string): string {
-  return accelerator
-    .split('+')
-    .map((part) => (part === 'Super' ? 'Win' : part))
-    .join('+');
+/** Mac modifier glyphs, in the order macOS menus list them. */
+const MAC_MODIFIERS: ReadonlyArray<readonly [glyph: string, names: readonly string[]]> = [
+  ['⌃', ['Ctrl', 'Control']],
+  ['⌥', ['Alt', 'Option']],
+  ['⇧', ['Shift']],
+  ['⌘', ['Cmd', 'Command', 'Super', 'Meta']],
+];
+
+/** Keys macOS menus draw as symbols. */
+const MAC_KEYS: Readonly<Record<string, string>> = {
+  Up: '↑',
+  Down: '↓',
+  Left: '←',
+  Right: '→',
+  Enter: '↩',
+};
+
+/**
+ * How an accelerator reads on screen. Windows calls Super "Win"; a Mac shows
+ * glyphs without separators (`⌥⌘K`), modifiers in menu order whatever order
+ * they were stored in.
+ */
+export function displayAccelerator(accelerator: string, mac = false): string {
+  const parts = accelerator.split('+');
+  if (!mac) return parts.map((part) => (part === 'Super' ? 'Win' : part)).join('+');
+  const key = parts.at(-1) ?? '';
+  const mods = new Set(parts.slice(0, -1));
+  const glyphs = MAC_MODIFIERS.filter(([, names]) => names.some((n) => mods.has(n))).map(
+    ([glyph]) => glyph,
+  );
+  return glyphs.join('') + (MAC_KEYS[key] ?? key);
 }
