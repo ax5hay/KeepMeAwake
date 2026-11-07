@@ -6,7 +6,7 @@
  * helpers in format.ts.
  */
 import { api, type Api } from './api';
-import { progress, remainingSecs, statusText } from './format';
+import { progress, remainingSecs, statusText, toggleWhisper } from './format';
 import type { PlanRequest, Settings, Snapshot } from './types';
 
 export type View = 'home' | 'settings';
@@ -82,8 +82,13 @@ export class AppStore {
     await this.#call(() => this.#api.setPlan(request));
   }
 
+  /** What the sun does; the engine decides, the whisper says what it chose. */
   async toggle(): Promise<void> {
+    const before = this.snapshot;
     await this.#call(() => this.#api.toggle());
+    const after = this.snapshot;
+    const whisper = before && after ? toggleWhisper(before, after) : null;
+    if (whisper) this.say(whisper);
   }
 
   async updateSettings(patch: Partial<Settings>): Promise<void> {
@@ -112,7 +117,9 @@ export class AppStore {
   }
 
   #syncTicker = (): void => {
-    const needsClock = this.snapshot?.mode === 'timed' && document.visibilityState === 'visible';
+    const mode = this.snapshot?.mode;
+    const counting = mode === 'timed' || mode === 'scheduled';
+    const needsClock = counting && document.visibilityState === 'visible';
     if (needsClock && this.#ticker === undefined) {
       this.#ticker = setInterval(() => (this.now = Date.now()), 1000);
     } else if (!needsClock) {
