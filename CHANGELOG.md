@@ -5,6 +5,15 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+
+- Session history: Settings → History lists the last 30 times the sun was
+  up, newest first, with the span, the length and how each ended (you,
+  timer, schedule, battery, or sleep when the machine slept or the app was
+  killed while it was up), and the pauses inside each. Clear history
+  empties it. Kept in `history.json` beside the settings, at most 200
+  entries.
+
 ## [0.2.0] - 2026-11-07
 
 The first published release, as a pre-release: Windows, and the first macOS

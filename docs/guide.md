@@ -133,10 +133,37 @@ dark menu bar itself. Nothing to set.
 |               | Battery pauses and resumes | when the battery rule pauses the sun, and when the charger brings it back |
 |               | Schedule starts and ends   | when a schedule window opens or closes                                    |
 | Hotkey        | Hotkey                     | `Ctrl+Alt+K` by default. Change records a new one; Off removes it         |
+| History       |                            | the last 30 times the sun was up; see below                               |
 | Tips          |                            | the keyboard and tray table                                               |
 | About         |                            | version, how it works, author, Source, Quit                               |
 
 ![Settings → Schedule, Paper](assets/schedule-settings-light.png) ![Settings → Schedule, Night](assets/schedule-settings-dark.png)
+
+## History
+
+Settings → History answers "did it actually stay up?". Each row is one
+stretch with the sun up, newest first, at most 30 shown (200 are kept):
+
+| Column | Shows                                                            |
+| ------ | ---------------------------------------------------------------- |
+| day    | `Today`, `Yesterday`, else `Tue 3 Nov`                           |
+| span   | when it rose and set, in local time; `–` for an end it never had |
+| length | `2h 28m`, `9h`, `5m`                                             |
+| ended  | how it ended, or `now` while it runs                             |
+
+| Ended      | Means                                                                             |
+| ---------- | --------------------------------------------------------------------------------- |
+| `you`      | you set the sun: the sun, the rule, the tray or menu bar, the hotkey, or quitting |
+| `timer`    | a timed session ran out                                                           |
+| `schedule` | the schedule window it belonged to closed                                         |
+| `battery`  | it was paused for the battery and never resumed before it ended                   |
+| `sleep`    | it never ended cleanly: the machine slept or shut down, or the app was killed     |
+
+Pauses show as a thin inset line under their row:
+`paused 12:10 pm – 12:40 pm · battery`. Changing the plan mid-stretch (from
+Always to 2h, say) is the same row. **Clear history** empties it at once, with
+no confirmation: it is a log, not data. It lives in `history.json` beside the
+settings and is read only when Settings opens.
 
 ## Notifications
 

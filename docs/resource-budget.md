@@ -18,6 +18,11 @@
 | Fonts                          | ≤ 160 KB            | 149 KB                                | 149 KB                                     | one family, two files, latin subset                              |
 | Cold open of the window        | ≤ 400 ms            | under 1 s                             | 0.86 s from a cold launch                  | webview spin-up + first paint                                    |
 
+0.3's session history adds one small file write as each stretch starts and
+ends (`history.json`, at most 200 entries, a few tens of KB) and nothing at
+idle: it is written from the engine's existing events, and read only when
+Settings opens.
+
 0.2 adds `chrono` (schedule arithmetic), `tauri-plugin-notification` and
 `tauri-plugin-global-shortcut`: together +0.4 MB on the exe and nothing at
 idle. The taskbar watch is one thread blocked in `RegNotifyChangeKeyValue`

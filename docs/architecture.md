@@ -117,7 +117,8 @@ flowchart TD
     sched --> bat["battery.read()"]
     bat --> decide["policy::decide(active, settings, battery)<br/>→ guards to hold, pause reason"]
     decide --> apply["guard.apply(desired)<br/>idempotent"]
-    apply --> snap["build Snapshot"]
+    apply --> sun["sun up or down since last step?<br/>emit SessionStarted / SessionEnded"]
+    sun --> snap["build Snapshot"]
     snap --> emit["deliver events to listeners<br/><i>lock released</i>"]
     emit --> next{"next deadline?"}
     next -->|"session end, battery poll in 30 s<br/>or schedule boundary (≤ 5 min)"| waitUntil["condvar.wait_until(deadline)"]
@@ -150,14 +151,26 @@ The policy, as a table:
 If the OS refuses the request the snapshot says `PowerRequestFailed` rather
 than pretending.
 
+The engine also reports each stretch with the sun up exactly once:
+`SessionStarted { mode, paused, at_unix_ms }` when it rises and
+`SessionEnded { ended, at_unix_ms }` when it sets, including on quit. A
+`State::awake` flag holds what was last reported, so a startup plan or a
+window already open at launch is reported too. `Ended` is `Timer`, `Schedule`
+or `User`, or `Battery` if the stretch was still paused for the battery as it
+ended.
+
 ### app
 
 `app/mod.rs` builds the Tauri app. Plugins in order: single-instance (must be
 first), autostart (passes `--hidden`), opener, notification, global-shortcut,
-log. `setup` loads settings, starts the engine, creates the tray, registers
-the hotkey (`app/hotkey.rs`), subscribes a listener that refreshes the tray,
-emits `snapshot` to the window and hands the other events to `app/notify.rs`
-for toasts, and opens the window unless launched hidden.
+log. `setup` loads settings and the session log (marking an entry left open by
+the last run as `sleep`), starts the engine with its listener already
+attached (`Engine::start_with`, so the first events are heard), creates the
+tray, registers the hotkey (`app/hotkey.rs`), and opens the window unless
+launched hidden. The listener writes session events to the log
+(`app/history.rs`, saved as each stretch starts and ends), refreshes the
+tray, emits `snapshot` to the window and hands the other events to
+`app/notify.rs` for toasts.
 `RunEvent::ExitRequested` with no exit code (the last window closed) is vetoed
 so the app lives in the tray.
 
@@ -187,6 +200,8 @@ sequenceDiagram
 | `resume_schedule` |                        | `Snapshot`                                                                              |
 | `update_settings` | `settings: Settings`   | `Snapshot`, or an error string if the file could not be saved or the hotkey was refused |
 | `quit_app`        |                        |                                                                                         |
+| `get_history`     |                        | `History`: the session log, oldest entry first                                          |
+| `clear_history`   |                        | `History` (empty), also written to disk                                                 |
 
 Field names are `snake_case` on both sides and cross the boundary untouched.
 `src/lib/types.ts` mirrors `core` one to one; a test on each side pins the
@@ -243,6 +258,7 @@ where it last was.
 | --------- | ------------------------------------------------------------ | ----------------------------------------------------------------------- |
 | Settings  | `%APPDATA%\dev.bajpai.keepmeawake\settings.json`             | `~/Library/Application Support/dev.bajpai.keepmeawake/settings.json`    |
 | Log       | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\keepmeawake.log` | `~/Library/Logs/dev.bajpai.keepmeawake/keepmeawake.log`                 |
+| History   | `%APPDATA%\dev.bajpai.keepmeawake\history.json`              | `~/Library/Application Support/dev.bajpai.keepmeawake/history.json`     |
 | Autostart | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`         | a LaunchAgent plist in `~/Library/LaunchAgents/`, written by the plugin |
 
 ---

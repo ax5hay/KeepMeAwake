@@ -42,11 +42,11 @@ timeline
 
 ## Next: 0.3
 
-| Feature                                     | Spec                                           | Layers                |
-| ------------------------------------------- | ---------------------------------------------- | --------------------- |
-| Auto-update, signed, once a day, opt-out    | [auto-update.md](specs/auto-update.md)         | app, ui, ci           |
-| Session history with how each session ended | [session-history.md](specs/session-history.md) | core, engine, app, ui |
-| Winget and Scoop                            | [winget-scoop.md](specs/winget-scoop.md)       | ci, docs              |
+| Feature                                                         | Spec                                           | Layers                |
+| --------------------------------------------------------------- | ---------------------------------------------- | --------------------- |
+| Auto-update, signed, once a day, opt-out                        | [auto-update.md](specs/auto-update.md)         | app, ui, ci           |
+| Session history with how each session ended (built, unreleased) | [session-history.md](specs/session-history.md) | core, engine, app, ui |
+| Winget and Scoop                                                | [winget-scoop.md](specs/winget-scoop.md)       | ci, docs              |
 
 macOS shipped in 0.2.0 as a pre-release, built on a Mac. The
 by-hand acceptance items that need a person at the Mac (menu bar click and
