@@ -16,6 +16,9 @@ Versions: [SemVer](https://semver.org).
   battery rule pauses or the charger resumes, and when a schedule window
   opens or closes. Each has its own switch in Settings → Notifications;
   nothing is shown while the window is focused.
+- Global hotkey: `Ctrl+Alt+K` toggles from any app, window open or not.
+  Record a different one or turn it off in Settings → Hotkey; a combination
+  another app owns is refused and the old one kept.
 
 ### Fixed
 

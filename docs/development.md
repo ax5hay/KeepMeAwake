@@ -111,14 +111,14 @@ meaning, bump `SETTINGS_VERSION` and migrate in `persistence.rs`.
 
 ```mermaid
 flowchart LR
-    subgraph rust["cargo test (106)"]
+    subgraph rust["cargo test (110)"]
         core_t["core<br/>transitions · expiry · serde shape · defaults ·<br/>schedule windows, overnight, DST"]
         engine_t["engine<br/>policy table · worker with fakes:<br/>apply/release · expiry events · battery pause/resume ·<br/>OS failure surfaced · shutdown"]
         platform_t["platform<br/>pure decoders · one real power-request round trip"]
         tray_t["tray · notify<br/>labels · tooltip · menu ids · icons decode ·<br/>toast text per event and switch"]
     end
-    subgraph ui["vitest (44)"]
-        fmt["format · sun · theme · copy<br/>pure helpers · DayPills"]
+    subgraph ui["vitest (54)"]
+        fmt["format · sun · theme · copy · hotkey<br/>pure helpers · DayPills"]
         store_t["store<br/>against a fake backend, fake timers"]
     end
 ```

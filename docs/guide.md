@@ -83,12 +83,13 @@ The hint under the battery row shows the live reading ("Plugged in · 100%").
 
 ## Keyboard
 
-| Keys     | Does                                   |
-| -------- | -------------------------------------- |
-| Space    | toggle awake / resting                 |
-| Esc      | back from settings, else close to tray |
-| Ctrl+,   | settings                               |
-| Tab / ←→ | move between stops and controls        |
+| Keys       | Does                                                                      |
+| ---------- | ------------------------------------------------------------------------- |
+| Space      | toggle awake / resting                                                    |
+| Ctrl+Alt+K | toggle from any app, window open or not (recordable in Settings → Hotkey) |
+| Esc        | back from settings, else close to tray                                    |
+| Ctrl+,     | settings                                                                  |
+| Tab / ←→   | move between stops and controls                                           |
 
 ## Tray
 
@@ -122,6 +123,7 @@ Icon states: sun above the line (awake), sun set (resting), bar across the sun
 | Notifications | When a timer ends          | a toast when a timed session sets on its own. On by default               |
 |               | Battery pauses and resumes | when the battery rule pauses the sun, and when the charger brings it back |
 |               | Schedule starts and ends   | when a schedule window opens or closes                                    |
+| Hotkey        | Hotkey                     | `Ctrl+Alt+K` by default. Change records a new one; Off removes it         |
 | Tips          |                            | the keyboard and tray table                                               |
 | About         |                            | version, how it works, author, Source, Quit                               |
 
@@ -146,6 +148,21 @@ schedule window took over, no schedule toasts while your own session hides
 the change.
 
 ![Settings → Notifications, Paper](assets/notifications-light.png) ![Settings → Notifications, Night](assets/notifications-dark.png)
+
+## Hotkey
+
+`Ctrl+Alt+K` does what the sun does, from any app, with the window open or
+closed: the tray icon changes and nothing opens. Settings → Hotkey shows the
+combination with **Change** and **Off**. Change listens for the next keys you
+press with at least one of Ctrl, Alt or Win (`Press keys…`), shows them as
+you hold them and saves when you let go; Esc cancels. If another app already
+owns the combination, the old one stays and the window says
+`That combination is already taken.`
+
+The hotkey is registered with Windows (`RegisterHotKey`), which only listens.
+Nothing is ever typed into other applications.
+
+![Settings → Hotkey, Paper](assets/hotkey-light.png) ![Settings → Hotkey, Night](assets/hotkey-dark.png)
 
 ## Where things are
 
