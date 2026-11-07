@@ -5,7 +5,16 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Changed
+
+- The settings button is a set of sliders rather than a gear, which read as
+  a second sun at title bar size.
+
 ### Added
+
+- Home ends with a quiet line of doors, `Schedule · History · Ctrl+Alt+K`,
+  each opening Settings at that section, so the features that never
+  announce themselves can be found from the main window.
 
 - Overnight guard: when an Always session has had no keyboard, mouse or
   trackpad input for 6 hours (Off, 4, 6 or 8 in Settings → Waking), the sun

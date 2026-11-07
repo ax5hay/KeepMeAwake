@@ -8,13 +8,14 @@ Everything the app can do, including the parts that are not labelled.
 flowchart TB
     subgraph Window["380 × 600, frameless"]
         direction TB
-        T["Title bar · wordmark · gear · minimise · close"]
+        T["Title bar · wordmark · settings · minimise · close"]
         S["Scene · sky, sun, horizon, ground"]
         ST["Status · Resting / Awake / Paused + one line of detail"]
         R["Rule · Always · 30m · 1h · 2h · 4h · 8h · Until…"]
         RW["Rows · Keep the screen on · Pause on low battery"]
+        D["Doors · Schedule · History · Ctrl+Alt+K"]
     end
-    T --> S --> ST --> R --> RW
+    T --> S --> ST --> R --> RW --> D
 ```
 
 ### Scene
@@ -112,6 +113,14 @@ stop carries a dot; while a custom time is set the last stop reads
 | Pause on low battery | below 20% the sun pauses; resumes on charger | battery level is ignored            |
 
 The hint under the battery row shows the live reading ("Plugged in · 100%").
+
+### Doors
+
+The line at the foot, `Schedule · History · Ctrl+Alt+K`, opens Settings at
+that section: the schedule, the log of when the sun was up, and the hotkey,
+which shows the combination it is set to (`Hotkey` when it is off; `⌥⌘K` on
+a Mac). The settings button in the title bar (the sliders) opens Settings
+where you left it. The line hides when the window is shorter than 560 px.
 
 ## Keyboard
 

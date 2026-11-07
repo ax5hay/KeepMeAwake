@@ -96,8 +96,16 @@ or dark menu bar. No colour, so the sun's amber stays in the window.
 4. **Rule**: durations as stops on a hairline. The active stop has a filled
    dot and a doubled tick. "Until…" opens an inline time field.
 5. **Rows**: the two switches people flip daily.
+6. **Doors**: one quiet line, `Schedule · History · Ctrl+Alt+K`, each opening
+   Settings at its section. They are for what never announces itself: the
+   schedule is off until set, history only records, and the hotkey shows
+   its own combination, so the line says it exists. The sunset warning and
+   the overnight guard speak up when they act and need no door. The line
+   gives way below 560 px of height, where the two rows need the room.
 
-Everything else is behind the gear, in a pane that slides in from the right
+Everything else is behind the settings button (sliders, not a gear: at
+16 px a gear is one more sun, in an app where the sun is the one accent and
+the switch), in a pane that slides in from the right
 and uses the same Row primitive with switches, a two-arrow stepper for lists
 and a segmented control for three-way choices. No dropdowns, no modals.
 
@@ -140,6 +148,8 @@ is harmless, discoverable by touching the scene, and never required.
 | ------------------------ | ----------------------------------------------------------------- |
 | Mica / acrylic window    | the scene paints its own sky; translucency fights it              |
 | a big primary button     | the sun is the button; a second one would make the sun decorative |
+| a gear for settings      | at 16 px its spokes read as a sun, the app's switch and its mark  |
+| a third row on Home      | no room at 340 × 520; the doors point into Settings instead       |
 | chips for durations      | a rule reads as an instrument and uses a quarter of the height    |
 | accent-coloured controls | one accent, used once                                             |
 | toasts in 0.1            | a sunset you can see is enough; on the roadmap behind a setting   |

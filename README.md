@@ -73,17 +73,18 @@ Or build it from source: see [Development](#development).
 The [field guide](docs/guide.md) covers every control, including the things
 that are not labelled. The short version:
 
-| Want to…                        | Do…                                        |
-| ------------------------------- | ------------------------------------------ |
-| keep the laptop awake           | click the sun, or press **Space**          |
-| for a fixed time                | pick a stop on the rule under the status   |
-| until a time of day             | pick **Until…** and type a time            |
-| let it sleep again              | click the sun again                        |
-| keep it up during working hours | Settings → **Schedule**                    |
-| toggle from another app         | **Ctrl+Alt+K** (**⌥⌘K** on a Mac)          |
-| get the window out of the way   | **Esc** or ×; the sun stays up in the tray |
-| do all of this without a window | right-click the sun in the tray            |
-| change defaults                 | gear, or **Ctrl+,** (**⌘,** on a Mac)      |
+| Want to…                        | Do…                                          |
+| ------------------------------- | -------------------------------------------- |
+| keep the laptop awake           | click the sun, or press **Space**            |
+| for a fixed time                | pick a stop on the rule under the status     |
+| until a time of day             | pick **Until…** and type a time              |
+| let it sleep again              | click the sun again                          |
+| keep it up during working hours | Settings → **Schedule**                      |
+| toggle from another app         | **Ctrl+Alt+K** (**⌥⌘K** on a Mac)            |
+| get the window out of the way   | **Esc** or ×; the sun stays up in the tray   |
+| do all of this without a window | right-click the sun in the tray              |
+| change defaults                 | the sliders, or **Ctrl+,** (**⌘,** on a Mac) |
+| see when it stayed up           | **History** at the foot of the window        |
 
 Settings live at `%APPDATA%\dev.bajpai.keepmeawake\settings.json`, logs at
 `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs`. On a Mac:
