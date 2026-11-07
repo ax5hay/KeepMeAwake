@@ -461,14 +461,24 @@ fn next_wake(st: &State, now: Instant, unix_now: u64) -> Option<Instant> {
         .boundary
         .map(|at| now + Duration::from_millis(at.saturating_sub(unix_now)));
     let usual = policy::next_deadline(&st.session, st.phase == Phase::Holding, boundary, now);
-    let warning = pending_warning(st).filter(|at| *at > now);
+    let warning = pending_warning(st, &view, now, unix_now).filter(|at| *at > now);
     [usual, warning].into_iter().flatten().min()
 }
 
-/// The moment the current timed session should warn, unless it already has.
-fn pending_warning(st: &State) -> Option<Instant> {
+/// The moment the current timed session should warn, unless it already has,
+/// or unless an open window outlasts it: then the sun does not set when the
+/// timer ends, and there is nothing to warn about.
+fn pending_warning(
+    st: &State,
+    view: &ScheduleView,
+    now: Instant,
+    unix_now: u64,
+) -> Option<Instant> {
     let at = policy::sunset_warning_at(&st.session, st.settings.sunset_warning_mins)?;
-    (st.warned_for != st.session.deadline()).then_some(at)
+    let deadline = st.session.deadline()?;
+    let ends = unix_now.saturating_add(millis(deadline.saturating_duration_since(now)));
+    let held_past_it = view.holds() && view.window.is_some_and(|(_, end)| end > ends);
+    (st.warned_for != Some(deadline) && !held_past_it).then_some(at)
 }
 
 /// One evaluation of the state machine. Separated from the thread so it can be
@@ -489,16 +499,7 @@ fn step(
     if expired {
         events.push(EngineEvent::TimerEnded { plan_secs });
     }
-    if let (Some(at), Some(deadline)) = (pending_warning(st), st.session.deadline())
-        && now >= at
-    {
-        st.warned_for = Some(deadline);
-        let left = deadline.saturating_duration_since(now);
-        events.push(EngineEvent::SunsetSoon {
-            ends_at_unix_ms: unix_now.saturating_add(millis(left)),
-            secs_left: millis(left).div_ceil(1000),
-        });
-    }
+
     if st.skip_until.is_some_and(|until| unix_now >= until) {
         st.skip_until = None;
     }
@@ -517,6 +518,18 @@ fn step(
     }
     let window_closed = st.phase == Phase::Holding && view.phase() == Phase::Closed;
     st.phase = view.phase();
+    if let (Some(at), Some(deadline)) = (
+        pending_warning(st, &view, now, unix_now),
+        st.session.deadline(),
+    ) && now >= at
+    {
+        st.warned_for = Some(deadline);
+        let left = deadline.saturating_duration_since(now);
+        events.push(EngineEvent::SunsetSoon {
+            ends_at_unix_ms: unix_now.saturating_add(millis(left)),
+            secs_left: millis(left).div_ceil(1000),
+        });
+    }
     let active = st.session.is_active() || st.phase == Phase::Holding;
 
     st.battery = battery.read();
@@ -877,11 +890,16 @@ mod tests {
         }
     }
 
-    /// Waits for a snapshot that `pred` accepts: proof the worker has
-    /// evaluated the state the test just set up, so a check that nothing
-    /// happened afterwards means something.
-    fn wait_for_snapshot(rig: &Rig, pred: impl Fn(&Snapshot) -> bool) -> Vec<EngineEvent> {
-        events_until(rig, |e| matches!(e, EngineEvent::Snapshot(s) if pred(s)))
+    /// Everything up to and including the step whose snapshot `pred`
+    /// accepts: proof the worker evaluated the state the test set up, so a
+    /// check that nothing happened there means something. A step sends its
+    /// snapshot first and its other events after, so the engine is shut
+    /// down (which joins the worker, delivering the rest) and drained.
+    fn settled(rig: &Rig, pred: impl Fn(&Snapshot) -> bool) -> Vec<EngineEvent> {
+        let mut events = events_until(rig, |e| matches!(e, EngineEvent::Snapshot(s) if pred(s)));
+        rig.engine.shutdown();
+        events.extend(drain(rig));
+        events
     }
 
     fn is_sunset(event: &EngineEvent) -> bool {
@@ -912,9 +930,7 @@ mod tests {
         );
         r.clock.advance(Duration::from_secs(60));
         r.engine.refresh();
-        let mut after = wait_for_snapshot(&r, |s| s.remaining_secs == Some(240));
-        r.engine.shutdown();
-        after.extend(drain(&r));
+        let after = settled(&r, |s| s.remaining_secs == Some(240));
         assert_eq!(sunsets(&after), 0, "once per deadline");
     }
 
@@ -925,7 +941,7 @@ mod tests {
         wait_for_guard(&r, |g| g.system);
         r.clock.advance(Duration::from_secs(60));
         r.engine.refresh();
-        let events = wait_for_snapshot(&r, |s| s.remaining_secs == Some(60));
+        let events = settled(&r, |s| s.remaining_secs == Some(60));
         assert_eq!(sunsets(&events), 0);
     }
 
@@ -939,7 +955,7 @@ mod tests {
         wait_for_guard(&r, |g| g.system);
         r.clock.advance(Duration::from_secs(400));
         r.engine.refresh();
-        let events = wait_for_snapshot(&r, |s| s.remaining_secs == Some(200));
+        let events = settled(&r, |s| s.remaining_secs == Some(200));
         assert_eq!(sunsets(&events), 0);
     }
 
@@ -983,8 +999,38 @@ mod tests {
         wait_for_guard(&w, |g| g.system);
         w.clock.advance(Duration::from_secs(8 * 60));
         w.engine.refresh();
-        let events = wait_for_snapshot(&w, |s| s.remaining_secs == Some(120));
+        let events = settled(&w, |s| s.remaining_secs == Some(120));
         assert_eq!(sunsets(&events), 0);
+    }
+
+    #[test]
+    fn a_timer_inside_a_window_that_outlasts_it_never_warns() {
+        // 12:00 inside a 9-18 window: the timer ends at 12:10 but the window
+        // keeps the sun up, so there is no sunset to warn about.
+        let r = rig_at(with_schedule(), 2, 12, 0);
+        wait_for_guard(&r, |g| g.system);
+        r.engine.set_plan(PlanRequest::For { seconds: 600 });
+        r.clock.advance(Duration::from_secs(300));
+        r.engine.refresh();
+        let events = settled(&r, |s| s.remaining_secs == Some(300));
+        assert_eq!(sunsets(&events), 0);
+    }
+
+    #[test]
+    fn a_timer_that_outlasts_the_window_still_warns() {
+        // 17:50, a 20-minute timer: it ends at 18:10, after the window.
+        let r = rig_at(with_schedule(), 2, 17, 50);
+        wait_for_guard(&r, |g| g.system);
+        r.engine.set_plan(PlanRequest::For { seconds: 1200 });
+        r.clock.advance(Duration::from_secs(900));
+        r.engine.refresh();
+        assert_eq!(
+            events_until(&r, is_sunset).last(),
+            Some(&EngineEvent::SunsetSoon {
+                ends_at_unix_ms: local_ms(2, 18, 10),
+                secs_left: 300,
+            })
+        );
     }
 
     #[test]

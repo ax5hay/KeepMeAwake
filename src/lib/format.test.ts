@@ -298,6 +298,24 @@ describe('sunsetSoon', () => {
     expect(sunsetSoon({ ...timed, mode: 'scheduled' }, at(60))).toBe(false);
   });
 
+  it('never while an open window outlasts the timer', () => {
+    const held = {
+      ...timed,
+      schedule: {
+        ...timed.schedule,
+        enabled: true,
+        in_window: true,
+        window_end_unix_ms: ends + 3_600_000,
+      },
+    };
+    expect(sunsetSoon(held, at(60))).toBe(false);
+    expect(sunsetSoon({ ...held, schedule: { ...held.schedule, skipped: true } }, at(60))).toBe(
+      true,
+    );
+    const shortWindow = { ...held, schedule: { ...held.schedule, window_end_unix_ms: ends - 1 } };
+    expect(sunsetSoon(shortWindow, at(60))).toBe(true);
+  });
+
   it('turns the status line to the sunset', () => {
     expect(statusText(timed, at(299), 'en-US')).toEqual({
       title: 'Awake',

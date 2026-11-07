@@ -210,7 +210,22 @@ fn extend_label(snapshot: &Snapshot) -> Option<&'static str> {
     let inside = snapshot.mode == Mode::Timed
         && snapshot.remaining_secs? <= warning
         && snapshot.plan_secs? > warning;
-    inside.then_some(EXTEND_LABEL)
+    inside
+        .then_some(EXTEND_LABEL)
+        .filter(|_| !window_outlasts_timer(snapshot))
+}
+
+/// An open, unskipped schedule window ends after the timer, so the sun stays
+/// up when the timer runs out: no sunset to warn about.
+fn window_outlasts_timer(snapshot: &Snapshot) -> bool {
+    let schedule = &snapshot.schedule;
+    schedule.enabled
+        && schedule.in_window
+        && !schedule.skipped
+        && matches!(
+            (schedule.window_end_unix_ms, snapshot.ends_at_unix_ms),
+            (Some(window), Some(timer)) if window > timer
+        )
 }
 
 /// The schedule item under the toggle, shown only while a window is open.
@@ -508,6 +523,20 @@ mod tests {
         off.settings.sunset_warning_mins = None;
         assert_eq!(extend_label(&off), None, "warning off");
         assert_eq!(extend_label(&snap(Mode::Indefinite, None, None)), None);
+
+        // A window that outlasts the timer keeps the sun up: no sunset.
+        let mut held = snap(Mode::Timed, Some(300), None);
+        held.plan_secs = Some(600);
+        held.ends_at_unix_ms = Some(1_000_000);
+        held.schedule = ScheduleState {
+            enabled: true,
+            in_window: true,
+            window_end_unix_ms: Some(2_000_000),
+            ..ScheduleState::default()
+        };
+        assert_eq!(extend_label(&held), None);
+        held.schedule.skipped = true;
+        assert_eq!(extend_label(&held), Some("Give it another 30m"), "skipped");
     }
 
     #[test]

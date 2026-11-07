@@ -82,7 +82,12 @@ export function sunsetSoon(snapshot: Snapshot, nowMs: number): boolean {
   const left = remainingSecs(snapshot, nowMs);
   if (snapshot.mode !== 'timed' || mins === null || left === null) return false;
   const warning = mins * 60;
-  return left > 0 && left <= warning && (snapshot.plan_secs ?? 0) > warning;
+  if (left <= 0 || left > warning || (snapshot.plan_secs ?? 0) <= warning) return false;
+  // An open window that outlasts the timer keeps the sun up: no sunset.
+  const { schedule } = snapshot;
+  const windowEnd = schedule.window_end_unix_ms;
+  const held = schedule.enabled && schedule.in_window && !schedule.skipped && windowEnd !== null;
+  return !(held && snapshot.ends_at_unix_ms !== null && windowEnd > snapshot.ends_at_unix_ms);
 }
 
 /** Why the sun is paused, as the end of a sentence. */

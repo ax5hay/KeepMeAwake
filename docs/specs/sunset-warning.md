@@ -30,6 +30,9 @@ Rules:
 - Only when the plan is longer than the warning: a 2-minute timer with a
   5-minute warning never warns.
 - One warning per deadline. Extending, or choosing a new stop, re-arms it.
+- Not while an open, unskipped schedule window outlasts the timer: the sun
+  stays up when the timer ends, so there is no sunset to warn about (the
+  timer's own end toast stays quiet then too).
 - The toast follows the existing **When a timer ends** switch (it is about
   the same timer); the status line and the action do not, they are in the
   window you are looking at.

@@ -53,8 +53,10 @@ Settings → Waking → **Warn before sunset**: Off · 2m · 5m · 10m), the lin
 turns to `The sun sets in 5 minutes.` and ends with a link, **Give it another
 30m**, which moves the end 30 minutes later; the warning comes again before
 the new end. The tray (the menu bar on a Mac) has the same item, and a toast
-says it if the window is closed. Only timed sessions, and only when the timer
-is longer than the warning: a 2-minute timer never warns.
+says it if the window is closed. Only timed sessions, only when the timer
+is longer than the warning (a 2-minute timer never warns), and not while a
+schedule window that lasts longer than the timer is open, since the sun
+stays up when the timer ends.
 
 ### Schedule
 
