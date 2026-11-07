@@ -332,7 +332,14 @@ impl Engine {
 
     fn mutate(&self, f: impl FnOnce(&mut State)) -> Snapshot {
         let mut st = self.shared.state.lock();
+        let started = st.session.started_at();
         f(&mut st);
+        // A session that began or ended here takes no question with it: an
+        // Off and an Always landing before the worker looks again must not
+        // hand the new session the old one's deadline.
+        if st.session.started_at() != started {
+            st.guard_rests_at = None;
+        }
         st.dirty = true;
         // Wake the worker so it applies the change on its own thread.
         self.shared.wake.notify_all();
@@ -1349,37 +1356,65 @@ mod tests {
         assert_eq!(r.engine.keep_it_up().mode, Mode::Timed);
     }
 
+    /// Leaves `r` untouched for hours, looks, then looks again past a whole
+    /// grace. Returns the mode it is still in and every event, so a guard
+    /// that asked (even one the snapshot hides) or ended anything shows.
+    fn untouched_past_a_grace(r: &Rig) -> (Mode, Vec<EngineEvent>) {
+        r.idle.set(Some(7 * HOUR));
+        let (_, mut seen) = look(r, 50);
+        r.clock.advance(Duration::from_secs(11 * 60));
+        r.idle.set(Some(7 * HOUR + Duration::from_secs(11 * 60)));
+        let (snap, events) = look(r, 51);
+        seen.extend(events);
+        r.engine.shutdown();
+        seen.extend(drain(r));
+        (snap.mode, seen)
+    }
+
     #[test]
     fn never_asks_for_a_timer_a_window_the_guard_off_or_no_reading() {
         let timed = rig(Settings::default());
         timed
             .engine
             .set_plan(PlanRequest::For { seconds: 8 * 3600 });
-        timed.idle.set(Some(7 * HOUR));
-        assert_eq!(look(&timed, 50).0.guard_rests_at_unix_ms, None, "timed");
+        let (mode, events) = untouched_past_a_grace(&timed);
+        assert_eq!(mode, Mode::Timed, "a timer is never let go");
+        assert!(!events.iter().any(is_ask), "timed: {events:?}");
 
         let window = rig_at(with_schedule(), 2, 10, 0);
-        window.idle.set(Some(7 * HOUR));
-        let (snap, _) = look(&window, 50);
-        assert_eq!(snap.mode, Mode::Scheduled);
-        assert_eq!(snap.guard_rests_at_unix_ms, None, "scheduled");
+        let (mode, events) = untouched_past_a_grace(&window);
+        assert_eq!(mode, Mode::Scheduled, "a window is never let go");
+        assert!(!events.iter().any(is_ask), "scheduled: {events:?}");
 
         let off = rig(Settings {
             overnight_guard_hours: None,
             ..Settings::default()
         });
         off.engine.set_plan(PlanRequest::Indefinite);
-        off.idle.set(Some(7 * HOUR));
-        assert_eq!(look(&off, 50).0.guard_rests_at_unix_ms, None, "guard off");
+        let (mode, events) = untouched_past_a_grace(&off);
+        assert_eq!(mode, Mode::Indefinite, "guard off");
+        assert!(!events.iter().any(is_ask), "guard off: {events:?}");
 
         let unknown = rig(Settings::default());
         unknown.engine.set_plan(PlanRequest::Indefinite);
         unknown.idle.set(None);
-        assert_eq!(
-            look(&unknown, 50).0.guard_rests_at_unix_ms,
-            None,
-            "no reading"
-        );
+        let (_, mut seen) = look(&unknown, 50);
+        unknown.clock.advance(Duration::from_secs(11 * 60));
+        let (snap, events) = look(&unknown, 51);
+        seen.extend(events);
+        assert_eq!(snap.mode, Mode::Indefinite, "no reading");
+        assert!(!seen.iter().any(is_ask), "no reading: {seen:?}");
+    }
+
+    #[test]
+    fn a_new_session_never_inherits_the_last_ones_question() {
+        let r = rig(Settings::default());
+        asked(&r);
+        // Off and Always back to back, before the worker need look again.
+        r.engine.set_plan(PlanRequest::Off);
+        r.clock.advance(Duration::from_secs(1));
+        let snap = r.engine.set_plan(PlanRequest::Indefinite);
+        assert_eq!(snap.guard_rests_at_unix_ms, None);
     }
 
     #[test]
