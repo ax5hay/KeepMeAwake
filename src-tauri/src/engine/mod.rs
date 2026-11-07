@@ -20,7 +20,7 @@ use crate::core::{
     BatteryState, GuardState, Mode, PauseReason, PlanRequest, Schedule, ScheduleState, Session,
     SessionEvent, Settings, Snapshot,
 };
-use crate::platform::{BatteryProbe, Clock, PowerGuard};
+use crate::platform::{BatteryProbe, Clock, IdleProbe, PowerGuard};
 
 /// Something the app shell may want to react to.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,6 +69,15 @@ pub enum EngineEvent {
         /// Seconds left, rounded up.
         secs_left: u64,
     },
+    /// An Always session has had no input for the overnight guard's time:
+    /// the guard asks, once, whether anyone is there. Sent once per
+    /// question; a later input withdraws it silently.
+    OvernightAsk {
+        /// How long since the last input, in seconds.
+        idle_secs: u64,
+        /// When the session ends unless someone answers, Unix ms.
+        rests_at_unix_ms: u64,
+    },
     /// The sun set: nothing wants the laptop awake any more, or the app is
     /// quitting while something did.
     SessionEnded {
@@ -92,6 +101,8 @@ pub struct Platform {
     pub guard: Box<dyn PowerGuard>,
     /// Reads battery state.
     pub battery: Box<dyn BatteryProbe>,
+    /// Reads how long since the last input, for the overnight guard.
+    pub idle: Box<dyn IdleProbe>,
     /// Time source.
     pub clock: Arc<dyn Clock + Sync>,
 }
@@ -126,6 +137,12 @@ struct State {
     /// The deadline the last sunset warning was for, so each deadline warns
     /// once and an extended one warns again.
     warned_for: Option<Instant>,
+    /// While the overnight guard is asking: when the session ends unless
+    /// someone answers, Unix ms.
+    guard_rests_at: Option<u64>,
+    /// The start of the session someone said Keep it up for; the guard
+    /// leaves that session alone.
+    guard_dismissed_for: Option<Instant>,
     shutdown: bool,
 }
 
@@ -161,6 +178,7 @@ impl Engine {
         let Platform {
             guard,
             battery,
+            idle,
             clock,
         } = platform;
         // Launching inside a window is not the window opening: no event.
@@ -178,6 +196,8 @@ impl Engine {
                 awake: false,
                 due_end_unix: None,
                 warned_for: None,
+                guard_rests_at: None,
+                guard_dismissed_for: None,
                 shutdown: false,
             }),
             wake: Condvar::new(),
@@ -189,7 +209,7 @@ impl Engine {
             let shared = Arc::clone(&shared);
             thread::Builder::new()
                 .name("keepmeawake-engine".into())
-                .spawn(move || run_loop(&shared, guard, battery.as_ref()))
+                .spawn(move || run_loop(&shared, guard, battery.as_ref(), idle.as_ref()))
                 .ok()
         };
         Self {
@@ -261,6 +281,18 @@ impl Engine {
     pub fn extend(&self, by: Duration) -> Snapshot {
         self.mutate(|st| {
             st.session.extend(by);
+        })
+    }
+
+    /// Answers the overnight guard: someone is here. It withdraws its
+    /// question and leaves the current Always session alone until it ends.
+    /// Does nothing without an Always session.
+    pub fn keep_it_up(&self) -> Snapshot {
+        self.mutate(|st| {
+            if st.session.mode() == Mode::Indefinite {
+                st.guard_dismissed_for = st.session.started_at();
+                st.guard_rests_at = None;
+            }
         })
     }
 
@@ -396,7 +428,12 @@ fn unix_ms(at: &DateTime<Local>) -> u64 {
     u64::try_from(at.timestamp_millis()).unwrap_or(0)
 }
 
-fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn BatteryProbe) {
+fn run_loop(
+    shared: &Arc<Shared>,
+    mut guard: Box<dyn PowerGuard>,
+    battery: &dyn BatteryProbe,
+    idle: &dyn IdleProbe,
+) {
     let mut st = shared.state.lock();
     loop {
         if st.shutdown {
@@ -416,7 +453,8 @@ fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn 
         st.dirty = false;
         let now = shared.clock.now();
         let unix_now = shared.clock.unix_ms();
-        let events = step(&mut st, guard.as_mut(), battery, now, unix_now, shared);
+        let probes = Probes { battery, idle };
+        let events = step(&mut st, guard.as_mut(), probes, now, unix_now, shared);
         let deadline = next_wake(&st, now, unix_now);
 
         // Deliver events without holding the lock: listeners may call back.
@@ -462,7 +500,69 @@ fn next_wake(st: &State, now: Instant, unix_now: u64) -> Option<Instant> {
         .map(|at| now + Duration::from_millis(at.saturating_sub(unix_now)));
     let usual = policy::next_deadline(&st.session, st.phase == Phase::Holding, boundary, now);
     let warning = pending_warning(st, &view, now, unix_now).filter(|at| *at > now);
-    [usual, warning].into_iter().flatten().min()
+    let guard = st
+        .guard_rests_at
+        .map(|at| now + Duration::from_millis(at.saturating_sub(unix_now)));
+    [usual, warning, guard].into_iter().flatten().min()
+}
+
+/// What the worker reads from the machine on each step.
+#[derive(Clone, Copy)]
+struct Probes<'a> {
+    battery: &'a dyn BatteryProbe,
+    idle: &'a dyn IdleProbe,
+}
+
+/// The overnight guard, for one step. While an Always session runs, the
+/// guard is on and nobody said Keep it up for this session, it reads how
+/// long since the last input: at the guard's time it asks (once), below it
+/// any question is withdrawn, and a question left unanswered past its
+/// grace ends the session. Returns when the session rested, Unix ms, if
+/// this step ended it.
+fn overnight_guard(
+    st: &mut State,
+    idle: &dyn IdleProbe,
+    now: Instant,
+    unix_now: u64,
+    events: &mut Vec<EngineEvent>,
+) -> Option<u64> {
+    let watching =
+        st.session.mode() == Mode::Indefinite && st.guard_dismissed_for != st.session.started_at();
+    let limit = st
+        .settings
+        .overnight_guard_hours
+        .filter(|_| watching)
+        .map(|hours| Duration::from_secs(u64::from(hours) * 3600));
+    // Read only while it can matter. No reading means nobody can say, and
+    // the guard never acts on that.
+    let reading = limit.and_then(|_| idle.idle());
+    let (Some(limit), Some(idle)) = (limit, reading) else {
+        st.guard_rests_at = None;
+        return None;
+    };
+    if idle < limit {
+        // Someone is here, or has been recently: the clock starts again
+        // from their last input.
+        st.guard_rests_at = None;
+        return None;
+    }
+    match st.guard_rests_at {
+        None => {
+            let rests_at = unix_now.saturating_add(millis(policy::GUARD_GRACE));
+            st.guard_rests_at = Some(rests_at);
+            events.push(EngineEvent::OvernightAsk {
+                idle_secs: idle.as_secs(),
+                rests_at_unix_ms: rests_at,
+            });
+            None
+        }
+        Some(rests_at) if unix_now >= rests_at => {
+            st.guard_rests_at = None;
+            st.session.apply(PlanRequest::Off, now);
+            Some(rests_at)
+        }
+        Some(_) => None,
+    }
 }
 
 /// The moment the current timed session should warn, unless it already has,
@@ -486,7 +586,7 @@ fn pending_warning(
 fn step(
     st: &mut State,
     guard: &mut dyn PowerGuard,
-    battery: &dyn BatteryProbe,
+    probes: Probes<'_>,
     now: Instant,
     unix_now: u64,
     shared: &Shared,
@@ -530,9 +630,10 @@ fn step(
             secs_left: millis(left).div_ceil(1000),
         });
     }
+    let rested = overnight_guard(st, probes.idle, now, unix_now, &mut events);
     let active = st.session.is_active() || st.phase == Phase::Holding;
 
-    st.battery = battery.read();
+    st.battery = probes.battery.read();
     let (desired, paused) = policy::decide(active, &st.settings, st.battery);
     let previously_paused = st.paused;
     match guard.apply(desired) {
@@ -561,25 +662,16 @@ fn step(
             paused: st.paused,
             at_unix_ms: unix_now,
         }),
-        (true, false) => {
-            let cause = if expired {
-                Ended::Timer
-            } else if window_closed {
-                Ended::Schedule
-            } else {
-                Ended::User
-            };
-            // Ran out on its own: it ended when it was due, even if the
-            // machine slept through that and the worker is only now awake.
-            let at_unix_ms = match cause {
-                Ended::Timer | Ended::Schedule => was_due.map_or(unix_now, |due| due.min(unix_now)),
-                _ => unix_now,
-            };
-            events.push(EngineEvent::SessionEnded {
-                ended: ended_by(previously_paused, cause),
-                at_unix_ms,
-            });
-        }
+        (true, false) => events.push(sunset(
+            Sunset {
+                rested,
+                expired,
+                window_closed,
+                was_due,
+                previously_paused,
+            },
+            unix_now,
+        )),
         _ => {}
     }
     st.awake = active;
@@ -592,6 +684,48 @@ fn step(
     };
     events.insert(0, EngineEvent::Snapshot(build_snapshot(st, shared)));
     events
+}
+
+/// What one step knows about a stretch that just ended.
+#[derive(Debug, Clone, Copy)]
+struct Sunset {
+    /// The overnight guard let it go, due at this moment (Unix ms).
+    rested: Option<u64>,
+    /// A timed session ran out.
+    expired: bool,
+    /// The schedule window holding it closed.
+    window_closed: bool,
+    /// When it was due to end on its own, as of the step before (Unix ms).
+    was_due: Option<u64>,
+    /// Why it was paused at the step before, if it was.
+    previously_paused: Option<PauseReason>,
+}
+
+/// The `SessionEnded` for a stretch that just ended: why, and when.
+fn sunset(s: Sunset, unix_now: u64) -> EngineEvent {
+    let cause = if s.rested.is_some() {
+        Ended::Idle
+    } else if s.expired {
+        Ended::Timer
+    } else if s.window_closed {
+        Ended::Schedule
+    } else {
+        Ended::User
+    };
+    // Ran out on its own: it ended when it was due, even if the machine
+    // slept through that and the worker is only now awake.
+    let at_unix_ms = match cause {
+        Ended::Timer | Ended::Schedule => s.was_due.map_or(unix_now, |due| due.min(unix_now)),
+        Ended::Idle => s.rested.map_or(unix_now, |at| at.min(unix_now)),
+        _ => unix_now,
+    };
+    // The guard is what let it go, paused for the battery or not.
+    let ended = if cause == Ended::Idle {
+        Ended::Idle
+    } else {
+        ended_by(s.previously_paused, cause)
+    };
+    EngineEvent::SessionEnded { ended, at_unix_ms }
 }
 
 fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
@@ -615,7 +749,11 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
         paused: st.paused,
         battery: st.battery,
         schedule: view.state(st.settings.schedule.enabled),
-        guard_rests_at_unix_ms: None,
+        // Only while an Always session can still be let go; a command that
+        // just ended it is answered before the worker clears the question.
+        guard_rests_at_unix_ms: st
+            .guard_rests_at
+            .filter(|_| st.session.mode() == Mode::Indefinite),
         settings: st.settings.clone(),
         app_version: shared.app_version.clone(),
     };
@@ -641,12 +779,13 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
-    use crate::platform::fakes::{FakeBattery, FakePowerGuard, ManualClock};
+    use crate::platform::fakes::{FakeBattery, FakeIdle, FakePowerGuard, ManualClock};
 
     struct Rig {
         engine: Engine,
         guard: FakePowerGuard,
         battery: FakeBattery,
+        idle: FakeIdle,
         clock: ManualClock,
         events: mpsc::Receiver<EngineEvent>,
     }
@@ -661,11 +800,15 @@ mod tests {
             on_ac: true,
             percent: Some(90),
         });
+        // Someone is at the keyboard unless a test says otherwise.
+        let idle = FakeIdle::default();
+        idle.set(Some(Duration::from_secs(1)));
         let (tx, rx) = mpsc::channel();
         let engine = Engine::start_with(
             Platform {
                 guard: Box::new(guard.clone()),
                 battery: Box::new(battery.clone()),
+                idle: Box::new(idle.clone()),
                 clock: Arc::new(clock.clone()),
             },
             settings,
@@ -678,6 +821,7 @@ mod tests {
             engine,
             guard,
             battery,
+            idle,
             clock,
             events: rx,
         }
@@ -1041,6 +1185,212 @@ mod tests {
         assert_eq!(
             r.engine.next_wake(),
             Some(r.clock.now() + Duration::from_secs(20))
+        );
+    }
+
+    const HOUR: Duration = Duration::from_secs(3600);
+    const GRACE_MS: u64 = 10 * 60 * 1000;
+
+    fn is_ask(event: &EngineEvent) -> bool {
+        matches!(event, EngineEvent::OvernightAsk { .. })
+    }
+
+    /// Makes the worker look again and returns the snapshot of the step
+    /// that did, with everything received up to it. The battery reading
+    /// carries `marker` as its percentage, so that step can be told apart
+    /// from earlier ones; the power source is left as the test set it.
+    fn look(r: &Rig, marker: u8) -> (Snapshot, Vec<EngineEvent>) {
+        let mut state = *r.battery.0.lock().unwrap();
+        state.percent = Some(marker);
+        r.battery.set(state);
+        r.engine.refresh();
+        let events = events_until(
+            r,
+            |e| matches!(e, EngineEvent::Snapshot(s) if s.battery.percent == Some(marker)),
+        );
+        match events.last() {
+            Some(EngineEvent::Snapshot(s)) => (s.clone(), events),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    /// Starts Always and leaves the machine untouched for six hours: the
+    /// guard asks. Returns when it said the session would rest.
+    fn asked(r: &Rig) -> u64 {
+        r.engine.set_plan(PlanRequest::Indefinite);
+        r.idle.set(Some(6 * HOUR));
+        let (snap, _) = look(r, 60);
+        snap.guard_rests_at_unix_ms.expect("the guard asks")
+    }
+
+    #[test]
+    fn asks_once_at_the_guards_time() {
+        let r = rig(Settings::default());
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::Indefinite);
+        r.idle.set(Some(Duration::from_secs(6 * 3600 - 1)));
+        let (snap, mut seen) = look(&r, 50);
+        assert_eq!(snap.guard_rests_at_unix_ms, None, "not yet");
+
+        r.idle.set(Some(6 * HOUR));
+        let (snap, events) = look(&r, 51);
+        seen.extend(events);
+        assert_eq!(snap.guard_rests_at_unix_ms, Some(t0 + GRACE_MS));
+
+        r.clock.advance(Duration::from_secs(60));
+        r.idle.set(Some(6 * HOUR + Duration::from_secs(60)));
+        let (snap, events) = look(&r, 52);
+        seen.extend(events);
+        assert_eq!(
+            snap.guard_rests_at_unix_ms,
+            Some(t0 + GRACE_MS),
+            "same question"
+        );
+        assert_eq!(snap.mode, Mode::Indefinite);
+
+        r.engine.shutdown();
+        seen.extend(drain(&r));
+        let asks: Vec<_> = seen.iter().filter(|e| is_ask(e)).collect();
+        assert_eq!(
+            asks,
+            vec![&EngineEvent::OvernightAsk {
+                idle_secs: 6 * 3600,
+                rests_at_unix_ms: t0 + GRACE_MS,
+            }],
+            "asked once"
+        );
+    }
+
+    #[test]
+    fn input_withdraws_the_question_and_the_clock_starts_again() {
+        let r = rig(Settings::default());
+        asked(&r);
+        r.idle.set(Some(Duration::from_secs(5)));
+        let (snap, _) = look(&r, 50);
+        assert_eq!(snap.guard_rests_at_unix_ms, None);
+        assert_eq!(snap.mode, Mode::Indefinite);
+
+        r.clock.advance(6 * HOUR);
+        r.idle.set(Some(6 * HOUR));
+        let (snap, _) = look(&r, 51);
+        assert_eq!(
+            snap.guard_rests_at_unix_ms,
+            Some(r.clock.unix_ms() + GRACE_MS),
+            "six hours after that input, it asks again"
+        );
+    }
+
+    #[test]
+    fn an_unanswered_question_ends_the_session_as_idle_when_it_was_due() {
+        let r = rig(Settings::default());
+        let rests_at = asked(&r);
+        // The worker looks again well after the grace ran out.
+        r.clock.advance(HOUR / 2);
+        r.idle.set(Some(6 * HOUR + HOUR / 2));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        assert_eq!(
+            sessions(&events_until(&r, is_ended)).last(),
+            Some(&ended(Ended::Idle, rests_at))
+        );
+        let snap = r.engine.snapshot();
+        assert_eq!(snap.mode, Mode::Off);
+        assert_eq!(snap.guard_rests_at_unix_ms, None);
+    }
+
+    #[test]
+    fn a_paused_session_let_go_by_the_guard_still_ends_as_idle() {
+        let r = rig(Settings::default());
+        r.battery.set(BatteryState {
+            on_ac: false,
+            percent: Some(10),
+        });
+        r.engine.set_plan(PlanRequest::Indefinite);
+        r.idle.set(Some(6 * HOUR));
+        let (snap, _) = look(&r, 11);
+        assert_eq!(snap.paused, Some(PauseReason::LowBattery));
+        let rests_at = snap
+            .guard_rests_at_unix_ms
+            .expect("paused sessions are guarded");
+        r.clock.advance(Duration::from_secs(10 * 60));
+        r.engine.refresh();
+        assert_eq!(
+            sessions(&events_until(&r, is_ended)).last(),
+            Some(&ended(Ended::Idle, rests_at))
+        );
+    }
+
+    #[test]
+    fn keep_it_up_leaves_this_session_alone_but_not_the_next() {
+        let r = rig(Settings::default());
+        asked(&r);
+        assert_eq!(r.engine.keep_it_up().guard_rests_at_unix_ms, None);
+        r.clock.advance(Duration::from_secs(10 * 60));
+        let (snap, _) = look(&r, 50);
+        assert_eq!(snap.guard_rests_at_unix_ms, None);
+        assert_eq!(snap.mode, Mode::Indefinite, "kept up past the grace");
+        r.clock.advance(6 * HOUR);
+        r.idle.set(Some(12 * HOUR));
+        let (snap, _) = look(&r, 51);
+        assert_eq!(snap.guard_rests_at_unix_ms, None, "never asks again");
+
+        r.engine.set_plan(PlanRequest::Off);
+        r.clock.advance(Duration::from_secs(1));
+        r.engine.set_plan(PlanRequest::Indefinite);
+        let (snap, _) = look(&r, 52);
+        assert!(snap.guard_rests_at_unix_ms.is_some(), "a new session asks");
+    }
+
+    #[test]
+    fn keep_it_up_without_an_always_session_does_nothing() {
+        let r = rig(Settings::default());
+        assert_eq!(r.engine.keep_it_up().mode, Mode::Off);
+        r.engine.set_plan(PlanRequest::For { seconds: 600 });
+        assert_eq!(r.engine.keep_it_up().mode, Mode::Timed);
+    }
+
+    #[test]
+    fn never_asks_for_a_timer_a_window_the_guard_off_or_no_reading() {
+        let timed = rig(Settings::default());
+        timed
+            .engine
+            .set_plan(PlanRequest::For { seconds: 8 * 3600 });
+        timed.idle.set(Some(7 * HOUR));
+        assert_eq!(look(&timed, 50).0.guard_rests_at_unix_ms, None, "timed");
+
+        let window = rig_at(with_schedule(), 2, 10, 0);
+        window.idle.set(Some(7 * HOUR));
+        let (snap, _) = look(&window, 50);
+        assert_eq!(snap.mode, Mode::Scheduled);
+        assert_eq!(snap.guard_rests_at_unix_ms, None, "scheduled");
+
+        let off = rig(Settings {
+            overnight_guard_hours: None,
+            ..Settings::default()
+        });
+        off.engine.set_plan(PlanRequest::Indefinite);
+        off.idle.set(Some(7 * HOUR));
+        assert_eq!(look(&off, 50).0.guard_rests_at_unix_ms, None, "guard off");
+
+        let unknown = rig(Settings::default());
+        unknown.engine.set_plan(PlanRequest::Indefinite);
+        unknown.idle.set(None);
+        assert_eq!(
+            look(&unknown, 50).0.guard_rests_at_unix_ms,
+            None,
+            "no reading"
+        );
+    }
+
+    #[test]
+    fn the_worker_wakes_for_the_end_of_the_grace() {
+        let r = rig(Settings::default());
+        asked(&r);
+        // Ten seconds before the grace runs out the poll (30 s) is later.
+        r.clock.advance(Duration::from_secs(10 * 60 - 10));
+        assert_eq!(
+            r.engine.next_wake(),
+            Some(r.clock.now() + Duration::from_secs(10))
         );
     }
 
@@ -1511,6 +1861,7 @@ mod tests {
                     on_ac: true,
                     percent: Some(90),
                 })),
+                idle: Box::new(FakeIdle::default()),
                 clock: Arc::new(ManualClock::new()),
             },
             Settings::default(),

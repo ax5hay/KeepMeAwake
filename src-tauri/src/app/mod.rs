@@ -191,6 +191,9 @@ fn on_engine_event(handle: &AppHandle, event: &EngineEvent) {
                 EngineEvent::SunsetSoon { secs_left, .. } => {
                     log::info!("the sun sets in {secs_left}s");
                 }
+                EngineEvent::OvernightAsk { idle_secs, .. } => {
+                    log::info!("no input for {idle_secs}s; asking before resting");
+                }
                 EngineEvent::Snapshot(_) => {}
             }
             notify::on_event(handle, other);
@@ -272,6 +275,7 @@ fn make_platform() -> Platform {
     Platform {
         guard,
         battery: Box::new(WindowsBattery),
+        idle: Box::new(crate::platform::NoIdle),
         clock: Arc::new(SystemClock),
     }
 }
@@ -291,16 +295,18 @@ fn make_platform() -> Platform {
     Platform {
         guard,
         battery: Box::new(MacBattery),
+        idle: Box::new(crate::platform::NoIdle),
         clock: Arc::new(SystemClock),
     }
 }
 
 #[cfg(not(any(windows, target_os = "macos")))]
 fn make_platform() -> Platform {
-    use crate::platform::{AlwaysOnMains, NullPowerGuard};
+    use crate::platform::{AlwaysOnMains, NoIdle, NullPowerGuard};
     Platform {
         guard: Box::new(NullPowerGuard),
         battery: Box::new(AlwaysOnMains),
+        idle: Box::new(NoIdle),
         clock: Arc::new(SystemClock),
     }
 }

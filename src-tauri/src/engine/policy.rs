@@ -42,6 +42,10 @@ pub fn decide(
     )
 }
 
+/// How long the overnight guard waits for an answer after it asks whether
+/// anyone is there, before it lets an unattended Always session go.
+pub const GUARD_GRACE: Duration = Duration::from_secs(10 * 60);
+
 /// Longest the engine sleeps while the schedule waits for its next window.
 /// Windows stops counting wait timeouts while the machine sleeps, so one
 /// long wait set at night could fire hours late after the lid opens in the
