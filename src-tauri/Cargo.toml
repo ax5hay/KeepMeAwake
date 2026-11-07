@@ -31,6 +31,9 @@ serde_json = "1"
 thiserror = "2"
 log = "0.4"
 parking_lot = "0.13"
+# Already built for Tauri; named here so the daily update check can run on
+# one thread of its own instead of waking a runtime worker per core.
+tokio = { version = "1", features = ["rt", "net", "time"] }
 tauri-plugin-updater = "2"
 
 [target.'cfg(windows)'.dependencies]

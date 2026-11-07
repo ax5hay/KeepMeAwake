@@ -113,7 +113,7 @@ pub fn start(app: &AppHandle) {
 /// window and the tray, and stamps the time so the next is a day away even
 /// if this one failed.
 fn check_and_record(app: &AppHandle) {
-    let found = tauri::async_runtime::block_on(check_now(app));
+    let found = on_this_thread(check_now(app));
     let Some(state) = app.try_state::<AppState>() else {
         return;
     };
@@ -131,6 +131,23 @@ fn check_and_record(app: &AppHandle) {
         }
     }
     tray::refresh(app, &snapshot);
+}
+
+/// Runs `work` to completion on the calling thread. Tauri's shared runtime
+/// would start a worker per core the first time it is used (37 more
+/// threads on a many-core machine) for one request a day; a current-thread
+/// runtime does the same work with none, and is dropped right after.
+fn on_this_thread<T>(work: impl Future<Output = Option<T>>) -> Option<T> {
+    match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => runtime.block_on(work),
+        Err(err) => {
+            log::debug!("no runtime for the update check: {err}");
+            None
+        }
+    }
 }
 
 /// Asks GitHub once. `None` for "nothing newer" and for any failure, which
