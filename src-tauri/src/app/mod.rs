@@ -218,8 +218,8 @@ fn make_platform() -> Platform {
 
 #[cfg(target_os = "macos")]
 fn make_platform() -> Platform {
-    use crate::platform::macos::MacPowerGuard;
-    use crate::platform::{AlwaysOnMains, NullPowerGuard};
+    use crate::platform::NullPowerGuard;
+    use crate::platform::macos::{MacBattery, MacPowerGuard};
 
     let guard: Box<dyn crate::platform::PowerGuard> = match MacPowerGuard::new() {
         Ok(guard) => Box::new(guard),
@@ -230,7 +230,7 @@ fn make_platform() -> Platform {
     };
     Platform {
         guard,
-        battery: Box::new(AlwaysOnMains),
+        battery: Box::new(MacBattery),
         clock: Arc::new(SystemClock),
     }
 }
