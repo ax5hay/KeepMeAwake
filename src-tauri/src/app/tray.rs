@@ -165,6 +165,7 @@ pub fn status_line(snapshot: &Snapshot) -> String {
         (Mode::Off, _) => "Sleeping normally".to_owned(),
         (_, Some(reason)) => format!("Paused: {}", pause_text(reason)),
         (Mode::Indefinite, None) => "Awake indefinitely".to_owned(),
+        (Mode::Scheduled, None) => "Awake on schedule".to_owned(),
         (Mode::Timed, None) => match snapshot.remaining_secs {
             Some(secs) => format!("Awake, {} left", format_duration(secs)),
             None => "Awake".to_owned(),
@@ -204,7 +205,7 @@ pub fn format_duration(total_secs: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{BatteryState, GuardState, PauseReason, Settings};
+    use crate::core::{BatteryState, GuardState, PauseReason, ScheduleState, Settings};
 
     fn snap(mode: Mode, remaining: Option<u64>, paused: Option<PauseReason>) -> Snapshot {
         Snapshot {
@@ -216,6 +217,7 @@ mod tests {
             guards: GuardState::default(),
             paused,
             battery: BatteryState::default(),
+            schedule: ScheduleState::default(),
             settings: Settings::default(),
             app_version: String::new(),
         }

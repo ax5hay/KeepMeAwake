@@ -13,6 +13,14 @@ const base: Snapshot = {
   guards: { system: false, display: false },
   paused: null,
   battery: { on_ac: true, percent: 80 },
+  schedule: {
+    enabled: false,
+    in_window: false,
+    skipped: false,
+    window_start_unix_ms: null,
+    window_end_unix_ms: null,
+    next_start_unix_ms: null,
+  },
   settings: {
     version: 1,
     keep_display_on: true,

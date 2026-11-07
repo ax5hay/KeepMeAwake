@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 
 use super::plan::PlanRequest;
 
-/// The three shapes a session can take.
+/// What the laptop is doing and why. The first three are shapes of a manual
+/// session; `Scheduled` is the schedule holding it awake with no manual
+/// session on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Mode {
@@ -16,6 +18,9 @@ pub enum Mode {
     Indefinite,
     /// Awake until a deadline, then back to `Off` automatically.
     Timed,
+    /// No manual session, but a schedule window is open and not skipped.
+    /// Never produced by [`Session::mode`]; the engine derives it.
+    Scheduled,
 }
 
 /// Something notable that happened inside the state machine.
