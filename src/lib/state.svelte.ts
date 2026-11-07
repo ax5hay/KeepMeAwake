@@ -6,9 +6,35 @@
  * helpers in format.ts.
  */
 import { api, type Api } from './api';
-import type { SettingsSection } from './copy';
-import { progress, remainingSecs, statusText, sunsetSoon, toggleWhisper } from './format';
-import type { History, PlanRequest, Settings, Snapshot } from './types';
+import { updateWhisper, type SettingsSection } from './copy';
+import {
+  downloadPercent,
+  progress,
+  remainingSecs,
+  statusText,
+  sunsetSoon,
+  toggleWhisper,
+} from './format';
+import type { History, PlanRequest, Settings, Snapshot, UpdateInfo } from './types';
+
+/** Where the version last whispered about is remembered, per webview. */
+const WHISPERED_KEY = 'keepmeawake.update-whispered';
+
+function whisperedFor(): string | null {
+  try {
+    return localStorage.getItem(WHISPERED_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function rememberWhispered(version: string): void {
+  try {
+    localStorage.setItem(WHISPERED_KEY, version);
+  } catch {
+    // Storage off: the whisper may come again next time. Harmless.
+  }
+}
 
 export type View = 'home' | 'settings';
 
@@ -25,11 +51,15 @@ export class AppStore {
   history = $state<History | null>(null);
   /** The Settings section to bring into view as Settings opens, if any. */
   section = $state<SettingsSection | null>(null);
+  /** A newer release, as the daily check found it. */
+  update = $state<UpdateInfo | null>(null);
+  /** While installing: `null` until it starts, then the percent (or -1 while the size is unknown). */
+  installing = $state<number | null>(null);
 
   #api: Api;
   #ticker: ReturnType<typeof setInterval> | undefined;
   #whisperTimer: ReturnType<typeof setTimeout> | undefined;
-  #unlisten: (() => void) | undefined;
+  #unlisten: Array<() => void> = [];
 
   constructor(backend: Api = api) {
     this.#api = backend;
@@ -37,13 +67,44 @@ export class AppStore {
 
   /** Loads the first snapshot and subscribes to engine pushes. */
   async init(): Promise<void> {
-    this.#unlisten = await this.#api.onSnapshot((s) => this.#accept(s));
+    this.#unlisten = await Promise.all([
+      this.#api.onSnapshot((s) => this.#accept(s)),
+      this.#api.onUpdate((info) => this.#foundUpdate(info)),
+      this.#api.onUpdateProgress((p) => (this.installing = downloadPercent(p) ?? -1)),
+    ]);
     this.#accept(await this.#api.getSnapshot());
     document.addEventListener('visibilitychange', this.#syncTicker);
+    try {
+      const info = await this.#api.getUpdate();
+      if (info) this.#foundUpdate(info);
+    } catch {
+      // No update news is fine; the window works the same.
+    }
+  }
+
+  /** Downloads, installs and relaunches; on failure says why and stays. */
+  async installUpdate(): Promise<void> {
+    if (this.installing !== null) return;
+    this.installing = -1;
+    try {
+      await this.#api.installUpdate();
+    } catch (err) {
+      this.installing = null;
+      this.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  #foundUpdate(info: UpdateInfo): void {
+    this.update = info;
+    if (whisperedFor() !== info.version) {
+      rememberWhispered(info.version);
+      this.say(updateWhisper(info.version));
+    }
   }
 
   dispose(): void {
-    this.#unlisten?.();
+    for (const stop of this.#unlisten) stop();
+    this.#unlisten = [];
     document.removeEventListener('visibilitychange', this.#syncTicker);
     this.#stopTicker();
     if (this.#whisperTimer !== undefined) clearTimeout(this.#whisperTimer);

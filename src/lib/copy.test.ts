@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   AUTHOR,
   doors,
+  downloading,
+  updateAvailable,
+  updateWhisper,
   HORIZON_TIPS,
   STAR_WHISPERS,
   horizonTip,
@@ -161,6 +164,26 @@ describe('doors', () => {
       .map((d) => d.label)
       .join(' · ');
     expect(line.length).toBeLessThanOrEqual(44);
+  });
+});
+
+describe('update copy', () => {
+  it('names the version, the action and the progress', () => {
+    expect(updateWhisper('0.3.1')).toBe('A new version is up: 0.3.1.');
+    expect(updateAvailable('0.3.1')).toBe('0.3.1 is available');
+    expect(downloading(42)).toBe('Downloading… 42%');
+    expect(downloading(null)).toBe('Downloading…');
+  });
+
+  it('puts a waiting update first on Home', () => {
+    const line = doors('Ctrl+Alt+K', 6, '0.3.1');
+    expect(line[0]).toEqual({
+      section: 'about',
+      label: 'Update 0.3.1',
+      title: '0.3.1 is ready to install',
+    });
+    expect(line.map((d) => d.section)).toEqual(['about', 'schedule', 'waking', 'history']);
+    expect(doors('Ctrl+Alt+K', 6)).toHaveLength(4);
   });
 });
 

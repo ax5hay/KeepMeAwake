@@ -63,6 +63,9 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(if cfg!(debug_assertions) { log::LevelFilter::Debug } else { log::LevelFilter::Info })
+                // The updater logs an offline check as an error; `app::update`
+                // logs what matters itself, at debug for a check.
+                .level_for("tauri_plugin_updater", log::LevelFilter::Off)
                 .targets([
                     Target::new(TargetKind::LogDir { file_name: Some("keepmeawake".into()) }),
                     Target::new(TargetKind::Stdout),

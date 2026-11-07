@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   batteryText,
+  downloadPercent,
   formatClock,
   formatDuration,
   formatStop,
@@ -280,6 +281,16 @@ describe('pauseText', () => {
     expect(pauseText('power_request_failed', false)).toBe('Windows refused the request');
     expect(pauseText('power_request_failed', true)).toBe('macOS refused the request');
     expect(pauseText('on_battery', true)).toBe('running on battery');
+  });
+});
+
+describe('downloadPercent', () => {
+  it('is whole, capped, and unknown without a size', () => {
+    expect(downloadPercent({ downloaded: 42, total: 100 })).toBe(42);
+    expect(downloadPercent({ downloaded: 1, total: 3 })).toBe(33);
+    expect(downloadPercent({ downloaded: 900, total: 500 })).toBe(100);
+    expect(downloadPercent({ downloaded: 10, total: null })).toBeNull();
+    expect(downloadPercent({ downloaded: 10, total: 0 })).toBeNull();
   });
 });
 

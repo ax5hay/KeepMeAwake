@@ -15,7 +15,7 @@ import {
   untilYouSay,
 } from './copy';
 import { isMac } from './platform';
-import type { PauseReason, Snapshot } from './types';
+import type { PauseReason, Snapshot, UpdateProgress } from './types';
 
 /** `1h 05m`, `12m`, `45s`. Mirrors the Rust tray formatter. */
 export function formatDuration(totalSecs: number): string {
@@ -170,6 +170,12 @@ export function toggleWhisper(before: Snapshot, after: Snapshot, locale?: string
   }
   if (before.schedule.skipped && after.mode === 'scheduled') return BACK_ON_SCHEDULE;
   return null;
+}
+
+/** Whole percent of an update's download, or `null` while its size is unknown. */
+export function downloadPercent(p: UpdateProgress): number | null {
+  if (p.total === null || p.total <= 0) return null;
+  return Math.floor((Math.min(p.downloaded, p.total) * 100) / p.total);
 }
 
 /** Battery line for the low-battery row. */

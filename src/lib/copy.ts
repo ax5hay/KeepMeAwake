@@ -160,8 +160,29 @@ export function untilYouSay(guardHours: number | null): string {
 /** Settings → Waking → Overnight guard. */
 export const OVERNIGHT_GUARD_HINT = 'Ends an untouched Always.';
 
+/** Whispered once per version, the first time the window opens after it is found. */
+export function updateWhisper(version: string): string {
+  return `A new version is up: ${version}.`;
+}
+
+/** Settings → About, while a newer release waits. */
+export function updateAvailable(version: string): string {
+  return `${version} is available`;
+}
+
+/** The link beside it. */
+export const INSTALL_UPDATE = 'Install and restart';
+
+/** The progress line while it downloads; `null` while the size is unknown. */
+export function downloading(percent: number | null): string {
+  return percent === null ? 'Downloading…' : `Downloading… ${percent}%`;
+}
+
+/** Settings → About → Check for updates daily. */
+export const UPDATES_HINT = 'Once a day, from GitHub. Nothing else leaves this machine.';
+
 /** A Settings section Home can open directly. */
-export type SettingsSection = 'waking' | 'schedule' | 'history' | 'hotkey';
+export type SettingsSection = 'waking' | 'schedule' | 'history' | 'hotkey' | 'about';
 
 /** One way from Home straight into a Settings section. */
 export interface Door {
@@ -178,7 +199,19 @@ export interface Door {
  * `hotkey` is already formatted for display, or `null` when it is off;
  * `guardHours` is the guard's setting, `null` when off.
  */
-export function doors(hotkey: string | null, guardHours: number | null = null): readonly Door[] {
+export function doors(
+  hotkey: string | null,
+  guardHours: number | null = null,
+  update: string | null = null,
+): readonly Door[] {
+  // A waiting update comes first: it is the one news item the line carries,
+  // and the hotkey door makes room for it so the line stays one line.
+  if (update !== null) {
+    return [
+      { section: 'about', label: `Update ${update}`, title: `${update} is ready to install` },
+      ...doors(hotkey, guardHours).slice(0, -1),
+    ];
+  }
   return [
     { section: 'schedule', label: 'Schedule', title: 'Awake on its own during set hours' },
     {

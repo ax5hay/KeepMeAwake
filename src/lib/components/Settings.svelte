@@ -10,7 +10,16 @@
   import Segmented from './Segmented.svelte';
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
-  import { AUTHOR, OVERNIGHT_GUARD_HINT, PLATFORM_COPY, tipsWith } from '$lib/copy';
+  import {
+    AUTHOR,
+    INSTALL_UPDATE,
+    OVERNIGHT_GUARD_HINT,
+    PLATFORM_COPY,
+    UPDATES_HINT,
+    downloading,
+    tipsWith,
+    updateAvailable,
+  } from '$lib/copy';
   import { displayAccelerator } from '$lib/hotkey';
   import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
   import { isMac } from '$lib/platform';
@@ -354,12 +363,39 @@
       <p class="hint whisper">There are a few more things to find in the sky.</p>
     </section>
 
-    <section class="about">
+    <section class="about" id="settings-about">
       <h2 class="eyebrow">About</h2>
       <p>
         <span class="name">Keep me awake</span>
         <span class="version">{store.snapshot?.app_version}</span>
       </p>
+      {#if store.installing !== null}
+        <div class="update" role="status">
+          <span>{downloading(store.installing < 0 ? null : store.installing)}</span>
+          <span class="bar" aria-hidden="true">
+            <span
+              class="fill"
+              class:unknown={store.installing < 0}
+              style="transform: scaleX({Math.max(store.installing, 0) / 100})"
+            ></span>
+          </span>
+        </div>
+      {:else if store.update}
+        <p class="update">
+          {updateAvailable(store.update.version)}
+          <span class="sep">·</span>
+          <button type="button" class="install" onclick={() => void store.installUpdate()}
+            >{INSTALL_UPDATE}</button
+          >
+        </p>
+      {/if}
+      <Row label="Check for updates daily" hint={UPDATES_HINT}>
+        <Switch
+          checked={settings.check_for_updates}
+          label="Check for updates daily"
+          onchange={(v) => void store.updateSettings({ check_for_updates: v })}
+        />
+      </Row>
       <p class="hint">
         {PLATFORM_COPY.about.before}
         <code>{PLATFORM_COPY.about.code}</code>{PLATFORM_COPY.about.after}
@@ -448,6 +484,50 @@
 
   .about p {
     margin: 8px 0 0;
+  }
+
+  .about :global(.row) {
+    margin-top: 8px;
+  }
+
+  .update {
+    margin: 6px 0 0;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .install {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--hair-strong);
+    text-underline-offset: 2px;
+    transition: text-decoration-color var(--t-fast) var(--ease);
+  }
+
+  .install:hover {
+    text-decoration-color: var(--ink);
+  }
+
+  /* One hairline that fills with ink: progress without a widget. */
+  .bar {
+    display: block;
+    height: 1px;
+    margin-top: 6px;
+    background: var(--hair);
+    overflow: hidden;
+  }
+
+  .fill {
+    display: block;
+    height: 100%;
+    background: var(--ink);
+    transform-origin: left;
+    transition: transform var(--t-fast) linear;
+  }
+
+  /* Size unknown: a short segment rests at the start rather than looping. */
+  .fill.unknown {
+    transform: scaleX(0.12) !important;
   }
 
   .name {

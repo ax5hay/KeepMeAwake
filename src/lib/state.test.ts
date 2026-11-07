@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Api } from './api';
 import { AppStore } from './state.svelte';
-import type { History, Snapshot } from './types';
+import type { History, Snapshot, UpdateInfo, UpdateProgress } from './types';
 
 const base: Snapshot = {
   mode: 'off',
@@ -63,9 +63,11 @@ const logged: History = {
   ],
 };
 
-function fakeApi(initial: Snapshot) {
+function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null) {
   let current = initial;
   let push: ((s: Snapshot) => void) | undefined;
+  let announce: ((u: UpdateInfo) => void) | undefined;
+  let report: ((p: UpdateProgress) => void) | undefined;
   const api: Api = {
     getSnapshot: vi.fn(async () => current),
     setPlan: vi.fn(async (request) => {
@@ -106,8 +108,25 @@ function fakeApi(initial: Snapshot) {
         push = undefined;
       };
     }),
+    getUpdate: vi.fn(async () => waiting),
+    installUpdate: vi.fn(async () => {
+      throw new Error('The update could not be installed: offline');
+    }),
+    onUpdate: vi.fn(async (handler) => {
+      announce = handler;
+      return () => (announce = undefined);
+    }),
+    onUpdateProgress: vi.fn(async (handler) => {
+      report = handler;
+      return () => (report = undefined);
+    }),
   };
-  return { api, push: (s: Snapshot) => push?.(s) };
+  return {
+    api,
+    push: (s: Snapshot) => push?.(s),
+    announce: (u: UpdateInfo) => announce?.(u),
+    report: (p: UpdateProgress) => report?.(p),
+  };
 }
 
 describe('AppStore', () => {
@@ -250,6 +269,39 @@ describe('AppStore', () => {
     await store.init();
     await store.extend();
     expect(api.extendSession).toHaveBeenCalledOnce();
+    store.dispose();
+  });
+
+  it('hears of an update, whispers about it once per version', async () => {
+    localStorage.clear();
+    const { api, announce } = fakeApi(base);
+    const store = new AppStore(api);
+    await store.init();
+    expect(store.update).toBeNull();
+    announce({ version: '0.3.1', notes: null });
+    expect(store.update?.version).toBe('0.3.1');
+    expect(store.whisper).toBe('A new version is up: 0.3.1.');
+    store.dispose();
+
+    // The next window, same version: no second whisper.
+    const again = new AppStore(fakeApi(base, { version: '0.3.1', notes: null }).api);
+    await again.init();
+    expect(again.update?.version).toBe('0.3.1');
+    expect(again.whisper).toBeNull();
+    again.dispose();
+  });
+
+  it('shows download progress, and says why an install failed', async () => {
+    const { api, report } = fakeApi(base, { version: '0.3.1', notes: null });
+    const store = new AppStore(api);
+    await store.init();
+    const installing = store.installUpdate();
+    expect(store.installing).toBe(-1);
+    report({ downloaded: 42, total: 100 });
+    expect(store.installing).toBe(42);
+    await installing;
+    expect(store.installing).toBeNull();
+    expect(store.error).toBe('The update could not be installed: offline');
     store.dispose();
   });
 

@@ -22,6 +22,7 @@
     doors(
       settings?.hotkey ? displayAccelerator(settings.hotkey, isMac) : null,
       settings?.overnight_guard_hours ?? null,
+      store.update?.version ?? null,
     ),
   );
   // Paused, the line says why it holds off; offering more time there reads oddly.
@@ -80,7 +81,12 @@
 <nav class="doors" aria-label="More in Settings">
   {#each ways as door, i (door.section)}
     {#if i > 0}<span class="dot" aria-hidden="true">·</span>{/if}
-    <button type="button" title={door.title} onclick={() => store.openSettings(door.section)}>
+    <button
+      type="button"
+      class:news={door.section === 'about'}
+      title={door.title}
+      onclick={() => store.openSettings(door.section)}
+    >
       {door.label}
     </button>
   {/each}
@@ -183,6 +189,12 @@
 
   .dot {
     color: var(--ink-3);
+  }
+
+  /* A waiting update reads first and in full ink, still no colour. */
+  .doors button.news {
+    color: var(--ink);
+    text-decoration-color: var(--hair-strong);
   }
 
   /* At the minimum height the two rows need the room. */

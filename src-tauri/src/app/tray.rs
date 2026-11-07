@@ -11,6 +11,7 @@ use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, Runtime};
 
+use super::update::UpdateInfo;
 use super::{AppState, window};
 use crate::core::{Mode, PlanRequest, Snapshot};
 
@@ -58,6 +59,7 @@ const ID_EXTEND: &str = "extend";
 /// The tray item that pushes a timed session's end later.
 pub const EXTEND_LABEL: &str = "Give it another 30m";
 const ID_KEEP: &str = "keep";
+const ID_UPDATE: &str = "update";
 
 /// The tray item that answers the overnight guard.
 pub const KEEP_LABEL: &str = "Keep it up";
@@ -74,7 +76,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon_for(&snapshot, state.taskbar.is_light())?)
         .icon_as_template(TEMPLATE)
-        .tooltip(tooltip(&snapshot))
+        .tooltip(tooltip_with(&snapshot, pending_update(app).as_ref()))
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| on_menu(app, event.id.as_ref()))
@@ -114,7 +116,7 @@ pub fn refresh(app: &AppHandle, snapshot: &Snapshot) {
         // Plain `set_icon` drops the template flag on macOS; this keeps it.
         let _ = tray.set_icon_with_as_template(Some(icon), TEMPLATE);
     }
-    let _ = tray.set_tooltip(Some(tooltip(snapshot)));
+    let _ = tray.set_tooltip(Some(tooltip_with(snapshot, pending_update(app).as_ref())));
     match build_menu(app, snapshot) {
         Ok(menu) => {
             let _ = tray.set_menu(Some(menu));
@@ -155,8 +157,30 @@ fn on_menu(app: &AppHandle, id: &str) {
     }
 }
 
+/// The newer release the daily check found, if any.
+fn pending_update<R: Runtime>(app: &AppHandle<R>) -> Option<UpdateInfo> {
+    app.try_state::<AppState>()
+        .and_then(|state| state.update.lock().clone())
+}
+
+/// The second line the tray shows while a newer release waits.
+pub fn update_line(update: Option<&UpdateInfo>) -> Option<String> {
+    update.map(|info| format!("Update ready: {}", info.version))
+}
+
+/// The tooltip, with the update line under the status when there is one.
+fn tooltip_with(snapshot: &Snapshot, update: Option<&UpdateInfo>) -> String {
+    match update_line(update) {
+        Some(line) => format!("{}\n{line}", tooltip(snapshot)),
+        None => tooltip(snapshot),
+    }
+}
+
 fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Result<Menu<R>> {
     let status = MenuItem::with_id(app, ID_STATUS, status_line(snapshot), false, None::<&str>)?;
+    let update = update_line(pending_update(app).as_ref())
+        .map(|line| MenuItem::with_id(app, ID_UPDATE, line, false, None::<&str>))
+        .transpose()?;
     let toggle = MenuItem::with_id(app, ID_TOGGLE, toggle_label(snapshot), true, None::<&str>)?;
     let skip = skip_label(snapshot)
         .map(|label| MenuItem::with_id(app, ID_SKIP, label, true, None::<&str>))
@@ -196,7 +220,11 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Res
         PredefinedMenuItem::separator(app)?,
         PredefinedMenuItem::separator(app)?,
     ];
-    let mut items: Vec<&dyn tauri::menu::IsMenuItem<R>> = vec![&status, &separators[0], &toggle];
+    let mut items: Vec<&dyn tauri::menu::IsMenuItem<R>> = vec![&status];
+    if let Some(update) = &update {
+        items.push(update);
+    }
+    items.extend([&separators[0] as &dyn tauri::menu::IsMenuItem<R>, &toggle]);
     if let Some(keep) = &keep {
         items.push(keep);
     }
@@ -565,6 +593,25 @@ mod tests {
         assert_eq!(keep_label(&always), None);
         always.guard_rests_at_unix_ms = Some(1_000);
         assert_eq!(keep_label(&always), Some("Keep it up"));
+    }
+
+    #[test]
+    fn an_update_adds_a_second_line() {
+        let info = UpdateInfo {
+            version: "0.3.1".into(),
+            notes: None,
+        };
+        assert_eq!(
+            update_line(Some(&info)).as_deref(),
+            Some("Update ready: 0.3.1")
+        );
+        assert_eq!(update_line(None), None);
+        let off = snap(Mode::Off, None, None);
+        assert_eq!(
+            tooltip_with(&off, Some(&info)),
+            "Keep me awake \u{2014} Sleeping normally\nUpdate ready: 0.3.1"
+        );
+        assert_eq!(tooltip_with(&off, None), tooltip(&off));
     }
 
     #[test]
