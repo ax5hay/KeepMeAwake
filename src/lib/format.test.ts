@@ -296,6 +296,20 @@ describe('statusText while the overnight guard asks', () => {
     });
   });
 
+  it('promises the guard on the Always line only while it watches', () => {
+    const always = { ...base, mode: 'indefinite' as const };
+    const noon = new Date(2026, 0, 2, 12, 0).getTime();
+    const late = new Date(2026, 0, 2, 2, 0).getTime();
+    expect(statusText({ ...always, guard_watching: true }, noon).detail).toBe(
+      'Until you say otherwise, or 6h untouched.',
+    );
+    expect(statusText({ ...always, guard_watching: true }, late).detail).toBe(
+      'Until you say otherwise, or 6h untouched.',
+    );
+    expect(statusText(always, noon).detail).toBe('Until you say otherwise.');
+    expect(statusText(always, late).detail).toMatch(/It is late\./);
+  });
+
   it('goes back to the usual line once withdrawn', () => {
     const withdrawn = { ...asking, guard_rests_at_unix_ms: null };
     expect(statusText(withdrawn, rests, 'en-US').detail).toMatch(/^Until you say otherwise\./);

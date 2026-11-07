@@ -34,6 +34,18 @@
     }
   });
 
+  // An error says its piece and goes; a click sends it sooner. One timeout,
+  // armed only while an error is on screen.
+  const ERROR_MS = 6000;
+  $effect(() => {
+    if (store.error === null) return;
+    const shown = store.error;
+    const timer = setTimeout(() => {
+      if (store.error === shown) store.error = null;
+    }, ERROR_MS);
+    return () => clearTimeout(timer);
+  });
+
   function onKey(event: KeyboardEvent) {
     const target = (event.target as HTMLElement | null)?.tagName ?? '';
     const action = windowAction(event, target, isMac);
@@ -82,7 +94,10 @@
 </main>
 
 {#if store.error}
-  <div class="toast" role="alert">{store.error}</div>
+  <div class="toast" role="alert">
+    <button type="button" title="Dismiss" onclick={() => (store.error = null)}>{store.error}</button
+    >
+  </div>
 {/if}
 
 <style>
@@ -124,5 +139,19 @@
     border-radius: var(--radius-sm);
     font-size: 12px;
     box-shadow: var(--shadow);
+    animation: rise var(--t-mid) var(--ease-out);
+  }
+
+  .toast button {
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
   }
 </style>

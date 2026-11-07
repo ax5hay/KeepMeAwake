@@ -12,6 +12,15 @@
   let untilOpen = $state(false);
   let untilValue = $state('');
   let untilInput: HTMLInputElement | undefined = $state();
+  let untilStop: HTMLButtonElement | undefined = $state();
+
+  /** Esc in the field closes the field, not the window, and focus goes home. */
+  function onFormKey(event: KeyboardEvent) {
+    if (event.key !== 'Escape') return;
+    event.stopPropagation();
+    untilOpen = false;
+    untilStop?.focus();
+  }
 
   const snapshot = $derived(store.snapshot);
   const activeStop = $derived.by<string | null>(() => {
@@ -82,6 +91,7 @@
     aria-pressed={activeStop === 'until'}
     aria-expanded={untilOpen}
     title="Keep awake until a time of day"
+    bind:this={untilStop}
     onclick={openUntil}
   >
     <span class="tick"></span>
@@ -90,7 +100,8 @@
 </div>
 
 {#if untilOpen}
-  <form class="until-form" onsubmit={submitUntil}>
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <form class="until-form" onsubmit={submitUntil} onkeydown={onFormKey}>
     <label>
       <span class="sr-only">Stay awake until</span>
       <input type="time" bind:value={untilValue} bind:this={untilInput} required />

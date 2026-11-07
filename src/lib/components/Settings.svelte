@@ -36,10 +36,33 @@
     };
   }
 
-  // The log is fetched each time Settings opens, never at launch.
+  // The log is fetched each time Settings opens, never at launch, and again
+  // when a stretch starts or ends while it is open, so a new row appears.
+  const sunUp = $derived(store.snapshot?.mode !== 'off');
+  const since = $derived(store.snapshot?.started_at_unix_ms ?? null);
   $effect(() => {
-    if (store.view === 'settings') void store.loadHistory();
+    if (store.view !== 'settings') return;
+    void sunUp;
+    void since;
+    void store.loadHistory();
   });
+
+  // The rows only name days and clock times: a minute's clock is enough,
+  // so they are not rebuilt on every tick of a countdown.
+  const minute = $derived(Math.floor(store.now / 60_000) * 60_000);
+
+  /** The presets, plus the current value if it was set by hand outside them. */
+  function withCurrent(
+    presets: ReadonlyArray<{ value: string; label: string }>,
+    current: number | null,
+    unit: string,
+  ): ReadonlyArray<{ value: string; label: string }> {
+    if (current === null || presets.some((o) => o.value === String(current))) return presets;
+    const extra = { value: String(current), label: `${current}${unit}` };
+    const [off, ...rest] = presets;
+    const sorted = [...rest, extra].sort((a, b) => Number(a.value) - Number(b.value));
+    return off ? [off, ...sorted] : sorted;
+  }
 
   // Opened from one of Home's doors: bring that section to the top.
   let scroller = $state<HTMLDivElement | null>(null);
@@ -90,14 +113,14 @@
     ...[10, 15, 20, 25, 30, 40, 50].map((p) => ({ value: String(p), label: `${p}%` })),
   ];
 
-  const sunsetOptions: ReadonlyArray<{ value: 'off' | '2' | '5' | '10'; label: string }> = [
+  const sunsetOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: 'off', label: 'Off' },
     { value: '2', label: '2m' },
     { value: '5', label: '5m' },
     { value: '10', label: '10m' },
   ];
 
-  const guardOptions: ReadonlyArray<{ value: 'off' | '4' | '6' | '8'; label: string }> = [
+  const guardOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: 'off', label: 'Off' },
     { value: '4', label: '4h' },
     { value: '6', label: '6h' },
@@ -149,7 +172,7 @@
       </Row>
     </section>
 
-    <section>
+    <section id="settings-waking">
       <h2 class="eyebrow">Waking</h2>
       <Row label="Default length" hint={PLATFORM_COPY.lengthHint}>
         <Stepper
@@ -164,10 +187,10 @@
       </Row>
       <Row label="Warn before sunset" hint="A nudge before a timer ends.">
         <Segmented
-          options={sunsetOptions}
+          options={withCurrent(sunsetOptions, settings.sunset_warning_mins, 'm')}
           value={settings.sunset_warning_mins === null
             ? 'off'
-            : (String(settings.sunset_warning_mins) as '2' | '5' | '10')}
+            : String(settings.sunset_warning_mins)}
           label="Warn before sunset"
           onchange={(v) =>
             void store.updateSettings({ sunset_warning_mins: v === 'off' ? null : Number(v) })}
@@ -175,10 +198,10 @@
       </Row>
       <Row label="Overnight guard" hint={OVERNIGHT_GUARD_HINT}>
         <Segmented
-          options={guardOptions}
+          options={withCurrent(guardOptions, settings.overnight_guard_hours, 'h')}
           value={settings.overnight_guard_hours === null
             ? 'off'
-            : (String(settings.overnight_guard_hours) as '4' | '6' | '8')}
+            : String(settings.overnight_guard_hours)}
           label="Overnight guard"
           onchange={(v) =>
             void store.updateSettings({ overnight_guard_hours: v === 'off' ? null : Number(v) })}
@@ -317,7 +340,7 @@
 
     <section id="settings-history">
       <h2 class="eyebrow">History</h2>
-      <History history={store.history} now={store.now} onclear={() => void store.clearHistory()} />
+      <History history={store.history} now={minute} onclear={() => void store.clearHistory()} />
     </section>
 
     <section>
@@ -370,8 +393,15 @@
     margin-top: 18px;
   }
 
+  /* Each heading stays at the top while its section scrolls under it, so a
+     long pane always says where you are. */
   h2 {
-    margin: 0 0 2px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    margin: 0;
+    padding: 6px 0 4px;
+    background: var(--paper);
     font-weight: 500;
   }
 

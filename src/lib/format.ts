@@ -12,6 +12,7 @@ import {
   skippedUntil,
   skipping,
   sunsetIn,
+  untilYouSay,
 } from './copy';
 import { isMac } from './platform';
 import type { PauseReason, Snapshot } from './types';
@@ -139,7 +140,12 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
   }
   const late = isLate(new Date(nowMs).getHours()) ? ` ${LATE_NIGHT}` : '';
   if (snapshot.mode === 'indefinite') {
-    return { title: 'Awake', detail: `Until you say otherwise.${late}` };
+    // While the guard watches, its promise takes the late line's place: at
+    // night it matters more, and the two would contradict each other.
+    if (snapshot.guard_watching && hours !== null) {
+      return { title: 'Awake', detail: untilYouSay(hours) };
+    }
+    return { title: 'Awake', detail: `${untilYouSay(null)}${late}` };
   }
   const ends = snapshot.ends_at_unix_ms ?? nowMs;
   if (snapshot.mode === 'scheduled') {

@@ -9,6 +9,7 @@ import {
   horizonTips,
   isLate,
   KEEP_IT_UP,
+  KEPT_UP,
   longStop,
   nobodyHere,
   OVERNIGHT_GUARD_HINT,
@@ -18,6 +19,7 @@ import {
   TIPS,
   tips,
   tipsWith,
+  untilYouSay,
 } from './copy';
 
 /** Every string that differs by platform, flattened. */
@@ -138,21 +140,35 @@ describe('overnight guard copy', () => {
 });
 
 describe('doors', () => {
-  it('opens the schedule, the history and the hotkey, which shows itself', () => {
-    expect(doors('Ctrl+Alt+K').map((d) => [d.section, d.label])).toEqual([
+  it('opens the schedule, the guard, the history and the hotkey, which shows itself', () => {
+    expect(doors('Ctrl+Alt+K', 6).map((d) => [d.section, d.label])).toEqual([
       ['schedule', 'Schedule'],
+      ['waking', 'Overnight'],
       ['history', 'History'],
       ['hotkey', 'Ctrl+Alt+K'],
     ]);
-    expect(doors('⌥⌘K')[2]?.title).toBe('⌥⌘K toggles from any app');
-    expect(doors(null)[2]?.label).toBe('Hotkey');
+    expect(doors('⌥⌘K')[3]?.title).toBe('⌥⌘K toggles from any app');
+    expect(doors(null)[3]?.label).toBe('Hotkey');
   });
 
-  it('fits one line at the narrowest window, even with a long hotkey', () => {
-    const line = doors('Ctrl+Alt+Shift+F12')
+  it('says what the guard will do, or that it is off', () => {
+    expect(doors(null, 6)[1]?.title).toBe('Always rests after 6h with nobody around');
+    expect(doors(null, null)[1]?.title).toMatch(/^Overnight guard is off/);
+  });
+
+  it('fits one line at 380 px with the default hotkey', () => {
+    const line = doors('Ctrl+Alt+K', 6)
       .map((d) => d.label)
       .join(' · ');
-    expect(line.length).toBeLessThanOrEqual(40);
+    expect(line.length).toBeLessThanOrEqual(44);
+  });
+});
+
+describe('the Always line', () => {
+  it('names the guard while it watches', () => {
+    expect(untilYouSay(6)).toBe('Until you say otherwise, or 6h untouched.');
+    expect(untilYouSay(null)).toBe('Until you say otherwise.');
+    expect(KEPT_UP.length).toBeLessThanOrEqual(48);
   });
 });
 

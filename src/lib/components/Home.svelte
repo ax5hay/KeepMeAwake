@@ -3,7 +3,7 @@
   import Row from './Row.svelte';
   import Scene from './Scene.svelte';
   import Switch from './Switch.svelte';
-  import { EXTEND_LABEL, EXTENDED, KEEP_IT_UP, doors } from '$lib/copy';
+  import { EXTEND_LABEL, EXTENDED, KEEP_IT_UP, KEPT_UP, doors } from '$lib/copy';
   import { batteryText } from '$lib/format';
   import { displayAccelerator } from '$lib/hotkey';
   import { isMac } from '$lib/platform';
@@ -19,8 +19,13 @@
     return `${rule} · ${batteryText(snapshot)}`;
   });
   const ways = $derived(
-    doors(settings?.hotkey ? displayAccelerator(settings.hotkey, isMac) : null),
+    doors(
+      settings?.hotkey ? displayAccelerator(settings.hotkey, isMac) : null,
+      settings?.overnight_guard_hours ?? null,
+    ),
   );
+  // Paused, the line says why it holds off; offering more time there reads oddly.
+  const offerExtend = $derived(store.sunsetSoon && snapshot?.paused === null);
 </script>
 
 <Scene />
@@ -31,10 +36,15 @@
     <p class:whisper={store.whisper !== null}>
       {store.whisper ?? store.status.detail}
       {#if store.guardAsking && store.whisper === null}
-        <button type="button" class="extend" onclick={() => void store.keepItUp()}
-          >{KEEP_IT_UP}</button
+        <button
+          type="button"
+          class="extend"
+          onclick={() => {
+            void store.keepItUp();
+            store.say(KEPT_UP);
+          }}>{KEEP_IT_UP}</button
         >
-      {:else if store.sunsetSoon && store.whisper === null}
+      {:else if offerExtend && store.whisper === null}
         <button
           type="button"
           class="extend"
@@ -142,9 +152,10 @@
   /* The way in to what Home has no room for: a colophon, not a toolbar. */
   .doors {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     align-items: baseline;
-    gap: 2px;
+    gap: 0 2px;
     margin: 0 24px;
     padding: 6px 0 12px;
     border-top: 1px solid var(--hair);

@@ -144,11 +144,24 @@ export function nobodyHere(hours: number, time: string): string {
 /** The action under the status line, and the tray item, while the guard asks. */
 export const KEEP_IT_UP = 'Keep it up';
 
+/** Whispered after Keep it up: the guard will not ask again this session. */
+export const KEPT_UP = 'Kept up. It will not ask again this time.';
+
+/**
+ * The Always line. While the overnight guard watches, it says so, so the
+ * session's one way of ending on its own is never a surprise.
+ */
+export function untilYouSay(guardHours: number | null): string {
+  return guardHours === null
+    ? 'Until you say otherwise.'
+    : `Until you say otherwise, or ${guardHours}h untouched.`;
+}
+
 /** Settings → Waking → Overnight guard. */
 export const OVERNIGHT_GUARD_HINT = 'Ends an untouched Always.';
 
 /** A Settings section Home can open directly. */
-export type SettingsSection = 'schedule' | 'history' | 'hotkey';
+export type SettingsSection = 'waking' | 'schedule' | 'history' | 'hotkey';
 
 /** One way from Home straight into a Settings section. */
 export interface Door {
@@ -159,14 +172,23 @@ export interface Door {
 }
 
 /**
- * The doorways at the foot of Home, for what never announces itself: the
- * schedule (off until set), the log, and the hotkey, which shows its own
- * combination so the line itself says it exists. `hotkey` is already
- * formatted for display, or `null` when it is off.
+ * The doorways at the foot of Home: the schedule (off until set), the
+ * overnight guard (on, and quiet until it acts), the log, and the hotkey,
+ * which shows its own combination so the line itself says it exists.
+ * `hotkey` is already formatted for display, or `null` when it is off;
+ * `guardHours` is the guard's setting, `null` when off.
  */
-export function doors(hotkey: string | null): readonly Door[] {
+export function doors(hotkey: string | null, guardHours: number | null = null): readonly Door[] {
   return [
     { section: 'schedule', label: 'Schedule', title: 'Awake on its own during set hours' },
+    {
+      section: 'waking',
+      label: 'Overnight',
+      title:
+        guardHours === null
+          ? 'Overnight guard is off: Always never rests on its own'
+          : `Always rests after ${guardHours}h with nobody around`,
+    },
     { section: 'history', label: 'History', title: 'When the sun was up, and how it set' },
     hotkey === null
       ? { section: 'hotkey', label: 'Hotkey', title: 'Toggle from any app' }
