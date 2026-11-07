@@ -877,6 +877,13 @@ mod tests {
         }
     }
 
+    /// Waits for a snapshot that `pred` accepts: proof the worker has
+    /// evaluated the state the test just set up, so a check that nothing
+    /// happened afterwards means something.
+    fn wait_for_snapshot(rig: &Rig, pred: impl Fn(&Snapshot) -> bool) -> Vec<EngineEvent> {
+        events_until(rig, |e| matches!(e, EngineEvent::Snapshot(s) if pred(s)))
+    }
+
     fn is_sunset(event: &EngineEvent) -> bool {
         matches!(event, EngineEvent::SunsetSoon { .. })
     }
@@ -905,8 +912,10 @@ mod tests {
         );
         r.clock.advance(Duration::from_secs(60));
         r.engine.refresh();
+        let mut after = wait_for_snapshot(&r, |s| s.remaining_secs == Some(240));
         r.engine.shutdown();
-        assert_eq!(sunsets(&drain(&r)), 0, "once per deadline");
+        after.extend(drain(&r));
+        assert_eq!(sunsets(&after), 0, "once per deadline");
     }
 
     #[test]
@@ -916,8 +925,8 @@ mod tests {
         wait_for_guard(&r, |g| g.system);
         r.clock.advance(Duration::from_secs(60));
         r.engine.refresh();
-        r.engine.shutdown();
-        assert_eq!(sunsets(&drain(&r)), 0);
+        let events = wait_for_snapshot(&r, |s| s.remaining_secs == Some(60));
+        assert_eq!(sunsets(&events), 0);
     }
 
     #[test]
@@ -930,8 +939,8 @@ mod tests {
         wait_for_guard(&r, |g| g.system);
         r.clock.advance(Duration::from_secs(400));
         r.engine.refresh();
-        r.engine.shutdown();
-        assert_eq!(sunsets(&drain(&r)), 0);
+        let events = wait_for_snapshot(&r, |s| s.remaining_secs == Some(200));
+        assert_eq!(sunsets(&events), 0);
     }
 
     #[test]
@@ -968,21 +977,14 @@ mod tests {
     }
 
     #[test]
-    fn never_warns_for_always_or_a_schedule_window() {
-        let r = rig(Settings::default());
-        r.engine.set_plan(PlanRequest::Indefinite);
-        wait_for_guard(&r, |g| g.system);
-        r.clock.advance(Duration::from_secs(3600));
-        r.engine.refresh();
-        r.engine.shutdown();
-        assert_eq!(sunsets(&drain(&r)), 0);
-
+    fn never_warns_for_a_schedule_window() {
+        // Always has no deadline, so no warning: see the policy test.
         let w = rig_at(with_schedule(), 2, 17, 50);
         wait_for_guard(&w, |g| g.system);
         w.clock.advance(Duration::from_secs(8 * 60));
         w.engine.refresh();
-        w.engine.shutdown();
-        assert_eq!(sunsets(&drain(&w)), 0);
+        let events = wait_for_snapshot(&w, |s| s.remaining_secs == Some(120));
+        assert_eq!(sunsets(&events), 0);
     }
 
     #[test]
