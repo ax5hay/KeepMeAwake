@@ -57,10 +57,19 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
+                rect,
                 ..
             } = event
             {
-                window::show_main(tray.app_handle().clone());
+                // A Mac drops the window beneath the icon, like a menu; Windows
+                // reopens it wherever it last was.
+                #[cfg(target_os = "macos")]
+                window::show_under_icon(tray.app_handle().clone(), rect);
+                #[cfg(not(target_os = "macos"))]
+                {
+                    let _ = rect;
+                    window::show_main(tray.app_handle().clone());
+                }
             }
         })
         .build(app)?;
