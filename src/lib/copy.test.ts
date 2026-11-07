@@ -5,12 +5,26 @@ import {
   HORIZON_TIPS,
   STAR_WHISPERS,
   horizonTip,
+  horizonTips,
   isLate,
   longStop,
+  platformCopy,
   starWhisper,
   TIPS,
+  tips,
   tipsWith,
 } from './copy';
+
+/** Every string that differs by platform, flattened. */
+function everything(mac: boolean): string[] {
+  const { about, ...rest } = platformCopy(mac);
+  return [
+    ...horizonTips(mac),
+    ...tips(mac).flatMap((tip) => [tip.keys, tip.does]),
+    ...Object.values(rest),
+    ...Object.values(about),
+  ];
+}
 
 describe('horizonTip', () => {
   it('cycles through the tips and wraps in both directions', () => {
@@ -20,7 +34,13 @@ describe('horizonTip', () => {
   });
 
   it('has no tip longer than a line of the status area', () => {
-    for (const tip of HORIZON_TIPS) expect(tip.length).toBeLessThanOrEqual(84);
+    for (const mac of [false, true]) {
+      for (const tip of horizonTips(mac)) expect(tip.length).toBeLessThanOrEqual(84);
+    }
+  });
+
+  it('has as many tips on a Mac as on Windows', () => {
+    expect(horizonTips(true)).toHaveLength(horizonTips(false).length);
   });
 });
 
@@ -57,6 +77,35 @@ describe('tipsWith', () => {
     expect(tipsWith('Ctrl+Alt+K')[1]).toEqual({ keys: 'Ctrl+Alt+K', does: 'Toggle from anywhere' });
     expect(tipsWith('Ctrl+Alt+K')).toHaveLength(TIPS.length + 1);
     expect(tipsWith(null)).toBe(TIPS);
+  });
+});
+
+describe('platform copy', () => {
+  it('never says tray, taskbar or Windows on a Mac', () => {
+    for (const text of everything(true)) expect(text).not.toMatch(/tray|taskbar|Windows/i);
+  });
+
+  it('never says menu bar or uses Mac glyphs on Windows', () => {
+    for (const text of everything(false)) expect(text).not.toMatch(/menu bar|[⌘⌃⌥⇧]/);
+  });
+
+  it('names the place the sun lives and how to prove it', () => {
+    expect(platformCopy(true).closeLabel).toBe('Close to the menu bar');
+    expect(platformCopy(false).closeLabel).toBe('Close to tray');
+    expect(platformCopy(true).about.code).toBe('pmset -g assertions');
+    expect(platformCopy(false).about.code).toBe('powercfg /requests');
+  });
+
+  it('lists the Mac shortcuts in Tips', () => {
+    const keys = tips(true).map((tip) => tip.keys);
+    expect(keys).toEqual(expect.arrayContaining(['⌘,', '⌘W', '⌘Q', 'Menu bar · click']));
+    expect(tips(false).map((tip) => tip.keys)).toContain('Ctrl+,');
+  });
+
+  it('keeps every Tips row short enough for one line', () => {
+    for (const mac of [false, true]) {
+      for (const tip of tips(mac)) expect(tip.does.length).toBeLessThanOrEqual(28);
+    }
   });
 });
 

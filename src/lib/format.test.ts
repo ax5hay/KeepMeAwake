@@ -8,6 +8,7 @@ import {
   formatWhen,
   minutesToTime,
   nextOccurrence,
+  pauseText,
   progress,
   remainingSecs,
   statusText,
@@ -264,5 +265,13 @@ describe('minutesToTime / timeToMinutes', () => {
     expect(timeToMinutes('')).toBeNull();
     expect(timeToMinutes('24:00')).toBeNull();
     expect(timeToMinutes('9:5')).toBeNull();
+  });
+});
+
+describe('pauseText', () => {
+  it('names the OS that refused the request', () => {
+    expect(pauseText('power_request_failed', false)).toBe('Windows refused the request');
+    expect(pauseText('power_request_failed', true)).toBe('macOS refused the request');
+    expect(pauseText('on_battery', true)).toBe('running on battery');
   });
 });

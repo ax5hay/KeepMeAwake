@@ -21,7 +21,7 @@
 
 :root {
   --font-display: 'Fraunces', 'Georgia', 'Times New Roman', serif;
-  --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-ui: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, system-ui, sans-serif;
 
   /* Paper */
   --paper: #f4f0e7;

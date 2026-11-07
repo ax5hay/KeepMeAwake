@@ -1,14 +1,15 @@
 <script lang="ts">
   /**
    * Shows the global hotkey and records a new one. Change turns the field
-   * into a recorder: the next key press with Ctrl, Alt or Win is shown as it
-   * is held and saved when it is released. Esc cancels. While recording, keys
+   * into a recorder: the next key press with Ctrl, Alt or Win (on a Mac,
+   * ⌘, ⌃ or ⌥) is shown as it is held and saved when it is released. Esc cancels. While recording, keys
    * are kept from the rest of the window so Space or Esc do not act.
    */
   import { onDestroy } from 'svelte';
 
   import { HOTKEY_RECORDING } from '$lib/copy';
   import { displayAccelerator, toAccelerator } from '$lib/hotkey';
+  import { isMac } from '$lib/platform';
 
   interface Props {
     value: string | null;
@@ -22,8 +23,8 @@
   let field: HTMLSpanElement | undefined = $state();
 
   const shown = $derived.by(() => {
-    if (recording) return pending ? displayAccelerator(pending) : HOTKEY_RECORDING;
-    return value ? displayAccelerator(value) : 'Off';
+    if (recording) return pending ? displayAccelerator(pending, isMac) : HOTKEY_RECORDING;
+    return value ? displayAccelerator(value, isMac) : 'Off';
   });
 
   function start() {
@@ -52,7 +53,7 @@
       stop();
       return;
     }
-    const accelerator = toAccelerator(event);
+    const accelerator = toAccelerator(event, isMac);
     if (accelerator) pending = accelerator;
   }
 
