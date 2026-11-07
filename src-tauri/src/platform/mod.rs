@@ -1,7 +1,8 @@
 //! The narrow slice of the operating system the engine depends on.
 //!
 //! Everything is a trait so the engine can be tested with fakes; the real
-//! Win32 implementations live in [`windows`] and are only compiled on Windows.
+//! implementations live in `windows` (Win32) and `macos` (IOKit), each
+//! compiled only on its own OS.
 
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -9,6 +10,8 @@ use thiserror::Error;
 
 use crate::core::{BatteryState, GuardState};
 
+#[cfg(target_os = "macos")]
+pub mod macos;
 #[cfg(windows)]
 pub mod windows;
 
@@ -16,12 +19,12 @@ pub mod windows;
 /// know that a call failed and what to log.
 #[derive(Debug, Error)]
 pub enum PlatformError {
-    /// A Win32 call failed. Carries the formatted OS error.
+    /// A Win32 or IOKit call failed. Carries the formatted OS error.
     #[error("{call} failed: {detail}")]
     Os {
         /// Name of the API that failed, for logs.
         call: &'static str,
-        /// Human readable detail, usually from `GetLastError`.
+        /// Human readable detail: the Win32 message or the `IOReturn` in hex.
         detail: String,
     },
     /// This platform cannot provide the capability.

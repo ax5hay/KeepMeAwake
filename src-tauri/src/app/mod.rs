@@ -216,7 +216,26 @@ fn make_platform() -> Platform {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn make_platform() -> Platform {
+    use crate::platform::macos::MacPowerGuard;
+    use crate::platform::{AlwaysOnMains, NullPowerGuard};
+
+    let guard: Box<dyn crate::platform::PowerGuard> = match MacPowerGuard::new() {
+        Ok(guard) => Box::new(guard),
+        Err(err) => {
+            log::error!("power assertions unavailable, the app will report failures: {err}");
+            Box::new(NullPowerGuard)
+        }
+    };
+    Platform {
+        guard,
+        battery: Box::new(AlwaysOnMains),
+        clock: Arc::new(SystemClock),
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn make_platform() -> Platform {
     use crate::platform::{AlwaysOnMains, NullPowerGuard};
     Platform {
