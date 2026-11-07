@@ -3,24 +3,23 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-07 · by Claude Opus 5.5 (Windows session: PC set up, the Mac's work checked on Windows, overnight guard built, settings icon and Home doors)
-**Release:** [v0.2.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.2.0), pre-release.
-**Repo state:** `main` is green (`npm run verify` on Windows: vitest 100, cargo test 174;
+**Last updated:** 2026-11-07 · by Claude Opus 5.5 (Windows session: UI pass, auto-update built, v0.3.0 released)
+**Release:** [v0.3.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.3.0), pre-release (v0.2.0 before it, also a pre-release).
+**Repo state:** `main` is green (`npm run verify` on Windows: vitest 108, cargo test 180;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
-**v0.2.0 is published as a pre-release** with Windows (`.exe`, `.msi`) and macOS (`.dmg`,
-`.app.tar.gz`, Apple Silicon, ad-hoc signed, not notarized) assets. Since then, under
-Unreleased in `CHANGELOG.md`: **session history** (0.3) and the **sunset warning** (0.4),
-built on the Mac and checked on Windows; the **overnight guard** (0.4), built on Windows;
-the settings button as sliders and the **doors** line on Home. The project is under its
-own license, not MIT (see `LICENSE`).
+**v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
+the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
+`.app.tar.gz` (Apple Silicon, ad hoc signed, not notarized), each updater artifact signed,
+and `latest.json` for both. Nothing is under Unreleased. The project is under its own
+license, not MIT (see `LICENSE`).
 
 ## Two tracks, two machines
 
 ```mermaid
 flowchart LR
     main["main (ax5hay/KeepMeAwake, public)"]
-    win["Windows PC<br/>overnight guard built; next: auto-update → winget"]
-    mac["Mac<br/>check the guard and the doors; hand acceptance left"]
+    win["Windows PC<br/>0.3.0 out; next: winget → after the sun sets"]
+    mac["Mac<br/>check the guard, the doors, updates; hand acceptance left"]
     win -->|small commits| main
     mac -->|small commits| main
     main -->|pull first| win
@@ -38,10 +37,11 @@ can collide, so commit it small and push it soon.
 Paused: development is on the Windows PC. When back on the Mac, pull,
 then work **Waiting for the other machine**: the overnight guard (its
 `MacIdle` probe is compiled and tested only by CI's `macos-latest` so far),
-and the new settings icon and Home doors (the doors line must fit one line
-in SF Pro at 340 px; check `⌥⌘K` shows as the hotkey door). Setup is done
-here (rustup via Homebrew, librsvg). Two things the next session needs that
-this one did not have:
+the UI pass (sliders, the doors line in SF Pro at 340 px, `⌥⌘K` as the
+hotkey door), and auto-update (install the 0.3.0 DMG from the release; its
+check runs about 30 s after launch). Setup is done here (rustup via
+Homebrew, librsvg). Two things the next session needs that this one did
+not have:
 
 1. `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"` in `~/.zshrc` (Homebrew's
    rustup is keg-only; without it `npm run verify` and the pre-commit hook
@@ -76,16 +76,13 @@ Windows-first. This PC is set up (below); work through this in order.
 
 **Set up on this PC (2026-11-07).** The clone is on the rewritten history,
 with `user.name` / `user.email` set locally to the ax5hay noreply address.
-Installed as development.md describes. Two snags:
-
-- `gh` is logged in as a different account whose token is rejected (401).
-  Run `gh auth login` as ax5hay before anything that needs it (watching
-  CI, releases); git push itself works through the credential manager.
-  Until then CI can be read anonymously from
-  `https://api.github.com/repos/ax5hay/KeepMeAwake/actions/runs`.
-- A shell opened before rustup was installed has no `cargo` on PATH, and
-  the pre-commit hook then fails with `cargo: command not found`. New
-  terminals are fine; in an old one, prepend `the cargo bin folder`.
+Installed as development.md describes. `gh` is logged
+in as ax5hay. The updater signing key and its password are in
+a private location and
+in the repository secrets: **keep a copy somewhere safe** — without it no
+install can verify a future update. One snag: a shell opened before rustup
+was installed has no `cargo` on PATH, and the pre-commit hook then fails
+with `cargo: command not found`; new terminals are fine.
 
 1. **Hand checks left on Windows** (no script can do these: they need a
    click on the tray, a look at the taskbar or a battery):
@@ -97,19 +94,18 @@ Installed as development.md describes. Two snags:
      `overnight_guard_hours` to 1 in the settings file, start Always, and
      leave the PC untouched for an hour;
    - on a laptop: unplug below the threshold (history: one row, one pause).
-2. **Release.** Install the v0.2.0 pre-release from the releases page once
-   (a dev build's toasts say "Windows PowerShell"; an installed one should
-   name the app). When both platforms are happy, untick **pre-release** on
-   GitHub. The next release (0.3.0) can carry history, the sunset warning,
-   the overnight guard and the doors: follow [`releasing.md`](releasing.md).
+2. **Install 0.3.0** from the releases page once (a dev build's toasts say
+   "Windows PowerShell"; an installed one should name the app), and walk
+   the auto-update acceptance below. When both platforms are happy, untick
+   **pre-release** on v0.3.0: that is also the moment updates start
+   reaching installs, since only full releases are offered.
 3. **Build, in this order:**
 
-   | Spec                                  | State        | How, on Windows                                                                                                                                                                                                                                                                              |
-   | ------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | [auto-update](specs/auto-update.md)   | spec, 0 of 6 | `npm run tauri signer generate`, keep the private key out of the repo, store it and its password as the `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD` repository secrets; no paid certificate needed. The macOS `.app.tar.gz` is already built by the release job, so the updater can serve both |
-   | [winget-scoop](specs/winget-scoop.md) | spec, 0 of n | after 0.3.0 is published; the first winget submission is by hand (`wingetcreate new`), with `License: Proprietary`                                                                                                                                                                           |
-   | After the sun sets (roadmap 0.4)      | needs a spec | Windows-first: `LockWorkStation`, `SetSuspendState`. macOS has no public lock API and system sleep may need privileges; spec it as Windows-only with a macOS note, or `pmset sleepnow`-style sleep only                                                                                      |
-   | Sleep detection (roadmap 0.4)         | needs a spec | `PowerRegisterSuspendResumeNotification` on Windows; the macOS equivalent is `IORegisterForSystemPower` (IOKit). Closes the history gap noted in the guide                                                                                                                                   |
+   | Spec                                  | State        | How, on Windows                                                                                                                                                                                         |
+   | ------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | [winget-scoop](specs/winget-scoop.md) | spec, 0 of n | 0.3.0 is published (as a pre-release; winget wants a full one, so after the step above). The first winget submission is by hand (`wingetcreate new`), with `License: Proprietary`                       |
+   | After the sun sets (roadmap 0.4)      | needs a spec | Windows-first: `LockWorkStation`, `SetSuspendState`. macOS has no public lock API and system sleep may need privileges; spec it as Windows-only with a macOS note, or `pmset sleepnow`-style sleep only |
+   | Sleep detection (roadmap 0.4)         | needs a spec | `PowerRegisterSuspendResumeNotification` on Windows; the macOS equivalent is `IORegisterForSystemPower` (IOKit). Closes the history gap noted in the guide                                              |
 
 4. **Each feature:** spec → bottom-up commits → `npm run verify` → push →
    add it to **Waiting for the other machine** for the Mac → update this
@@ -131,10 +127,11 @@ Built on one machine, not yet built and checked on the other. A row goes
 when the other machine has run `npm run verify` and the acceptance items that
 apply there (see [`development.md`](development.md#two-machines-one-main)).
 
-| What                    | Built on | Waits for | Check there                                                                                                        |
-| ----------------------- | -------- | --------- | ------------------------------------------------------------------------------------------------------------------ |
-| Overnight guard         | Windows  | Mac       | `npm run verify` (includes the real `MacIdle` reading); the guard's acceptance (below) on the Mac, menu bar item   |
-| Settings sliders, doors | Windows  | Mac       | the icon in the menu bar window; the doors fit one line in SF Pro at 340 px and show `⌥⌘K`; each opens its section |
+| What                    | Built on | Waits for | Check there                                                                                                          |
+| ----------------------- | -------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
+| Overnight guard         | Windows  | Mac       | `npm run verify` (includes the real `MacIdle` reading); the guard's acceptance (below) on the Mac, menu bar item     |
+| UI pass, sliders, doors | Windows  | Mac       | the icon; the doors fit one line in SF Pro at 340 px and show `⌥⌘K`; each opens its section; Esc in Until…           |
+| Auto-update             | Windows  | Mac       | the 0.3.0 DMG installs; its check runs and stamps `last_update_check_unix_ms`; About shows the switch; menu bar line |
 
 Checked on Windows this session, so these rows came off: the **macOS
 track** (`npm run verify` green; toasts and the hotkey as in 0.2), **session
@@ -150,7 +147,7 @@ on Windows is listed under **Where to start**.
 | global-hotkey            | Windows | 3 of 3         | done                                                                                                            |
 | tray-icons-light-taskbar | Windows | 4 of 4         | done; paused-state ink icon verified by unit test only                                                          |
 | macos                    | macOS   | 12 of 12       | built, reviewed, four review fixes in; shipped in 0.2.0 as a pre-release; hand acceptance above is what is left |
-| auto-update              | Windows | 0 of 6         | ready: needs the free updater key                                                                               |
+| auto-update              | Windows | 6 of 6         | built, plus a perf fix; shipped in 0.3.0; signatures checked against the app's key; acceptance below            |
 | session-history          | shared  | 5 of 5         | built on the Mac, reviewed, two review fixes in; checked on Windows; acceptance below                           |
 | sunset-warning           | shared  | 6 of 6         | spec written and built on the Mac, reviewed, two review fixes in; checked on Windows; acceptance below          |
 | overnight-guard          | shared  | 7 of 7         | built on Windows, reviewed, two review fixes in; CI green on both runners; hand acceptance below                |
@@ -170,6 +167,8 @@ on Windows is listed under **Where to start**.
 | 2026-11-07 | Windows PC set up; the Mac's macOS, history and sunset work checked on Windows; History screenshots  | Claude Opus 5.5  |
 | 2026-11-07 | Overnight guard built on Windows (6 commits + 2 review fixes), CI green on both runners              | Claude Opus 5.5  |
 | 2026-11-07 | Settings button as sliders (a gear read as a sun); Home's doors into Settings; Home shots recaptured | Claude Opus 5.5  |
+| 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)          | Claude Opus 5.5  |
+| 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released as a pre-release      | Claude Opus 5.5  |
 
 ## Decisions made on the macOS track
 
@@ -261,11 +260,33 @@ Deferred, minor: a hand-edited guard outside 4/6/8 (the acceptance's 1)
 selects no segment, as with the sunset warning; Keep it up outlasts
 Always → timer → Always without an Off, since the session keeps its start.
 
+## Auto-update: acceptance and decisions
+
+| Acceptance (spec)                                                   | Status                                                                                           |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Publish 0.3.0, then 0.3.1; a 0.3.0 install shows it within a minute | **by hand**, needs a full 0.3.x release after 0.3.0 (pre-releases are not offered)               |
+| With the switch off, no request is made                             | by construction (the thread never asks while off); **by hand** with the debug log                |
+| A signature mismatch is refused and logged                          | **by hand**; the plugin verifies before installing, and the install path logs the error at warn  |
+| The check runs, fails quietly offline, and is stamped               | done on Windows: 30 s after launch, no `latest.json` on 0.2.0 → nothing shown, timestamp written |
+| The release signs every updater artifact with the app's key         | done: `latest.json` lists Windows NSIS/MSI and Apple Silicon, each signed by the app's key  |
+
+Decisions, each in its commit body: no `tauri-plugin-process` (Tauri's own
+`restart`) and no webview updater permission (the UI calls the app's own
+commands); `createUpdaterArtifacts` lives in `tauri.updater.conf.json`, an
+overlay CI passes, so local builds work without the key; the plugin's own
+log is off (it reports an offline check as an error); the daily check runs
+on a current-thread runtime (Tauri's shared one started 37 more threads);
+Home's doors lead with a waiting update and drop the hotkey door to stay
+one line; the whisper is once per version, remembered in localStorage.
+
 ## Open questions for Akshay
 
-- Home's doors are `Schedule · History · Ctrl+Alt+K`. The overnight guard
-  and sunset warning were left out because they announce themselves. Add
-  either, or replace one of the two switch rows with the schedule?
+- When should 0.3.0 become a full release? Updates reach installs only
+  from full releases, so until then nobody is offered anything, and winget
+  waits too.
+- Back up `a private locationthe key file` and its password somewhere
+  safe (a password manager). Losing it strands every install on its
+  version.
 
 - Paid signing, to drop the first-open warnings: Apple Developer Program
   ($99 a year, includes notarization) and a Windows certificate (Azure
