@@ -90,6 +90,11 @@ pub fn run() {
 }
 
 fn setup(app: &AppHandle) -> tauri::Result<()> {
+    // A menu bar app: no Dock icon, no Cmd-Tab entry. Set before any window
+    // exists so the Dock never flashes one.
+    #[cfg(target_os = "macos")]
+    app.set_activation_policy(tauri::ActivationPolicy::Accessory)?;
+
     let config_dir = app.path().app_config_dir()?;
     let settings_path = persistence::settings_path(&config_dir);
     let settings = persistence::load(&settings_path);

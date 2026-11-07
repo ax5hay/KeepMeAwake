@@ -1,8 +1,9 @@
 //! Main window lifecycle.
 //!
 //! The window is created on demand rather than at startup. When the user
-//! closes it we let Tauri destroy it (default) so the WebView2 processes go
-//! away and the app idles at a few megabytes; the tray keeps the app alive.
+//! closes it we let Tauri destroy it (default) so the webview (WebView2 on
+//! Windows, WKWebView on macOS) goes away and the app idles at a few
+//! megabytes; the tray or menu bar icon keeps the app alive.
 //! With `free_memory_when_hidden` off, the window is hidden instead so it
 //! reopens instantly.
 
@@ -36,11 +37,25 @@ pub fn show_main(app: AppHandle) {
     }
     // Window creation from a synchronous event handler can deadlock on
     // Windows; hop to a fresh thread and let Tauri marshal to the main thread.
+    #[cfg(not(target_os = "macos"))]
     std::thread::spawn(move || {
         if let Err(err) = create(&app) {
             log::error!("could not create main window: {err}");
         }
     });
+    // AppKit wants windows made on the main thread itself, so queue it there.
+    #[cfg(target_os = "macos")]
+    {
+        let main = app.clone();
+        let queued = main.run_on_main_thread(move || {
+            if let Err(err) = create(&app) {
+                log::error!("could not create main window: {err}");
+            }
+        });
+        if let Err(err) = queued {
+            log::error!("could not reach the main thread to open the window: {err}");
+        }
+    }
 }
 
 fn create(app: &AppHandle) -> tauri::Result<()> {
