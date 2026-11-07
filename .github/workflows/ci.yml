@@ -29,8 +29,12 @@ jobs:
       - run: npm run ui:build
 
   rust:
-    name: Rust clippy, fmt, tests
-    runs-on: windows-latest
+    name: Rust clippy, fmt, tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -40,15 +44,20 @@ jobs:
         with:
           workspaces: src-tauri
       - name: Placeholder frontend dist for tauri-build
-        run: New-Item -ItemType Directory -Force dist | Out-Null
+        shell: bash
+        run: mkdir -p dist
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
       - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path src-tauri/Cargo.toml
 
   build:
-    name: Debug build (no bundle)
-    runs-on: windows-latest
+    name: Debug build, no bundle (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     needs: [ui, rust]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
