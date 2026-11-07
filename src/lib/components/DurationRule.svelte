@@ -3,6 +3,7 @@
    * A slide-rule of durations. Each stop is a tick on a hairline; the active
    * stop carries a filled dot. "Until" opens an inline time field.
    */
+  import { longStop } from '$lib/copy';
   import { formatClock, formatStop, nextOccurrence, suggestedUntil } from '$lib/format';
   import { store } from '$lib/state.svelte';
 
@@ -54,6 +55,7 @@
     class="stop"
     class:active={activeStop === 'inf'}
     aria-pressed={activeStop === 'inf'}
+    title="Keep awake until you say otherwise"
     onclick={() => pick(null)}
   >
     <span class="tick"></span>
@@ -65,6 +67,7 @@
       class="stop"
       class:active={activeStop === String(seconds)}
       aria-pressed={activeStop === String(seconds)}
+      title="Keep awake for {longStop(seconds)}"
       onclick={() => pick(seconds)}
     >
       <span class="tick"></span>
@@ -77,6 +80,7 @@
     class:active={activeStop === 'until'}
     aria-pressed={activeStop === 'until'}
     aria-expanded={untilOpen}
+    title="Keep awake until a time of day"
     onclick={openUntil}
   >
     <span class="tick"></span>
