@@ -815,6 +815,35 @@ mod tests {
         }
     }
 
+    /// Collects events until one matches `pred` (kept), or fails after 5 s.
+    /// Waiting on the event itself, not on a quiet spell, keeps a slow
+    /// machine from failing the test.
+    fn events_until(rig: &Rig, pred: impl Fn(&EngineEvent) -> bool) -> Vec<EngineEvent> {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut out = Vec::new();
+        loop {
+            let left = deadline.saturating_duration_since(Instant::now());
+            match rig.events.recv_timeout(left) {
+                Ok(event) => {
+                    let done = pred(&event);
+                    out.push(event);
+                    if done {
+                        return out;
+                    }
+                }
+                Err(err) => panic!("the expected event never arrived ({err}): {out:?}"),
+            }
+        }
+    }
+
+    fn is_started(event: &EngineEvent) -> bool {
+        matches!(event, EngineEvent::SessionStarted { .. })
+    }
+
+    fn is_ended(event: &EngineEvent) -> bool {
+        matches!(event, EngineEvent::SessionEnded { .. })
+    }
+
     /// The session events, in order, without the rest.
     fn sessions(events: &[EngineEvent]) -> Vec<EngineEvent> {
         events
@@ -853,7 +882,7 @@ mod tests {
         r.engine.set_plan(PlanRequest::Off);
         wait_for_guard(&r, |g| g == GuardState::default());
         assert_eq!(
-            sessions(&drain(&r)),
+            sessions(&events_until(&r, is_ended)),
             vec![
                 started(Mode::Indefinite, t0),
                 ended(Ended::User, t0 + 60_000)
@@ -871,7 +900,7 @@ mod tests {
         r.engine.refresh();
         wait_for_guard(&r, |g| g == GuardState::default());
         assert_eq!(
-            sessions(&drain(&r)),
+            sessions(&events_until(&r, is_ended)),
             vec![started(Mode::Timed, t0), ended(Ended::Timer, t0 + 10_000)],
             "it ended when due, though the worker only looked at 11 s"
         );
@@ -888,7 +917,7 @@ mod tests {
         r.engine.refresh();
         wait_for_guard(&r, |g| g == GuardState::default());
         assert_eq!(
-            sessions(&drain(&r)),
+            sessions(&events_until(&r, is_ended)),
             vec![
                 started(Mode::Scheduled, local_ms(2, 9, 0)),
                 ended(Ended::Schedule, local_ms(2, 18, 0))
@@ -909,7 +938,7 @@ mod tests {
         r.engine.refresh();
         wait_for_guard(&r, |g| g == GuardState::default());
         assert_eq!(
-            sessions(&drain(&r)).last(),
+            sessions(&events_until(&r, is_ended)).last(),
             Some(&ended(Ended::Schedule, local_ms(2, 18, 0)))
         );
     }
@@ -924,7 +953,7 @@ mod tests {
         r.engine.refresh();
         wait_for_guard(&r, |g| g == GuardState::default());
         assert_eq!(
-            sessions(&drain(&r)).last(),
+            sessions(&events_until(&r, is_ended)).last(),
             Some(&ended(Ended::Timer, t0 + 10_000))
         );
     }
@@ -942,7 +971,7 @@ mod tests {
         wait_for_guard(&r, |g| g == GuardState::default());
         let at = r.clock.unix_ms();
         r.engine.set_plan(PlanRequest::Off);
-        let events = drain(&r);
+        let events = events_until(&r, is_ended);
         assert_eq!(sessions(&events).last(), Some(&ended(Ended::Battery, at)));
     }
 
@@ -984,7 +1013,7 @@ mod tests {
         let r = rig_at(with_schedule(), 2, 10, 0);
         wait_for_guard(&r, |g| g.system);
         assert_eq!(
-            sessions(&drain(&r)),
+            sessions(&events_until(&r, is_started)),
             vec![started(Mode::Scheduled, local_ms(2, 10, 0))]
         );
     }
@@ -998,7 +1027,7 @@ mod tests {
         });
         let t0 = r.clock.unix_ms();
         r.engine.set_plan(PlanRequest::Indefinite);
-        let events = drain(&r);
+        let events = events_until(&r, is_started);
         assert_eq!(
             sessions(&events),
             vec![EngineEvent::SessionStarted {
@@ -1016,15 +1045,18 @@ mod tests {
         r.engine.set_plan(PlanRequest::For { seconds: 60 });
         r.clock.advance(Duration::from_secs(61));
         r.engine.refresh();
-        let events = drain(&r);
-        assert!(
-            events.contains(&EngineEvent::TimerEnded { plan_secs: 60 }),
-            "{events:?}"
-        );
+        let mut events = events_until(&r, |e| matches!(e, EngineEvent::TimerEnded { .. }));
+        // Shutdown joins the worker, so everything before it has arrived;
+        // the only end is the one quitting reports.
+        r.engine.shutdown();
+        events.extend(drain(&r));
         assert_eq!(
             sessions(&events),
-            vec![started(Mode::Scheduled, local_ms(2, 10, 0))],
-            "the window still holds, so the sun never set"
+            vec![
+                started(Mode::Scheduled, local_ms(2, 10, 0)),
+                ended(Ended::User, local_ms(2, 10, 1) + 1_000)
+            ],
+            "the window still holds, so the sun never set until quitting"
         );
     }
 
