@@ -52,6 +52,10 @@ struct State {
     battery: BatteryState,
     guards: GuardState,
     paused: Option<PauseReason>,
+    /// Something changed since the worker last evaluated. A notify that
+    /// lands while the worker is delivering events (lock released, not yet
+    /// waiting) would otherwise be lost until the next deadline.
+    dirty: bool,
     shutdown: bool,
 }
 
@@ -84,6 +88,7 @@ impl Engine {
                 battery: battery.read(),
                 guards: GuardState::default(),
                 paused: None,
+                dirty: false,
                 shutdown: false,
             }),
             wake: Condvar::new(),
@@ -146,6 +151,7 @@ impl Engine {
     /// Asks the worker to re-read the battery and re-apply now. Used when the
     /// window opens so the UI shows fresh power data without constant polling.
     pub fn refresh(&self) {
+        self.shared.state.lock().dirty = true;
         self.shared.wake.notify_all();
     }
 
@@ -161,6 +167,7 @@ impl Engine {
     fn mutate(&self, f: impl FnOnce(&mut State)) -> Snapshot {
         let mut st = self.shared.state.lock();
         f(&mut st);
+        st.dirty = true;
         // Wake the worker so it applies the change on its own thread.
         self.shared.wake.notify_all();
         build_snapshot(&st, &self.shared)
@@ -190,6 +197,7 @@ fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn 
             }
             return;
         }
+        st.dirty = false;
         let now = shared.clock.now();
         let events = step(&mut st, guard.as_mut(), battery, now, shared);
         let deadline = policy::next_deadline(&st.session, now);
@@ -204,6 +212,11 @@ fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn 
             }
         });
 
+        // A command or shutdown that arrived while the lock was released has
+        // already been notified; waiting now would sleep through it.
+        if st.dirty || st.shutdown {
+            continue;
+        }
         match deadline {
             Some(d) => {
                 shared.wake.wait_until(&mut st, d);
@@ -518,5 +531,44 @@ mod tests {
         r.engine.shutdown();
         assert_eq!(r.guard.current(), GuardState::default());
         r.engine.shutdown();
+    }
+
+    #[test]
+    fn command_sent_while_events_are_delivered_is_not_lost() {
+        let guard = FakePowerGuard::default();
+        let engine = Arc::new(Engine::start(
+            Platform {
+                guard: Box::new(guard.clone()),
+                battery: Box::new(FakeBattery::new(BatteryState {
+                    on_ac: true,
+                    percent: Some(90),
+                })),
+                clock: Arc::new(ManualClock::new()),
+            },
+            Settings::default(),
+            "test",
+        ));
+        // A listener that sends a command runs exactly in the window where
+        // the worker has released the lock but is not yet waiting.
+        let weak = Arc::downgrade(&engine);
+        let sent = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let flag = Arc::clone(&sent);
+        engine.subscribe(Box::new(move |_| {
+            if !flag.swap(true, std::sync::atomic::Ordering::SeqCst)
+                && let Some(engine) = weak.upgrade()
+            {
+                engine.set_plan(PlanRequest::Indefinite);
+            }
+        }));
+        engine.refresh();
+        let start = Instant::now();
+        while !guard.current().system {
+            assert!(
+                start.elapsed() < Duration::from_secs(5),
+                "the command was never applied"
+            );
+            thread::sleep(Duration::from_millis(5));
+        }
+        engine.shutdown();
     }
 }
