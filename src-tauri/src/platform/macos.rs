@@ -229,15 +229,18 @@ mod tests {
 
     use super::*;
 
-    /// Whether `pmset -g assertions` lists our assertion under `kind`.
+    /// Whether `pmset -g assertions` lists an assertion of `kind` held by
+    /// this test process. Matching the pid, not just the name, keeps the
+    /// test honest while the app itself is running and holding its own.
     fn pmset_lists(kind: &str) -> bool {
         let out = Command::new("pmset")
             .args(["-g", "assertions"])
             .output()
             .expect("run pmset");
+        let ours = format!("pid {}(", std::process::id());
         String::from_utf8_lossy(&out.stdout)
             .lines()
-            .any(|line| line.contains(kind) && line.contains(REASON))
+            .any(|line| line.contains(&ours) && line.contains(kind) && line.contains(REASON))
     }
 
     #[test]
