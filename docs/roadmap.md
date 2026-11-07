@@ -9,8 +9,8 @@ helps a working day. Items under _Next_ have full implementation specs in
 timeline
     title Keep me awake
     0.1 : Power requests : Timed sessions : Battery rules : Tray : Paper & Night : Hidden things
-    0.2 : Schedule : Notifications : Global hotkey : Light-taskbar tray icons
-    0.3 : Auto-update : Session history : Winget & Scoop : macOS
+    0.2 : Schedule : Notifications : Global hotkey : Light-taskbar tray icons : macOS
+    0.3 : Auto-update : Session history : Winget & Scoop
     0.4 : Sunset warning : After the sun sets : Overnight guard : Sleep detection
     0.5 : Presenting & docked awareness : Watch a process : Sky log
     Later : Dawn theme & chime : CLI : Profiles : Export : Localisation
@@ -30,7 +30,7 @@ timeline
 | Settings persisted atomically, rotating log                          | persistence      |
 | Tips, stars, ripple, credit, late-night line                         | UI               |
 
-## Shipped in 0.2 (unreleased)
+## Shipped in 0.2 (pre-release)
 
 | Feature                                                       | Spec                                                             | Layers                      |
 | ------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------- |
@@ -38,6 +38,7 @@ timeline
 | Notifications: toasts for timer end, battery, schedule        | [notifications.md](specs/notifications.md)                       | app, ui                     |
 | Global hotkey: `Ctrl+Alt+K`, recordable                       | [global-hotkey.md](specs/global-hotkey.md)                       | app, ui                     |
 | Tray icons that follow the taskbar theme                      | [tray-icons-light-taskbar.md](specs/tray-icons-light-taskbar.md) | platform, app, brand        |
+| macOS: menu bar app on IOKit assertions (acceptance pending)  | [macos.md](specs/macos.md)                                       | platform, app, ui, ci       |
 
 ## Next: 0.3
 
@@ -46,13 +47,11 @@ timeline
 | Auto-update, signed, once a day, opt-out    | [auto-update.md](specs/auto-update.md)         | app, ui, ci           |
 | Session history with how each session ended | [session-history.md](specs/session-history.md) | core, engine, app, ui |
 | Winget and Scoop                            | [winget-scoop.md](specs/winget-scoop.md)       | ci, docs              |
-| macOS: menu bar app on IOKit assertions     | [macos.md](specs/macos.md)                     | platform, app, ui, ci |
 
-macOS is a parallel track, built on the personal Mac while the Windows items
-above are built on the work laptop. It ships with whichever release is next
-once it is accepted. Status: built (all twelve commits of the spec, see
-`CHANGELOG.md`); the by-hand acceptance items that need a person at the Mac
-are listed in [`HANDOFF.md`](HANDOFF.md).
+macOS shipped in 0.2.0 as a pre-release, built on the personal Mac. The
+by-hand acceptance items that need a person at the Mac (menu bar click and
+legibility, ⌘W/⌘Q in the real app, toasts, launch at sign-in, unplugging) are
+listed in [`HANDOFF.md`](HANDOFF.md); it stays marked pending until they pass.
 
 ## After 0.3
 
