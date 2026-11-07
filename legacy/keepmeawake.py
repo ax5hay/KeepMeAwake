@@ -1,4 +1,10 @@
-"""Keep the system active by simulating an Alt key press every 15 minutes."""
+"""Keep the system active by simulating an Alt key press every 15 minutes.
+
+The original, kept as a souvenir. Everything in this repository grew out of
+these twenty lines. It still works; it is just no longer the way.
+
+    Akshay Bajpai, akshaybajpai.com
+"""
 
 import ctypes
 import time
