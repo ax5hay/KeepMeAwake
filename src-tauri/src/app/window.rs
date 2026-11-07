@@ -18,6 +18,13 @@ pub const MAIN: &str = "main";
 /// How long to wait for the UI to call `show()` before forcing it.
 const SHOW_FALLBACK: Duration = Duration::from_millis(2500);
 
+/// Creates the window during `setup`, where we are already on the main thread
+/// and the event loop has not started, so the deferred path in [`show_main`]
+/// would never run.
+pub fn open_at_startup(app: &AppHandle) -> tauri::Result<()> {
+    create(app)
+}
+
 /// Shows the main window, creating it first if needed. Safe to call from any
 /// thread, including tray and plugin callbacks.
 pub fn show_main(app: AppHandle) {
