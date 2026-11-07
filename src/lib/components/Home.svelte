@@ -3,6 +3,7 @@
   import Row from './Row.svelte';
   import Scene from './Scene.svelte';
   import Switch from './Switch.svelte';
+  import { EXTEND_LABEL, EXTENDED } from '$lib/copy';
   import { batteryText } from '$lib/format';
   import { store } from '$lib/state.svelte';
 
@@ -22,7 +23,19 @@
 <section class="status" aria-live="polite">
   <h1>{store.status.title}</h1>
   {#key store.whisper}
-    <p class:whisper={store.whisper !== null}>{store.whisper ?? store.status.detail}</p>
+    <p class:whisper={store.whisper !== null}>
+      {store.whisper ?? store.status.detail}
+      {#if store.sunsetSoon && store.whisper === null}
+        <button
+          type="button"
+          class="extend"
+          onclick={() => {
+            void store.extend();
+            store.say(EXTENDED);
+          }}>{EXTEND_LABEL}</button
+        >
+      {/if}
+    </p>
   {/key}
 </section>
 
@@ -68,6 +81,21 @@
     color: var(--ink-2);
     font-variant-numeric: tabular-nums;
     animation: settle var(--t-mid) var(--ease-out);
+  }
+
+  .extend {
+    margin-left: 2px;
+    padding: 0;
+    font: inherit;
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--hair-strong);
+    text-underline-offset: 2px;
+    transition: text-decoration-color var(--t-fast) var(--ease);
+  }
+
+  .extend:hover {
+    text-decoration-color: var(--ink);
   }
 
   p.whisper {

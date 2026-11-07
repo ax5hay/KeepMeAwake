@@ -9,6 +9,7 @@ import {
   minutesToTime,
   nextOccurrence,
   pauseText,
+  sunsetSoon,
   progress,
   remainingSecs,
   statusText,
@@ -274,5 +275,34 @@ describe('pauseText', () => {
     expect(pauseText('power_request_failed', false)).toBe('Windows refused the request');
     expect(pauseText('power_request_failed', true)).toBe('macOS refused the request');
     expect(pauseText('on_battery', true)).toBe('running on battery');
+  });
+});
+
+describe('sunsetSoon', () => {
+  const ends = new Date(2026, 0, 1, 17, 30).getTime();
+  const timed = { ...base, mode: 'timed' as const, ends_at_unix_ms: ends, plan_secs: 600 };
+  const at = (secsLeft: number) => ends - secsLeft * 1000;
+
+  it('holds from the warning to the end, by the engine’s rule', () => {
+    expect(sunsetSoon(timed, at(301))).toBe(false);
+    expect(sunsetSoon(timed, at(300))).toBe(true);
+    expect(sunsetSoon(timed, at(1))).toBe(true);
+    expect(sunsetSoon(timed, at(0))).toBe(false);
+  });
+
+  it('never for a short plan, with the warning off, or without an end', () => {
+    expect(sunsetSoon({ ...timed, plan_secs: 300 }, at(60))).toBe(false);
+    const off = { ...timed, settings: { ...timed.settings, sunset_warning_mins: null } };
+    expect(sunsetSoon(off, at(60))).toBe(false);
+    expect(sunsetSoon({ ...base, mode: 'indefinite' }, at(60))).toBe(false);
+    expect(sunsetSoon({ ...timed, mode: 'scheduled' }, at(60))).toBe(false);
+  });
+
+  it('turns the status line to the sunset', () => {
+    expect(statusText(timed, at(299), 'en-US')).toEqual({
+      title: 'Awake',
+      detail: 'The sun sets in 5 minutes.',
+    });
+    expect(statusText(timed, at(400), 'en-US').detail).toBe('Until 5:30 pm · 6m left');
   });
 });

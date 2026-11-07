@@ -10,6 +10,7 @@ import {
   longStop,
   platformCopy,
   starWhisper,
+  sunsetIn,
   TIPS,
   tips,
   tipsWith,
@@ -106,6 +107,15 @@ describe('platform copy', () => {
     for (const mac of [false, true]) {
       for (const tip of tips(mac)) expect(tip.does.length).toBeLessThanOrEqual(28);
     }
+  });
+});
+
+describe('sunsetIn', () => {
+  it('counts whole minutes up, then says under a minute', () => {
+    expect(sunsetIn(300)).toBe('The sun sets in 5 minutes.');
+    expect(sunsetIn(299)).toBe('The sun sets in 5 minutes.');
+    expect(sunsetIn(60)).toBe('The sun sets in 1 minute.');
+    expect(sunsetIn(59)).toBe('The sun sets in under a minute.');
   });
 });
 

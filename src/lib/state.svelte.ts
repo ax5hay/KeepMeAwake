@@ -6,7 +6,7 @@
  * helpers in format.ts.
  */
 import { api, type Api } from './api';
-import { progress, remainingSecs, statusText, toggleWhisper } from './format';
+import { progress, remainingSecs, statusText, sunsetSoon, toggleWhisper } from './format';
 import type { History, PlanRequest, Settings, Snapshot } from './types';
 
 export type View = 'home' | 'settings';
@@ -66,8 +66,22 @@ export class AppStore {
     return this.snapshot ? statusText(this.snapshot, this.now) : { title: '', detail: '' };
   }
 
+  /** A timed session is inside its sunset warning. */
+  get sunsetSoon(): boolean {
+    return this.snapshot ? sunsetSoon(this.snapshot, this.now) : false;
+  }
+
   get settings(): Settings | null {
     return this.snapshot?.settings ?? null;
+  }
+
+  /** Gives a timed session another 30 minutes. */
+  async extend(): Promise<void> {
+    try {
+      this.#accept(await this.#api.extendSession());
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+    }
   }
 
   /** Fetches the session log. */

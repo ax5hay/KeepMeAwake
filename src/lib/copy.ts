@@ -120,6 +120,19 @@ export function longStop(secs: number): string {
   return `${shown} hour${h === 1 ? '' : 's'}`;
 }
 
+/** The status line while a timed session is inside its sunset warning. */
+export function sunsetIn(secs: number): string {
+  if (secs < 60) return 'The sun sets in under a minute.';
+  const m = Math.ceil(secs / 60);
+  return `The sun sets in ${m} minute${m === 1 ? '' : 's'}.`;
+}
+
+/** The action under the status line, and the tray item, near sunset. */
+export const EXTEND_LABEL = 'Give it another 30m';
+
+/** Whispered after the extend link is clicked. */
+export const EXTENDED = 'Another 30 minutes.';
+
 /** Settings → History before anything has been logged. */
 export const HISTORY_EMPTY = 'Nothing yet. The first sunset will be written here.';
 

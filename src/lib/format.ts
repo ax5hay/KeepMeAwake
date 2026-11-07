@@ -10,6 +10,7 @@ import {
   platformCopy,
   skippedUntil,
   skipping,
+  sunsetIn,
 } from './copy';
 import { isMac } from './platform';
 import type { PauseReason, Snapshot } from './types';
@@ -71,6 +72,19 @@ export function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
 }
 
+/**
+ * `true` while a timed session is inside its sunset warning: no more than
+ * the warning left, and a plan longer than the warning. The same rule the
+ * engine uses to send its toast.
+ */
+export function sunsetSoon(snapshot: Snapshot, nowMs: number): boolean {
+  const mins = snapshot.settings.sunset_warning_mins;
+  const left = remainingSecs(snapshot, nowMs);
+  if (snapshot.mode !== 'timed' || mins === null || left === null) return false;
+  const warning = mins * 60;
+  return left > 0 && left <= warning && (snapshot.plan_secs ?? 0) > warning;
+}
+
 /** Why the sun is paused, as the end of a sentence. */
 export function pauseText(reason: PauseReason, mac: boolean = isMac): string {
   switch (reason) {
@@ -117,6 +131,7 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
     return { title: 'Awake', detail: `${onSchedule(formatClock(ends, locale))}${late}` };
   }
   const left = remainingSecs(snapshot, nowMs) ?? 0;
+  if (sunsetSoon(snapshot, nowMs)) return { title: 'Awake', detail: sunsetIn(left) };
   return {
     title: 'Awake',
     detail: `Until ${formatClock(ends, locale)} · ${formatDuration(left)} left${late}`,

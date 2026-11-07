@@ -75,6 +75,13 @@
     ...[10, 15, 20, 25, 30, 40, 50].map((p) => ({ value: String(p), label: `${p}%` })),
   ];
 
+  const sunsetOptions: ReadonlyArray<{ value: 'off' | '2' | '5' | '10'; label: string }> = [
+    { value: 'off', label: 'Off' },
+    { value: '2', label: '2m' },
+    { value: '5', label: '5m' },
+    { value: '10', label: '10m' },
+  ];
+
   const themeOptions: ReadonlyArray<{ value: Theme; label: string }> = [
     { value: 'system', label: 'System' },
     { value: 'light', label: 'Paper' },
@@ -131,6 +138,17 @@
           label="Default length"
           onchange={(v) =>
             void store.updateSettings({ default_duration_secs: v === 'inf' ? null : Number(v) })}
+        />
+      </Row>
+      <Row label="Warn before sunset" hint="A nudge before a timer ends.">
+        <Segmented
+          options={sunsetOptions}
+          value={settings.sunset_warning_mins === null
+            ? 'off'
+            : (String(settings.sunset_warning_mins) as '2' | '5' | '10')}
+          label="Warn before sunset"
+          onchange={(v) =>
+            void store.updateSettings({ sunset_warning_mins: v === 'off' ? null : Number(v) })}
         />
       </Row>
       <Row label="Keep the screen on" hint="Off lets the display dim while the laptop stays awake.">

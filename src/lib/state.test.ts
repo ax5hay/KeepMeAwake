@@ -88,6 +88,7 @@ function fakeApi(initial: Snapshot) {
       return current;
     }),
     quit: vi.fn(async () => undefined),
+    extendSession: vi.fn(async () => current),
     getHistory: vi.fn(async () => logged),
     clearHistory: vi.fn(async () => ({ version: 1, entries: [] })),
     onSnapshot: vi.fn(async (handler) => {
@@ -231,6 +232,15 @@ describe('AppStore', () => {
     expect(store.history?.entries).toHaveLength(1);
     await store.clearHistory();
     expect(store.history?.entries).toEqual([]);
+    store.dispose();
+  });
+
+  it('gives a timed session another 30 minutes through the backend', async () => {
+    const { api } = fakeApi(base);
+    const store = new AppStore(api);
+    await store.init();
+    await store.extend();
+    expect(api.extendSession).toHaveBeenCalledOnce();
     store.dispose();
   });
 });
