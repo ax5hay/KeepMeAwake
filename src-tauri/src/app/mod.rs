@@ -3,6 +3,7 @@
 //! helpers in [`tray`].
 
 pub mod commands;
+pub mod hotkey;
 pub mod notify;
 pub mod tray;
 pub mod window;
@@ -44,6 +45,7 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![HIDDEN_FLAG])))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(hotkey::plugin())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(if cfg!(debug_assertions) { log::LevelFilter::Debug } else { log::LevelFilter::Info })
@@ -103,6 +105,9 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         settings_path,
     });
     tray::create(app)?;
+    if let Err(err) = hotkey::apply(app, settings.hotkey.as_deref()) {
+        log::warn!("hotkey not registered at launch: {err}");
+    }
 
     // Push every engine change to the tray and to the UI (if it is open).
     let handle = app.clone();
