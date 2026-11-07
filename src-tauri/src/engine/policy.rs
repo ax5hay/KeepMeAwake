@@ -66,6 +66,19 @@ pub fn next_deadline(
         .min()
 }
 
+/// When a timed session should say the sun is about to set: `warning_mins`
+/// before its deadline, and only if the plan is longer than the warning, so a
+/// short timer is not announced the moment it starts.
+pub fn sunset_warning_at(session: &Session, warning_mins: Option<u8>) -> Option<Instant> {
+    let warning = Duration::from_secs(u64::from(warning_mins?) * 60);
+    let deadline = session.deadline()?;
+    if session.plan_duration()? > warning {
+        deadline.checked_sub(warning)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,5 +247,21 @@ mod tests {
             next_deadline(&Session::off(), true, Some(edge), now),
             Some(edge)
         );
+    }
+
+    #[test]
+    fn warns_the_set_minutes_before_a_long_enough_timer_ends() {
+        let now = Instant::now();
+        let mut s = Session::off();
+        s.apply(PlanRequest::For { seconds: 600 }, now);
+        assert_eq!(
+            sunset_warning_at(&s, Some(5)),
+            Some(now + Duration::from_secs(300))
+        );
+        assert_eq!(sunset_warning_at(&s, None), None, "off");
+        assert_eq!(sunset_warning_at(&s, Some(10)), None, "plan not longer");
+        s.apply(PlanRequest::Indefinite, now);
+        assert_eq!(sunset_warning_at(&s, Some(5)), None, "no end, no sunset");
+        assert_eq!(sunset_warning_at(&Session::off(), Some(5)), None);
     }
 }

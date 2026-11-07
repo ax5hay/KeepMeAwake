@@ -187,6 +187,9 @@ fn on_engine_event(handle: &AppHandle, event: &EngineEvent) {
                 EngineEvent::ScheduleEnded { .. } => log::info!("schedule window closed"),
                 EngineEvent::SessionStarted { mode, .. } => log::info!("sun up: {mode:?}"),
                 EngineEvent::SessionEnded { ended, .. } => log::info!("sun down: {ended:?}"),
+                EngineEvent::SunsetSoon { secs_left, .. } => {
+                    log::info!("the sun sets in {secs_left}s");
+                }
                 EngineEvent::Snapshot(_) => {}
             }
             notify::on_event(handle, other);

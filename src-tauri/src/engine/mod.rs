@@ -61,6 +61,14 @@ pub enum EngineEvent {
         /// When, Unix ms.
         at_unix_ms: u64,
     },
+    /// A timed session is about to end: the warning set in settings has
+    /// been reached. Sent once per deadline.
+    SunsetSoon {
+        /// When the session ends, Unix ms.
+        ends_at_unix_ms: u64,
+        /// Seconds left, rounded up.
+        secs_left: u64,
+    },
     /// The sun set: nothing wants the laptop awake any more, or the app is
     /// quitting while something did.
     SessionEnded {
@@ -112,6 +120,9 @@ struct State {
     /// that ran out while the machine slept is logged as ending then, not
     /// when the worker next woke.
     due_end_unix: Option<u64>,
+    /// The deadline the last sunset warning was for, so each deadline warns
+    /// once and an extended one warns again.
+    warned_for: Option<Instant>,
     shutdown: bool,
 }
 
@@ -163,6 +174,7 @@ impl Engine {
                 dirty: false,
                 awake: false,
                 due_end_unix: None,
+                warned_for: None,
                 shutdown: false,
             }),
             wake: Condvar::new(),
@@ -238,6 +250,14 @@ impl Engine {
             if let Some((_, end)) = view.window {
                 st.skip_until = Some(end);
             }
+        })
+    }
+
+    /// Pushes a timed session's end `by` later. Does nothing unless a timed
+    /// session is running.
+    pub fn extend(&self, by: Duration) -> Snapshot {
+        self.mutate(|st| {
+            st.session.extend(by);
         })
     }
 
@@ -437,7 +457,15 @@ fn next_wake(st: &State, now: Instant, unix_now: u64) -> Option<Instant> {
     let boundary = view
         .boundary
         .map(|at| now + Duration::from_millis(at.saturating_sub(unix_now)));
-    policy::next_deadline(&st.session, st.phase == Phase::Holding, boundary, now)
+    let usual = policy::next_deadline(&st.session, st.phase == Phase::Holding, boundary, now);
+    let warning = pending_warning(st).filter(|at| *at > now);
+    [usual, warning].into_iter().flatten().min()
+}
+
+/// The moment the current timed session should warn, unless it already has.
+fn pending_warning(st: &State) -> Option<Instant> {
+    let at = policy::sunset_warning_at(&st.session, st.settings.sunset_warning_mins)?;
+    (st.warned_for != st.session.deadline()).then_some(at)
 }
 
 /// One evaluation of the state machine. Separated from the thread so it can be
@@ -457,6 +485,16 @@ fn step(
     let expired = st.session.tick(now) == Some(SessionEvent::Expired);
     if expired {
         events.push(EngineEvent::TimerEnded { plan_secs });
+    }
+    if let (Some(at), Some(deadline)) = (pending_warning(st), st.session.deadline())
+        && now >= at
+    {
+        st.warned_for = Some(deadline);
+        let left = deadline.saturating_duration_since(now);
+        events.push(EngineEvent::SunsetSoon {
+            ends_at_unix_ms: unix_now.saturating_add(millis(left)),
+            secs_left: millis(left).div_ceil(1000),
+        });
     }
     if st.skip_until.is_some_and(|until| unix_now >= until) {
         st.skip_until = None;
@@ -834,6 +872,124 @@ mod tests {
                 Err(err) => panic!("the expected event never arrived ({err}): {out:?}"),
             }
         }
+    }
+
+    fn is_sunset(event: &EngineEvent) -> bool {
+        matches!(event, EngineEvent::SunsetSoon { .. })
+    }
+
+    fn sunsets(events: &[EngineEvent]) -> usize {
+        events.iter().filter(|e| is_sunset(e)).count()
+    }
+
+    #[test]
+    fn warns_once_when_the_warning_is_reached() {
+        let r = rig(Settings::default());
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::For { seconds: 600 });
+        wait_for_guard(&r, |g| g.system);
+        r.clock.advance(Duration::from_secs(299));
+        r.engine.refresh();
+        r.clock.advance(Duration::from_secs(1));
+        r.engine.refresh();
+        let events = events_until(&r, is_sunset);
+        assert_eq!(
+            events.last(),
+            Some(&EngineEvent::SunsetSoon {
+                ends_at_unix_ms: t0 + 600_000,
+                secs_left: 300,
+            })
+        );
+        r.clock.advance(Duration::from_secs(60));
+        r.engine.refresh();
+        r.engine.shutdown();
+        assert_eq!(sunsets(&drain(&r)), 0, "once per deadline");
+    }
+
+    #[test]
+    fn never_warns_for_a_plan_no_longer_than_the_warning() {
+        let r = rig(Settings::default());
+        r.engine.set_plan(PlanRequest::For { seconds: 120 });
+        wait_for_guard(&r, |g| g.system);
+        r.clock.advance(Duration::from_secs(60));
+        r.engine.refresh();
+        r.engine.shutdown();
+        assert_eq!(sunsets(&drain(&r)), 0);
+    }
+
+    #[test]
+    fn never_warns_when_the_warning_is_off() {
+        let r = rig(Settings {
+            sunset_warning_mins: None,
+            ..Settings::default()
+        });
+        r.engine.set_plan(PlanRequest::For { seconds: 600 });
+        wait_for_guard(&r, |g| g.system);
+        r.clock.advance(Duration::from_secs(400));
+        r.engine.refresh();
+        r.engine.shutdown();
+        assert_eq!(sunsets(&drain(&r)), 0);
+    }
+
+    #[test]
+    fn extending_moves_the_end_and_warns_again_before_it() {
+        let r = rig(Settings::default());
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::For { seconds: 600 });
+        wait_for_guard(&r, |g| g.system);
+        r.clock.advance(Duration::from_secs(300));
+        r.engine.refresh();
+        events_until(&r, is_sunset);
+        let snap = r.engine.extend(Duration::from_secs(1800));
+        assert_eq!(snap.ends_at_unix_ms, Some(t0 + 2_400_000));
+        assert_eq!(snap.plan_secs, Some(2400), "the arc grows");
+        r.clock.advance(Duration::from_secs(1800));
+        r.engine.refresh();
+        assert_eq!(
+            events_until(&r, is_sunset).last(),
+            Some(&EngineEvent::SunsetSoon {
+                ends_at_unix_ms: t0 + 2_400_000,
+                secs_left: 300,
+            })
+        );
+    }
+
+    #[test]
+    fn extending_anything_but_a_timer_changes_nothing() {
+        let r = rig(Settings::default());
+        assert_eq!(r.engine.extend(Duration::from_secs(1800)).mode, Mode::Off);
+        r.engine.set_plan(PlanRequest::Indefinite);
+        let snap = r.engine.extend(Duration::from_secs(1800));
+        assert_eq!(snap.mode, Mode::Indefinite);
+        assert_eq!(snap.ends_at_unix_ms, None);
+    }
+
+    #[test]
+    fn never_warns_for_always_or_a_schedule_window() {
+        let r = rig(Settings::default());
+        r.engine.set_plan(PlanRequest::Indefinite);
+        wait_for_guard(&r, |g| g.system);
+        r.clock.advance(Duration::from_secs(3600));
+        r.engine.refresh();
+        r.engine.shutdown();
+        assert_eq!(sunsets(&drain(&r)), 0);
+
+        let w = rig_at(with_schedule(), 2, 17, 50);
+        wait_for_guard(&w, |g| g.system);
+        w.clock.advance(Duration::from_secs(8 * 60));
+        w.engine.refresh();
+        w.engine.shutdown();
+        assert_eq!(sunsets(&drain(&w)), 0);
+    }
+
+    #[test]
+    fn the_worker_wakes_for_the_warning_when_it_comes_before_a_poll() {
+        let r = rig(Settings::default());
+        r.engine.set_plan(PlanRequest::For { seconds: 320 });
+        assert_eq!(
+            r.engine.next_wake(),
+            Some(r.clock.now() + Duration::from_secs(20))
+        );
     }
 
     fn is_started(event: &EngineEvent) -> bool {
