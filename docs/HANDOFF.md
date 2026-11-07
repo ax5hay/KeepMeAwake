@@ -3,21 +3,21 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-07 · by Claude Opus 5.5 (macOS track, review fixes, 0.2.0 pre-release)
+**Last updated:** 2026-11-07 · by Claude Opus 5.5 (session history built on the Mac, reviewed)
 **Release:** [v0.2.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.2.0), pre-release.
-**Repo state:** `main` is green on both CI runners (`npm run verify` on the Mac: vitest 75,
-cargo test 120; Windows runs its own platform tests in place of the Mac ones). **v0.2.0 is
-published as a pre-release** with Windows (`.exe`, `.msi`) and macOS (`.dmg`, `.app.tar.gz`,
-Apple Silicon, ad-hoc signed, not notarized) assets. The project is under its own license now,
-not MIT (see `LICENSE`).
+**Repo state:** `main` is green (`npm run verify` on the Mac: vitest 85, cargo test 142;
+Windows runs its own platform tests in place of the Mac ones). **v0.2.0 is published as a
+pre-release** with Windows (`.exe`, `.msi`) and macOS (`.dmg`, `.app.tar.gz`, Apple Silicon,
+ad-hoc signed, not notarized) assets. Since then: **session history** (0.3) is built and under
+Unreleased in `CHANGELOG.md`. The project is under its own license, not MIT (see `LICENSE`).
 
 ## Two tracks, two machines
 
 ```mermaid
 flowchart LR
     main["main (ax5hay/KeepMeAwake, public)"]
-    win["Windows PC<br/>0.3: auto-update → history → winget"]
-    mac["Mac<br/>built; hand acceptance left"]
+    win["Windows PC<br/>0.3: auto-update → winget"]
+    mac["Mac<br/>macOS + history built; hand acceptance left"]
     win -->|small commits| main
     mac -->|small commits| main
     main -->|pull first| win
@@ -54,7 +54,7 @@ Then walk the by-hand acceptance in [`specs/macos.md`](specs/macos.md):
 | `⌘,` `⌘W` `⌘M` `⌘Q` in the real window                           | **by hand**; in a browser harness ⌘W/⌘M/⌘, route correctly |
 | Timer toast from the bundled `.app`                              | **by hand**                                                |
 | Launch at sign-in writes a LaunchAgent, starts hidden            | **by hand**                                                |
-| Unplug below the threshold pauses (needs a MacBook)              | **by hand**; the mini has no battery                       |
+| Unplug below the threshold pauses (needs a MacBook)              | **by hand**; this Mac has no battery                       |
 | Schedule window raises the sun                                   | **by hand**                                                |
 | Paper and Night screenshots, `-mac` suffix, under `docs/assets/` | **by hand** (needs Screen Recording)                       |
 | DMG background shows at 540 × 380 in Finder                      | **by hand**                                                |
@@ -65,17 +65,21 @@ Then walk the by-hand acceptance in [`specs/macos.md`](specs/macos.md):
 
 0. **History was rewritten on 2026-11-07**: every commit is now authored by
    the ax5hay GitHub account (code unchanged), and `v0.2.0` moved with it.
-   On a clone made before that: `git fetch && git reset --hard origin/main &&
-git fetch --tags --force`. Commit with the ax5hay GitHub noreply address as
+   On a clone made before that:
+   `git fetch && git reset --hard origin/main && git fetch --tags --force`.
+   Commit with the ax5hay GitHub noreply address as
    `user.email` (`git config --local`) so commits link to the account.
-1. Install the v0.2.0 pre-release from the releases page and check it
+1. Pull: session history landed (shared code). Run `npm run verify` on
+   Windows once; the Rust count there differs from the Mac's because each OS
+   runs its own platform tests. Then walk its acceptance on Windows (below).
+2. Install the v0.2.0 pre-release from the releases page and check it
    once on Windows (toasts name the app when installed, per the old open
    question). When both platforms are happy, untick **pre-release** on GitHub.
-2. Then [`specs/auto-update.md`](specs/auto-update.md) at commit 1. The
+3. Then [`specs/auto-update.md`](specs/auto-update.md) at commit 1. The
    updater needs only Tauri's own free key pair (`tauri signer generate`,
    stored as `TAURI_SIGNING_PRIVATE_KEY`); a paid OS certificate removes the
    install warnings but is not a prerequisite. Check the spec still agrees.
-3. `taskkill /IM keepmeawake.exe /F` before testing a dev build;
+4. `taskkill /IM keepmeawake.exe /F` before testing a dev build;
    `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` before
    `npm run dev` lets you drive the UI over the DevTools protocol.
 
@@ -89,6 +93,7 @@ git fetch --tags --force`. Commit with the ax5hay GitHub noreply address as
 | tray-icons-light-taskbar | Windows | 4 of 4         | done; paused-state ink icon verified by unit test only                                                          |
 | macos                    | macOS   | 12 of 12       | built, reviewed, four review fixes in; shipped in 0.2.0 as a pre-release; hand acceptance above is what is left |
 | auto-update              | Windows | 0 of 6         | ready: needs the free updater key                                                                               |
+| session-history          | shared  | 5 of 5         | built on the Mac, reviewed, two review fixes in; acceptance below                                               |
 
 ## Done this cycle
 
@@ -99,6 +104,7 @@ git fetch --tags --force`. Commit with the ax5hay GitHub noreply address as
 | 2026-11-07 | Repo moved to `ax5hay` and made public; every link updated; bundle metadata made honest           | Claude Fable 5.1 |
 | 2026-11-07 | macOS scoped: `specs/macos.md`, Mac setup in `development.md`, two-track handoff                  | Claude Fable 5.1 |
 | 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release | Claude Opus 5.5  |
+| 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep       | Claude Opus 5.5  |
 
 ## Decisions made on the macOS track
 
@@ -113,6 +119,36 @@ Each is in its commit body; the ones a person might disagree with:
 - Control-click on the menu bar icon opens the window, not the menu
   (tray-icon reports it as a left click). Right click shows the menu.
 - Clicking the icon while the window is open focuses it rather than hiding it.
+
+## Session history: acceptance and what is deferred
+
+| Acceptance (spec)                                         | Status                                                                 |
+| --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 30 m timer ends: a `timer` row with the right span        | done on the real app (60 s startup timer → `timer`, 60.01 s)           |
+| Unplug below threshold, plug in, stop: one row, one pause | **by hand** on a laptop; unit tested                                   |
+| Kill while Always, relaunch: a `sleep` row, end `–`       | done on the real app (`kill -9`, relaunch)                             |
+| Clear history empties the list and the file               | **by hand** (needs a click); command and store unit tested             |
+| Screenshots of Settings → History, Paper and Night        | **by hand** from the real window; checked in a browser at 340 / 380 px |
+
+Decisions, each in its commit body: History sits after Hotkey (the spec
+predates that section); `battery` applies to any stretch that ends while
+paused for the battery; `SessionStarted` carries `paused` and both events
+carry the engine's time; `Engine::start_with` attaches the listener before
+the first step; a stretch ended by its timer or window is logged as ending
+when it was due, even if the machine slept through it.
+
+Deferred from review, all minor:
+
+- A machine that sleeps and wakes inside the next window shows one row
+  across both days; needs the 0.4 sleep detection.
+- Turning the schedule off (or moving its hours) mid-window logs `schedule`,
+  not `you`.
+- The list does not refresh while Settings stays open, and a running row
+  shows `–` for its length instead of a live one.
+- The rows are rebuilt on each 1 Hz tick while a countdown runs, even with
+  Settings off screen (cheap, but wasted).
+- An unreadable `history.json` (corrupt, or from a newer build) is replaced
+  on the next save without a backup; `Entry` has no `serde(default)` yet.
 
 ## Open questions for Akshay
 
