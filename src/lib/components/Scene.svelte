@@ -1,7 +1,8 @@
 <script lang="ts">
   /**
    * The horizon. Sky and ground are flat bands; the sun is the toggle. A grain
-   * overlay keeps the flat colour from feeling like a screenshot of a slide.
+   * overlay keeps the flat colour from feeling like a screenshot of a slide,
+   * and a band of afterglow above the line gives the flat sky its depth.
    */
   import { store } from '$lib/state.svelte';
   import { SCENE, remainingArcPath, sunPosition } from '$lib/sun';
@@ -14,6 +15,17 @@
   const label = $derived(mode === 'off' ? 'Keep awake' : 'Let it sleep');
 
   const { width, height, horizonY, sunRadius } = SCENE;
+
+  /** A few fixed stars; they fade in while resting. Hand-placed, not random. */
+  const stars = [
+    { x: 46, y: 38, r: 1.1 },
+    { x: 92, y: 74, r: 0.8 },
+    { x: 138, y: 30, r: 0.9 },
+    { x: 246, y: 52, r: 1.1 },
+    { x: 298, y: 26, r: 0.8 },
+    { x: 338, y: 86, r: 1 },
+    { x: 212, y: 104, r: 0.7 },
+  ];
 </script>
 
 <div class="scene" data-mode={mode} data-paused={paused}>
@@ -31,6 +43,16 @@
     </defs>
 
     <rect class="sky" {width} height={horizonY} />
+    <!-- Afterglow as three printed steps, not a gradient. -->
+    <rect class="afterglow" y={horizonY - 54} {width} height="54" />
+    <rect class="afterglow" y={horizonY - 32} {width} height="32" />
+    <rect class="afterglow" y={horizonY - 14} {width} height="14" />
+
+    <g class="stars" data-visible={!awake}>
+      {#each stars as star (star.x)}
+        <circle cx={star.x} cy={star.y} r={star.r} />
+      {/each}
+    </g>
 
     {#if timed}
       <path class="arc" d={remainingArcPath(sun)} />
@@ -94,6 +116,36 @@
 
   .scene[data-paused='true'] .sky {
     fill: var(--sky-paused);
+  }
+
+  /* Dusk light along the horizon: the sun's colour at low opacity. Stronger
+     while resting (the sun has just set), fainter at midday. */
+  .afterglow {
+    fill: var(--sun);
+    opacity: var(--afterglow-off);
+    transition: opacity var(--t-slow) var(--ease);
+  }
+
+  .scene[data-mode='indefinite'] .afterglow,
+  .scene[data-mode='timed'] .afterglow {
+    opacity: var(--afterglow-on);
+  }
+
+  .scene[data-paused='true'] .afterglow {
+    opacity: 0.02;
+  }
+
+  .stars circle {
+    fill: var(--ink);
+  }
+
+  .stars {
+    opacity: 0;
+    transition: opacity var(--t-slow) var(--ease);
+  }
+
+  .stars[data-visible='true'] {
+    opacity: var(--stars);
   }
 
   .ground {
