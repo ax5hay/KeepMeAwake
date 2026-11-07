@@ -29,11 +29,14 @@ jobs:
         id: draft
         env:
           GH_TOKEN: ${{ github.token }}
+        # The create call returns the id; looking the draft up afterwards can
+        # race the release list and come back empty, and tauri-action then
+        # skips every upload without failing.
         run: |
-          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
-            --title "Keep me awake $GITHUB_REF_NAME" --notes-file release-notes.md
-          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
-            --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id" | head -n1)
+          id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
+            -f tag_name="$GITHUB_REF_NAME" -f name="Keep me awake $GITHUB_REF_NAME" \
+            -F body=@release-notes.md -F draft=true --jq .id)
+          if [ -z "$id" ]; then echo "no release id" >&2; exit 1; fi
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
   installers:
