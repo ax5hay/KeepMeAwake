@@ -57,6 +57,10 @@ const ID_EXTEND: &str = "extend";
 
 /// The tray item that pushes a timed session's end later.
 pub const EXTEND_LABEL: &str = "Give it another 30m";
+const ID_KEEP: &str = "keep";
+
+/// The tray item that answers the overnight guard.
+pub const KEEP_LABEL: &str = "Keep it up";
 const ID_INDEFINITE: &str = "indefinite";
 const ID_OPEN: &str = "open";
 const ID_QUIT: &str = "quit";
@@ -128,6 +132,9 @@ fn on_menu(app: &AppHandle, id: &str) {
         ID_EXTEND => {
             engine.extend(crate::engine::EXTEND_BY);
         }
+        ID_KEEP => {
+            engine.keep_it_up();
+        }
         ID_SKIP => {
             if engine.snapshot().schedule.skipped {
                 engine.unskip();
@@ -156,6 +163,9 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Res
         .transpose()?;
     let extend = extend_label(snapshot)
         .map(|label| MenuItem::with_id(app, ID_EXTEND, label, true, None::<&str>))
+        .transpose()?;
+    let keep = keep_label(snapshot)
+        .map(|label| MenuItem::with_id(app, ID_KEEP, label, true, None::<&str>))
         .transpose()?;
 
     let mut duration_items: Vec<MenuItem<R>> = Vec::with_capacity(DURATIONS.len());
@@ -187,6 +197,9 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Res
         PredefinedMenuItem::separator(app)?,
     ];
     let mut items: Vec<&dyn tauri::menu::IsMenuItem<R>> = vec![&status, &separators[0], &toggle];
+    if let Some(keep) = &keep {
+        items.push(keep);
+    }
     if let Some(extend) = &extend {
         items.push(extend);
     }
@@ -213,6 +226,11 @@ fn extend_label(snapshot: &Snapshot) -> Option<&'static str> {
     inside
         .then_some(EXTEND_LABEL)
         .filter(|_| !window_outlasts_timer(snapshot))
+}
+
+/// The overnight guard's answer, shown under the toggle while it asks.
+fn keep_label(snapshot: &Snapshot) -> Option<&'static str> {
+    snapshot.guard_rests_at_unix_ms.map(|_| KEEP_LABEL)
 }
 
 /// An open, unskipped schedule window ends after the timer, so the sun stays
@@ -538,6 +556,14 @@ mod tests {
         assert_eq!(extend_label(&held), None);
         held.schedule.skipped = true;
         assert_eq!(extend_label(&held), Some("Give it another 30m"), "skipped");
+    }
+
+    #[test]
+    fn the_keep_item_shows_only_while_the_guard_asks() {
+        let mut always = snap(Mode::Indefinite, None, None);
+        assert_eq!(keep_label(&always), None);
+        always.guard_rests_at_unix_ms = Some(1_000);
+        assert_eq!(keep_label(&always), Some("Keep it up"));
     }
 
     #[test]

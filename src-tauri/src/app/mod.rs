@@ -72,6 +72,7 @@ pub fn run() {
             commands::set_plan,
             commands::toggle_session,
             commands::extend_session,
+            commands::keep_it_up,
             commands::skip_schedule,
             commands::resume_schedule,
             commands::update_settings,
@@ -263,7 +264,7 @@ fn watch_taskbar_theme(_app: &AppHandle, _engine: &Arc<Engine>) {}
 #[cfg(windows)]
 fn make_platform() -> Platform {
     use crate::platform::NullPowerGuard;
-    use crate::platform::windows::{WindowsBattery, WindowsPowerGuard};
+    use crate::platform::windows::{WindowsBattery, WindowsIdle, WindowsPowerGuard};
 
     let guard: Box<dyn crate::platform::PowerGuard> = match WindowsPowerGuard::new() {
         Ok(guard) => Box::new(guard),
@@ -275,7 +276,7 @@ fn make_platform() -> Platform {
     Platform {
         guard,
         battery: Box::new(WindowsBattery),
-        idle: Box::new(crate::platform::NoIdle),
+        idle: Box::new(WindowsIdle),
         clock: Arc::new(SystemClock),
     }
 }
@@ -283,7 +284,7 @@ fn make_platform() -> Platform {
 #[cfg(target_os = "macos")]
 fn make_platform() -> Platform {
     use crate::platform::NullPowerGuard;
-    use crate::platform::macos::{MacBattery, MacPowerGuard};
+    use crate::platform::macos::{MacBattery, MacIdle, MacPowerGuard};
 
     let guard: Box<dyn crate::platform::PowerGuard> = match MacPowerGuard::new() {
         Ok(guard) => Box::new(guard),
@@ -295,7 +296,7 @@ fn make_platform() -> Platform {
     Platform {
         guard,
         battery: Box::new(MacBattery),
-        idle: Box::new(crate::platform::NoIdle),
+        idle: Box::new(MacIdle),
         clock: Arc::new(SystemClock),
     }
 }

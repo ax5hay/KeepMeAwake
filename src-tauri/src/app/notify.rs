@@ -2,7 +2,8 @@
 //!
 //! Toasts are local (Windows' own notification centre, no network) and best
 //! effort: a toast that fails to show is logged and forgotten, and can never
-//! affect the engine. Each kind sits behind its own switch in settings, and
+//! affect the engine. Each kind sits behind its own switch in settings
+//! (the overnight guard's question belongs to the guard and has none), and
 //! nothing is shown while the window is open and focused, because the
 //! window already says it.
 
@@ -27,6 +28,8 @@ pub const SCHEDULE_STARTED_TITLE: &str = "On schedule";
 pub const SUNSET_TITLE: &str = "The sun sets soon";
 /// Title when a schedule window closes.
 pub const SCHEDULE_ENDED_TITLE: &str = "Off schedule";
+/// Title when the overnight guard asks whether anyone is there.
+pub const OVERNIGHT_TITLE: &str = "Nobody around";
 
 /// One toast, ready to show.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -101,6 +104,25 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
                 |next| format!("Resting until {}.", tray::when(next, now_unix_ms)),
             );
             toast(SCHEDULE_ENDED_TITLE, body)
+        }
+        // Part of the guard, so no switch of its own; gone if someone
+        // touched the machine before it could be shown.
+        EngineEvent::OvernightAsk {
+            idle_secs,
+            rests_at_unix_ms,
+        } if snapshot.guard_rests_at_unix_ms.is_some() => {
+            let hours = snapshot
+                .settings
+                .overnight_guard_hours
+                .map_or(idle_secs / 3600, u64::from);
+            let unit = if hours == 1 { "hour" } else { "hours" };
+            toast(
+                OVERNIGHT_TITLE,
+                format!(
+                    "No input for {hours} {unit}. Resting at {} unless you're back.",
+                    tray::when(*rests_at_unix_ms, now_unix_ms)
+                ),
+            )
         }
         _ => None,
     }
@@ -291,6 +313,35 @@ mod tests {
         );
         // A manual session outlasting the window: nothing changed for you.
         assert_eq!(body(&ended, &snapshot(Mode::Timed, ALL)), None);
+    }
+
+    #[test]
+    fn the_overnight_toast_says_how_long_and_when_it_rests() {
+        let ask = EngineEvent::OvernightAsk {
+            idle_secs: 6 * 3600 + 20,
+            rests_at_unix_ms: local_ms(3, 3, 12),
+        };
+        let mut asking = snapshot(Mode::Indefinite, NONE);
+        asking.guard_rests_at_unix_ms = Some(local_ms(3, 3, 12));
+        assert_eq!(
+            body_for(&ask, &asking, local_ms(3, 3, 2)).map(|t| (t.title, t.body)),
+            Some((
+                "Nobody around",
+                "No input for 6 hours. Resting at 3:12 am unless you're back.".to_owned()
+            )),
+            "shown with every switch off: it belongs to the guard"
+        );
+        asking.settings.overnight_guard_hours = Some(1);
+        assert!(
+            body_for(&ask, &asking, local_ms(3, 3, 2))
+                .is_some_and(|t| t.body.starts_with("No input for 1 hour."))
+        );
+        let withdrawn = snapshot(Mode::Indefinite, ALL);
+        assert_eq!(
+            body(&ask, &withdrawn),
+            None,
+            "someone came back before it showed"
+        );
     }
 
     #[test]
