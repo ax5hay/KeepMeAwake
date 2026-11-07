@@ -10,7 +10,7 @@ timeline
     title Keep me awake
     0.1 : Power requests : Timed sessions : Battery rules : Tray : Paper & Night : Hidden things
     0.2 : Schedule : Notifications : Global hotkey : Light-taskbar tray icons
-    0.3 : Auto-update : Session history : Winget & Scoop
+    0.3 : Auto-update : Session history : Winget & Scoop : macOS
     0.4 : Sunset warning : After the sun sets : Overnight guard : Sleep detection
     0.5 : Presenting & docked awareness : Watch a process : Sky log
     Later : Dawn theme & chime : CLI : Profiles : Export : Localisation
@@ -46,6 +46,11 @@ timeline
 | Auto-update, signed, once a day, opt-out    | [auto-update.md](specs/auto-update.md)         | app, ui, ci           |
 | Session history with how each session ended | [session-history.md](specs/session-history.md) | core, engine, app, ui |
 | Winget and Scoop                            | [winget-scoop.md](specs/winget-scoop.md)       | ci, docs              |
+| macOS: menu bar app on IOKit assertions     | [macos.md](specs/macos.md)                     | platform, app, ui, ci |
+
+macOS is a parallel track, built on the personal Mac while the Windows items
+above are built on the work laptop. It ships with whichever release is next
+once it is accepted.
 
 ## After 0.3
 
@@ -80,6 +85,8 @@ Scoped enough to size; each gets a full spec when it is next in line.
 | Export and portable    | Export/import settings and history as one JSON; a portable build that keeps them beside the exe.                                                                                                                                                  |
 | Away mode              | `PowerRequestAwayModeRequired` for S3 machines: media keeps playing, screen off. Only shown when the machine reports S3.                                                                                                                          |
 | Localisation           | Strings are centralised in `copy.ts` and `tray.rs`; add a locale layer when there is a second language.                                                                                                                                           |
+| Linux                  | The non-Windows fallbacks already compile; a D-Bus `org.freedesktop.ScreenSaver` inhibitor and a StatusNotifier icon would make it real. After macOS.                                                                                             |
+| Homebrew cask          | Joins Winget and Scoop once the macOS build is signed.                                                                                                                                                                                            |
 | Presence for chat apps | Power requests do not reset the idle timer chat apps read; keeping one "active" needs synthetic input, which this app does not send. Only ever as an explicit, labelled opt-in, and only if it can avoid injecting input into other applications. |
 
 ## Decided against
