@@ -7,11 +7,10 @@
   import Segmented from './Segmented.svelte';
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
+  import { AUTHOR, TIPS } from '$lib/copy';
   import { formatStop } from '$lib/format';
   import { store } from '$lib/state.svelte';
   import type { StartupPlan, Theme } from '$lib/types';
-
-  const REPO = 'https://github.com/BuiltByBajpai/KeepMeAwake';
 
   const settings = $derived(store.settings);
 
@@ -30,6 +29,13 @@
     } catch (err) {
       store.error = err instanceof Error ? err.message : String(err);
     }
+  }
+
+  function open(url: string) {
+    return (event: Event) => {
+      event.preventDefault();
+      void openUrl(url);
+    };
   }
 
   const durationOptions = [
@@ -70,7 +76,7 @@
           onchange={(v) => void setAutostart(v)}
         />
       </Row>
-      <Row label="Open the window at launch">
+      <Row label="Open the window at launch" hint="Only when you start it yourself.">
         <Switch
           checked={!settings.start_hidden}
           label="Open the window at launch"
@@ -100,7 +106,7 @@
             void store.updateSettings({ default_duration_secs: v === 'inf' ? null : Number(v) })}
         />
       </Row>
-      <Row label="Keep the screen on">
+      <Row label="Keep the screen on" hint="Off lets the display dim while the laptop stays awake.">
         <Switch
           checked={settings.keep_display_on}
           label="Keep the screen on"
@@ -124,7 +130,7 @@
             })}
         />
       </Row>
-      <Row label="Pause whenever unplugged">
+      <Row label="Pause whenever unplugged" hint="Strictest option: battery means resting.">
         <Switch
           checked={settings.pause_on_battery}
           label="Pause whenever unplugged"
@@ -160,6 +166,17 @@
       </Row>
     </section>
 
+    <section>
+      <h2 class="eyebrow">Tips</h2>
+      <dl class="tips">
+        {#each TIPS as tip (tip.keys)}
+          <dt>{tip.keys}</dt>
+          <dd>{tip.does}</dd>
+        {/each}
+      </dl>
+      <p class="hint whisper">There are a few more things to find in the sky.</p>
+    </section>
+
     <section class="about">
       <h2 class="eyebrow">About</h2>
       <p>
@@ -168,19 +185,18 @@
       </p>
       <p class="hint">
         Holds a Windows power request while awake, the same mechanism a video player uses. See it
-        under <code>powercfg /requests</code>.
+        under <code>powercfg /requests</code>. Nothing is typed, nothing moves.
+      </p>
+      <p class="hint">
+        Made by <a href={AUTHOR.site} onclick={open(AUTHOR.site)}>{AUTHOR.name}</a>
+        <span class="sep">·</span>
+        <a href={AUTHOR.site} onclick={open(AUTHOR.site)}>{AUTHOR.siteLabel}</a>
       </p>
       <p class="links">
-        <a
-          href={REPO}
-          onclick={(e) => {
-            e.preventDefault();
-            void openUrl(REPO);
-          }}>Source</a
-        >
-        <button type="button" class="quit" onclick={() => void store.quit()}
-          >Quit KeepMeAwake</button
-        >
+        <a href={AUTHOR.repo} onclick={open(AUTHOR.repo)}>Source</a>
+        <button type="button" class="quit" onclick={() => void store.quit()}>
+          Quit Keep me awake
+        </button>
       </p>
     </section>
   {/if}
@@ -205,6 +221,33 @@
     font-weight: 500;
   }
 
+  .tips {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 14px;
+    row-gap: 6px;
+    margin: 8px 0 0;
+  }
+
+  .tips dt {
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .tips dd {
+    margin: 0;
+    color: var(--ink-2);
+  }
+
+  .whisper {
+    margin: 10px 0 0;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
   .about p {
     margin: 8px 0 0;
   }
@@ -219,6 +262,11 @@
     margin-left: 8px;
     color: var(--ink-3);
     font-variant-numeric: tabular-nums;
+  }
+
+  .sep {
+    color: var(--ink-3);
+    margin: 0 4px;
   }
 
   code {

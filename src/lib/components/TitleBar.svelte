@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCurrentWindow } from '@tauri-apps/api/window';
 
+  import { CREDIT } from '$lib/copy';
   import { store } from '$lib/state.svelte';
 
   const win = getCurrentWindow();
@@ -12,7 +13,9 @@
       <circle cx="8" cy="6.5" r="3.6" fill="currentColor" />
       <rect x="1.5" y="11.5" width="13" height="1.4" rx="0.7" fill="currentColor" />
     </svg>
-    <span class="name" data-tauri-drag-region>Keep me awake</span>
+    <button type="button" class="name" title="Keep me awake" onclick={() => store.say(CREDIT)}>
+      Keep me awake
+    </button>
   </div>
 
   <nav aria-label="Window">
@@ -35,14 +38,20 @@
         </svg>
       {/if}
     </button>
-    <button type="button" class="ctl" aria-label="Minimise" onclick={() => void win.minimize()}>
+    <button
+      type="button"
+      class="ctl"
+      aria-label="Minimise"
+      title="Minimise"
+      onclick={() => void win.minimize()}
+    >
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5h10" /></svg>
     </button>
     <button
       type="button"
       class="ctl close"
       aria-label="Close to tray"
-      title="Close to tray (Esc)"
+      title="Close to tray (Esc). The sun stays up."
       onclick={() => void win.close()}
     >
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
@@ -78,6 +87,15 @@
     font-weight: 400;
     font-size: 14px;
     letter-spacing: 0.005em;
+    color: inherit;
+    padding: 2px 4px;
+    margin-left: -4px;
+    border-radius: var(--radius-sm);
+    transition: color var(--t-fast) var(--ease);
+  }
+
+  .name:hover {
+    color: var(--ink);
   }
 
   nav {
