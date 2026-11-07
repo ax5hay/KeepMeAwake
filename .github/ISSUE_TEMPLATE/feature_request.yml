@@ -1,0 +1,24 @@
+name: Feature request
+description: Propose something new, or pick up a roadmap item
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Check `docs/roadmap.md` first; it also lists what has been decided against and why.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do and why the app gets in the way today
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How it could work. Sketches welcome.
+  - type: textarea
+    id: cost
+    attributes:
+      label: Resource cost
+      description: Does it need a timer, a new crate, a permission, network access?
