@@ -4,7 +4,8 @@
  * would be a silent bug. Keep these in step with the Rust definitions.
  */
 
-export type Mode = 'off' | 'indefinite' | 'timed';
+/** `scheduled`: no manual session, but a schedule window is open and not skipped. */
+export type Mode = 'off' | 'indefinite' | 'timed' | 'scheduled';
 
 export type PauseReason = 'low_battery' | 'on_battery' | 'power_request_failed';
 
@@ -45,6 +46,15 @@ export interface BatteryState {
   percent: number | null;
 }
 
+export interface ScheduleState {
+  enabled: boolean;
+  in_window: boolean;
+  skipped: boolean;
+  window_start_unix_ms: number | null;
+  window_end_unix_ms: number | null;
+  next_start_unix_ms: number | null;
+}
+
 export interface Snapshot {
   mode: Mode;
   started_at_unix_ms: number | null;
@@ -54,6 +64,7 @@ export interface Snapshot {
   guards: GuardState;
   paused: PauseReason | null;
   battery: BatteryState;
+  schedule: ScheduleState;
   settings: Settings;
   app_version: string;
 }

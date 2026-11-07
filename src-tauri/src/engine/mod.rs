@@ -14,7 +14,8 @@ use std::time::Instant;
 use parking_lot::{Condvar, Mutex, MutexGuard};
 
 use crate::core::{
-    BatteryState, GuardState, PauseReason, PlanRequest, Session, SessionEvent, Settings, Snapshot,
+    BatteryState, GuardState, PauseReason, PlanRequest, ScheduleState, Session, SessionEvent,
+    Settings, Snapshot,
 };
 use crate::platform::{BatteryProbe, Clock, PowerGuard};
 
@@ -272,6 +273,10 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
         guards: st.guards,
         paused: st.paused,
         battery: st.battery,
+        schedule: ScheduleState {
+            enabled: st.settings.schedule.enabled,
+            ..ScheduleState::default()
+        },
         settings: st.settings.clone(),
         app_version: shared.app_version.clone(),
     }

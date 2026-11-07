@@ -38,6 +38,24 @@ pub struct BatteryState {
     pub percent: Option<u8>,
 }
 
+/// Where the schedule stands right now.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub struct ScheduleState {
+    /// The schedule is switched on.
+    pub enabled: bool,
+    /// A window is open right now (whether or not it was skipped).
+    pub in_window: bool,
+    /// The open window was skipped; the laptop rests until it closes.
+    pub skipped: bool,
+    /// When the open window started, Unix ms.
+    pub window_start_unix_ms: Option<u64>,
+    /// When the open window ends, Unix ms.
+    pub window_end_unix_ms: Option<u64>,
+    /// When the next window (after any open one) starts, Unix ms.
+    pub next_start_unix_ms: Option<u64>,
+}
+
 /// Everything the UI needs, in one message.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -58,6 +76,9 @@ pub struct Snapshot {
     pub paused: Option<PauseReason>,
     /// Power source and charge.
     pub battery: BatteryState,
+    /// The schedule's state; `mode` is `Scheduled` when it is what holds the
+    /// laptop awake, and the timing fields then describe the window.
+    pub schedule: ScheduleState,
     /// User preferences, so the UI has a single source of truth.
     pub settings: Settings,
     /// Application version, for the About section.
@@ -85,6 +106,7 @@ mod tests {
             guards: GuardState::default(),
             paused: None,
             battery: BatteryState::default(),
+            schedule: ScheduleState::default(),
             settings: Settings::default(),
             app_version: "0.0.0".into(),
         }
@@ -98,6 +120,20 @@ mod tests {
         assert!(s.is_guarding());
         s.paused = Some(PauseReason::LowBattery);
         assert!(!s.is_guarding());
+        s.paused = None;
+        s.mode = Mode::Scheduled;
+        assert!(s.is_guarding(), "a schedule window guards like a session");
+    }
+
+    #[test]
+    fn schedule_state_serialises_snake_case() {
+        let json = serde_json::to_value(base()).unwrap();
+        assert_eq!(json["schedule"]["in_window"], false);
+        assert!(json["schedule"].get("next_start_unix_ms").is_some());
+        assert_eq!(
+            serde_json::to_value(Mode::Scheduled).unwrap(),
+            serde_json::json!("scheduled")
+        );
     }
 
     #[test]
