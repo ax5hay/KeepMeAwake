@@ -84,3 +84,32 @@ export type PlanRequest =
   | { kind: 'indefinite' }
   | { kind: 'for'; seconds: number }
   | { kind: 'until'; unix_ms: number };
+
+/** How an awake stretch ended. Mirrors `core::history::Ended`. */
+export type Ended = 'user' | 'timer' | 'schedule' | 'battery' | 'sleep' | 'crash';
+
+/** A stretch inside an entry during which the sun was up but not holding. */
+export interface Pause {
+  from_unix_ms: number;
+  /** `null` if it never resumed. */
+  to_unix_ms: number | null;
+  reason: PauseReason;
+}
+
+/** One awake stretch. Mirrors `core::history::Entry`. */
+export interface HistoryEntry {
+  started_unix_ms: number;
+  /** `null` while running, or when it never ended cleanly. */
+  ended_unix_ms: number | null;
+  /** The mode it started in. */
+  mode: Mode;
+  /** `null` while running. */
+  ended: Ended | null;
+  pauses: Pause[];
+}
+
+/** The session log, oldest entry first. Mirrors `core::history::History`. */
+export interface History {
+  version: number;
+  entries: HistoryEntry[];
+}

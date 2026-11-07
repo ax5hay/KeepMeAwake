@@ -7,7 +7,7 @@
  */
 import { api, type Api } from './api';
 import { progress, remainingSecs, statusText, toggleWhisper } from './format';
-import type { PlanRequest, Settings, Snapshot } from './types';
+import type { History, PlanRequest, Settings, Snapshot } from './types';
 
 export type View = 'home' | 'settings';
 
@@ -20,6 +20,8 @@ export class AppStore {
   view = $state<View>('home');
   error = $state<string | null>(null);
   whisper = $state<string | null>(null);
+  /** The session log; loaded when Settings opens, not at launch. */
+  history = $state<History | null>(null);
 
   #api: Api;
   #ticker: ReturnType<typeof setInterval> | undefined;
@@ -66,6 +68,24 @@ export class AppStore {
 
   get settings(): Settings | null {
     return this.snapshot?.settings ?? null;
+  }
+
+  /** Fetches the session log. */
+  async loadHistory(): Promise<void> {
+    try {
+      this.history = await this.#api.getHistory();
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  /** Empties the session log. No confirmation: it is a log, not data. */
+  async clearHistory(): Promise<void> {
+    try {
+      this.history = await this.#api.clearHistory();
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+    }
   }
 
   /** Shows `text` under the title for a few seconds, then the detail returns. */

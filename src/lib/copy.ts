@@ -120,6 +120,12 @@ export function longStop(secs: number): string {
   return `${shown} hour${h === 1 ? '' : 's'}`;
 }
 
+/** Settings → History before anything has been logged. */
+export const HISTORY_EMPTY = 'Nothing yet. The first sunset will be written here.';
+
+/** The link under the history list. */
+export const CLEAR_HISTORY = 'Clear history';
+
 /** Shown in the hotkey field while it waits for a combination. */
 export const HOTKEY_RECORDING = 'Press keys…';
 

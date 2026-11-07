@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
 
   import DayPills from './DayPills.svelte';
+  import History from './History.svelte';
   import HotkeyField from './HotkeyField.svelte';
   import Row from './Row.svelte';
   import Segmented from './Segmented.svelte';
@@ -34,6 +35,11 @@
       if (minutes !== null) setSchedule({ [field]: minutes });
     };
   }
+
+  // The log is fetched each time Settings opens, never at launch.
+  $effect(() => {
+    if (store.view === 'settings') void store.loadHistory();
+  });
 
   let autostart = $state<boolean | null>(null);
   onMount(() => {
@@ -256,6 +262,11 @@
           onchange={(v) => void store.updateSettings({ hotkey: v })}
         />
       </Row>
+    </section>
+
+    <section>
+      <h2 class="eyebrow">History</h2>
+      <History history={store.history} now={store.now} onclear={() => void store.clearHistory()} />
     </section>
 
     <section>

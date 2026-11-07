@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Api } from './api';
 import { AppStore } from './state.svelte';
-import type { Snapshot } from './types';
+import type { History, Snapshot } from './types';
 
 const base: Snapshot = {
   mode: 'off',
@@ -44,6 +44,19 @@ const base: Snapshot = {
   app_version: '0.1.0',
 };
 
+const logged: History = {
+  version: 1,
+  entries: [
+    {
+      started_unix_ms: 1,
+      ended_unix_ms: 2,
+      mode: 'timed',
+      ended: 'timer',
+      pauses: [],
+    },
+  ],
+};
+
 function fakeApi(initial: Snapshot) {
   let current = initial;
   let push: ((s: Snapshot) => void) | undefined;
@@ -74,6 +87,8 @@ function fakeApi(initial: Snapshot) {
       return current;
     }),
     quit: vi.fn(async () => undefined),
+    getHistory: vi.fn(async () => logged),
+    clearHistory: vi.fn(async () => ({ version: 1, entries: [] })),
     onSnapshot: vi.fn(async (handler) => {
       push = handler;
       return () => {
@@ -202,6 +217,19 @@ describe('AppStore', () => {
     await store.init();
     await store.toggle();
     expect(store.error).toBe('nope');
+    store.dispose();
+  });
+
+  it('loads history only when asked, and clears it', async () => {
+    const { api } = fakeApi(base);
+    const store = new AppStore(api);
+    await store.init();
+    expect(api.getHistory).not.toHaveBeenCalled();
+    expect(store.history).toBeNull();
+    await store.loadHistory();
+    expect(store.history?.entries).toHaveLength(1);
+    await store.clearHistory();
+    expect(store.history?.entries).toEqual([]);
     store.dispose();
   });
 });

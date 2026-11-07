@@ -5,7 +5,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
-import type { PlanRequest, Settings, Snapshot } from './types';
+import type { History, PlanRequest, Settings, Snapshot } from './types';
 
 export const SNAPSHOT_EVENT = 'snapshot';
 
@@ -17,6 +17,8 @@ export const api = {
   resumeSchedule: () => invoke<Snapshot>('resume_schedule'),
   updateSettings: (settings: Settings) => invoke<Snapshot>('update_settings', { settings }),
   quit: () => invoke('quit_app'),
+  getHistory: () => invoke<History>('get_history'),
+  clearHistory: () => invoke<History>('clear_history'),
   onSnapshot: (handler: (snapshot: Snapshot) => void): Promise<UnlistenFn> =>
     listen<Snapshot>(SNAPSHOT_EVENT, (event) => handler(event.payload)),
 };
