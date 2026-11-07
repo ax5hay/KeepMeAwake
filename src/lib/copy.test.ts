@@ -8,6 +8,8 @@ import {
   isLate,
   longStop,
   starWhisper,
+  TIPS,
+  tipsWith,
 } from './copy';
 
 describe('horizonTip', () => {
@@ -47,6 +49,14 @@ describe('longStop', () => {
     expect(longStop(3600)).toBe('1 hour');
     expect(longStop(7200)).toBe('2 hours');
     expect(longStop(5400)).toBe('1.5 hours');
+  });
+});
+
+describe('tipsWith', () => {
+  it('lists the hotkey after Space, and nothing when it is off', () => {
+    expect(tipsWith('Ctrl+Alt+K')[1]).toEqual({ keys: 'Ctrl+Alt+K', does: 'Toggle from anywhere' });
+    expect(tipsWith('Ctrl+Alt+K')).toHaveLength(TIPS.length + 1);
+    expect(tipsWith(null)).toBe(TIPS);
   });
 });
 
