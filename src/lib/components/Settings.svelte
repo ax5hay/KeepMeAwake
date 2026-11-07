@@ -223,6 +223,7 @@
 
   code {
     font-family: 'Cascadia Mono', Consolas, monospace;
+    white-space: nowrap;
     font-size: 11px;
     padding: 1px 4px;
     border-radius: 4px;

@@ -54,13 +54,13 @@
 
 <main class:ready={store.ready}>
   {#if store.ready}
-    <div class="pane" class:offscreen={store.view !== 'home'} aria-hidden={store.view !== 'home'}>
+    <div class="pane" class:offscreen={store.view !== 'home'} inert={store.view !== 'home'}>
       <Home />
     </div>
     <div
       class="pane settings"
       class:offscreen={store.view !== 'settings'}
-      aria-hidden={store.view !== 'settings'}
+      inert={store.view !== 'settings'}
     >
       <Settings />
     </div>
