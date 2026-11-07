@@ -15,10 +15,7 @@
     "autostart:default",
     {
       "identifier": "opener:allow-open-url",
-      "allow": [
-        { "url": "https://github.com/BuiltByBajpai/**" },
-        { "url": "https://akshaybajpai.com/**" }
-      ]
+      "allow": [{ "url": "https://github.com/ax5hay/**" }, { "url": "https://akshaybajpai.com/**" }]
     }
   ]
 }

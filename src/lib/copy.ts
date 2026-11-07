@@ -8,7 +8,7 @@ export const AUTHOR = {
   name: 'Akshay Bajpai',
   site: 'https://akshaybajpai.com',
   siteLabel: 'akshaybajpai.com',
-  repo: 'https://github.com/BuiltByBajpai/KeepMeAwake',
+  repo: 'https://github.com/ax5hay/KeepMeAwake',
 } as const;
 
 /** Whispered when the wordmark is clicked. */

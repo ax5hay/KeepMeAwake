@@ -50,7 +50,7 @@ engine produces. The full picture is in [docs/architecture.md](docs/architecture
 ## Install
 
 Grab the latest installer from the
-[releases page](https://github.com/BuiltByBajpai/KeepMeAwake/releases). It is
+[releases page](https://github.com/ax5hay/KeepMeAwake/releases). It is
 per-user and needs no administrator rights. Windows 10 (1809+) or Windows 11.
 
 Or build it from source: see [Development](#development).
