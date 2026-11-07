@@ -20,6 +20,9 @@ pub const TRAY_ID: &str = "main";
 const ICON_ON: &[u8] = include_bytes!("../../icons/tray/on.png");
 const ICON_OFF: &[u8] = include_bytes!("../../icons/tray/off.png");
 const ICON_PAUSED: &[u8] = include_bytes!("../../icons/tray/paused.png");
+const ICON_ON_INK: &[u8] = include_bytes!("../../icons/tray/on-ink.png");
+const ICON_OFF_INK: &[u8] = include_bytes!("../../icons/tray/off-ink.png");
+const ICON_PAUSED_INK: &[u8] = include_bytes!("../../icons/tray/paused-ink.png");
 
 /// Durations offered in the "Keep awake for" submenu, in seconds.
 pub const DURATIONS: &[(u64, &str)] = &[
@@ -40,10 +43,11 @@ const ID_DURATION_PREFIX: &str = "for:";
 
 /// Creates the tray icon. Called once during setup.
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
-    let snapshot = app.state::<AppState>().engine.snapshot();
+    let state = app.state::<AppState>();
+    let snapshot = state.engine.snapshot();
     let menu = build_menu(app, &snapshot)?;
     TrayIconBuilder::with_id(TRAY_ID)
-        .icon(icon_for(&snapshot)?)
+        .icon(icon_for(&snapshot, state.taskbar.is_light())?)
         .icon_as_template(false)
         .tooltip(tooltip(&snapshot))
         .menu(&menu)
@@ -63,12 +67,16 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-/// Updates icon, tooltip and menu to reflect `snapshot`.
+/// Updates icon, tooltip and menu to reflect `snapshot`. The icon set
+/// follows the taskbar theme (one registry read, microseconds).
 pub fn refresh(app: &AppHandle, snapshot: &Snapshot) {
     let Some(tray) = app.tray_by_id(TRAY_ID) else {
         return;
     };
-    if let Ok(icon) = icon_for(snapshot) {
+    let light = app
+        .try_state::<AppState>()
+        .is_some_and(|state| state.taskbar.is_light());
+    if let Ok(icon) = icon_for(snapshot, light) {
         let _ = tray.set_icon(Some(icon));
     }
     let _ = tray.set_tooltip(Some(tooltip(snapshot)));
@@ -165,13 +173,20 @@ fn skip_label(snapshot: &Snapshot) -> Option<&'static str> {
     }
 }
 
-fn icon_for(snapshot: &Snapshot) -> tauri::Result<Image<'static>> {
-    let bytes = match (snapshot.mode, snapshot.paused) {
-        (Mode::Off, _) => ICON_OFF,
-        (_, Some(_)) => ICON_PAUSED,
-        (_, None) => ICON_ON,
-    };
-    Image::from_bytes(bytes)
+/// The icon for `snapshot`: white on a dark taskbar, ink on a light one.
+fn icon_for(snapshot: &Snapshot, light: bool) -> tauri::Result<Image<'static>> {
+    Image::from_bytes(icon_bytes(snapshot, light))
+}
+
+fn icon_bytes(snapshot: &Snapshot, light: bool) -> &'static [u8] {
+    match (snapshot.mode, snapshot.paused, light) {
+        (Mode::Off, _, false) => ICON_OFF,
+        (Mode::Off, _, true) => ICON_OFF_INK,
+        (_, Some(_), false) => ICON_PAUSED,
+        (_, Some(_), true) => ICON_PAUSED_INK,
+        (_, None, false) => ICON_ON,
+        (_, None, true) => ICON_ON_INK,
+    }
 }
 
 fn duration_id(seconds: u64) -> String {
@@ -425,9 +440,29 @@ mod tests {
     }
 
     #[test]
-    fn icon_bytes_decode() {
-        assert!(icon_for(&snap(Mode::Off, None, None)).is_ok());
-        assert!(icon_for(&snap(Mode::Indefinite, None, None)).is_ok());
-        assert!(icon_for(&snap(Mode::Indefinite, None, Some(PauseReason::OnBattery))).is_ok());
+    fn six_icons_decode_and_differ() {
+        let states = [
+            snap(Mode::Off, None, None),
+            snap(Mode::Indefinite, None, None),
+            snap(Mode::Indefinite, None, Some(PauseReason::OnBattery)),
+        ];
+        let mut seen: Vec<&[u8]> = Vec::new();
+        for light in [false, true] {
+            for state in &states {
+                assert!(icon_for(state, light).is_ok());
+                let bytes = icon_bytes(state, light);
+                assert!(
+                    !seen.contains(&bytes),
+                    "each state and theme has its own icon"
+                );
+                seen.push(bytes);
+            }
+        }
+        assert_eq!(seen.len(), 6);
+        // A scheduled window shows the awake sun, like any other session.
+        assert_eq!(
+            icon_bytes(&snap(Mode::Scheduled, None, None), true),
+            ICON_ON_INK
+        );
     }
 }
