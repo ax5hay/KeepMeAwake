@@ -7,6 +7,7 @@
 use tauri::{AppHandle, State};
 
 use super::{AppState, hotkey};
+use crate::core::history::History;
 use crate::core::{PlanRequest, Settings, Snapshot};
 use crate::persistence;
 
@@ -70,6 +71,25 @@ pub fn update_settings(
         format!("Settings applied but could not be saved: {err}")
     })?;
     hotkey_error.map_or(Ok(snapshot), Err)
+}
+
+/// The session log, oldest entry first.
+#[tauri::command]
+pub fn get_history(state: State<'_, AppState>) -> History {
+    state.history.lock().clone()
+}
+
+/// Empties the session log, in memory and on disk. A stretch running now is
+/// dropped with it and not logged when it ends.
+#[tauri::command]
+pub fn clear_history(state: State<'_, AppState>) -> Result<History, String> {
+    let mut history = state.history.lock();
+    *history = History::default();
+    persistence::save_history(&state.history_path, &history).map_err(|err| {
+        log::warn!("could not clear history: {err}");
+        format!("History cleared but could not be saved: {err}")
+    })?;
+    Ok(history.clone())
 }
 
 /// Exit the application completely (not just hide to tray).

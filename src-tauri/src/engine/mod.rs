@@ -127,6 +127,18 @@ pub struct Engine {
 impl Engine {
     /// Starts the background thread. `settings` should already be sanitized.
     pub fn start(platform: Platform, settings: Settings, app_version: impl Into<String>) -> Self {
+        Self::start_with(platform, settings, app_version, Vec::new())
+    }
+
+    /// [`Engine::start`] with `listeners` attached before the worker's first
+    /// step, so they hear the first events too: the startup plan, or a
+    /// schedule window already open at launch.
+    pub fn start_with(
+        platform: Platform,
+        settings: Settings,
+        app_version: impl Into<String>,
+        listeners: Vec<Listener>,
+    ) -> Self {
         let Platform {
             guard,
             battery,
@@ -149,7 +161,7 @@ impl Engine {
             }),
             wake: Condvar::new(),
             clock,
-            listeners: Mutex::new(Vec::new()),
+            listeners: Mutex::new(listeners),
             app_version: app_version.into(),
         });
         let worker = {
@@ -574,7 +586,8 @@ mod tests {
             on_ac: true,
             percent: Some(90),
         });
-        let engine = Engine::start(
+        let (tx, rx) = mpsc::channel();
+        let engine = Engine::start_with(
             Platform {
                 guard: Box::new(guard.clone()),
                 battery: Box::new(battery.clone()),
@@ -582,11 +595,10 @@ mod tests {
             },
             settings,
             "test",
+            vec![Box::new(move |e| {
+                let _ = tx.send(e.clone());
+            })],
         );
-        let (tx, rx) = mpsc::channel();
-        engine.subscribe(Box::new(move |e| {
-            let _ = tx.send(e.clone());
-        }));
         Rig {
             engine,
             guard,

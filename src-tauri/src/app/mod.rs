@@ -3,6 +3,7 @@
 //! helpers in [`tray`].
 
 pub mod commands;
+pub mod history;
 pub mod hotkey;
 pub mod notify;
 pub mod tray;
@@ -11,13 +12,16 @@ pub mod window;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use parking_lot::Mutex;
+
 use tauri::{AppHandle, Emitter, Manager, RunEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_log::{Target, TargetKind};
 
+use crate::core::history::{Ended, History};
 use crate::core::settings::StartupPlan;
 use crate::core::{PlanRequest, Settings};
-use crate::engine::{Engine, EngineEvent, Platform, default_plan};
+use crate::engine::{Engine, EngineEvent, Listener, Platform, default_plan};
 use crate::persistence;
 use crate::platform::{SystemClock, TaskbarTheme};
 
@@ -33,6 +37,10 @@ pub struct AppState {
     pub engine: Arc<Engine>,
     /// Where settings are persisted.
     pub settings_path: PathBuf,
+    /// The session log, shared with the engine listener that writes it.
+    pub history: Arc<Mutex<History>>,
+    /// Where the session log is persisted.
+    pub history_path: PathBuf,
     /// Light or dark taskbar, for the tray icon set.
     pub taskbar: Box<dyn TaskbarTheme>,
 }
@@ -67,6 +75,8 @@ pub fn run() {
             commands::resume_schedule,
             commands::update_settings,
             commands::quit_app,
+            commands::get_history,
+            commands::clear_history,
         ])
         .setup(|app| setup(app.handle()).map_err(Into::into))
         .build(tauri::generate_context!())
@@ -100,16 +110,46 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
     let settings = persistence::load(&settings_path);
     log::info!("settings loaded from {}", settings_path.display());
 
-    let engine = Arc::new(Engine::start(
+    let history_path = persistence::history_path(&config_dir);
+    let mut history = persistence::load_history(&history_path);
+    // An entry still open means the last run never saw its stretch end: the
+    // machine slept or shut down, or the app was killed. Either way it did
+    // not hold, so it is logged as sleep without telling the cases apart.
+    if history.mark_unfinished_as(Ended::Sleep) {
+        save_history(&history_path, &history);
+    }
+    let history = Arc::new(Mutex::new(history));
+
+    // Every engine change goes to the history log, the tray and the UI (if
+    // it is open). Attached before the engine's first step so the log hears
+    // a startup plan or a schedule window already open at launch.
+    let listener: Listener = {
+        let handle = app.clone();
+        let history = Arc::clone(&history);
+        let history_path = history_path.clone();
+        Box::new(move |event| {
+            {
+                let mut log = history.lock();
+                if history::record(&mut log, event, tray::now_unix_ms()) {
+                    save_history(&history_path, &log);
+                }
+            }
+            on_engine_event(&handle, event);
+        })
+    };
+    let engine = Arc::new(Engine::start_with(
         make_platform(),
         settings.clone(),
         app.package_info().version.to_string(),
+        vec![listener],
     ));
     apply_startup_plan(&engine, &settings);
 
     app.manage(AppState {
         engine: Arc::clone(&engine),
         settings_path,
+        history,
+        history_path,
         taskbar: make_taskbar(),
     });
     tray::create(app)?;
@@ -118,11 +158,18 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         log::warn!("hotkey not registered at launch: {err}");
     }
 
-    // Push every engine change to the tray and to the UI (if it is open).
-    let handle = app.clone();
-    engine.subscribe(Box::new(move |event| match event {
+    let launched_hidden = std::env::args().any(|a| a == HIDDEN_FLAG);
+    if !(launched_hidden || settings.start_hidden) {
+        window::open_at_startup(app)?;
+    }
+    Ok(())
+}
+
+/// Pushes an engine change to the tray, the UI and the notification centre.
+fn on_engine_event(handle: &AppHandle, event: &EngineEvent) {
+    match event {
         EngineEvent::Snapshot(snapshot) => {
-            tray::refresh(&handle, snapshot);
+            tray::refresh(handle, snapshot);
             if let Err(err) = handle.emit(SNAPSHOT_EVENT, snapshot) {
                 log::debug!("no UI to receive snapshot: {err}");
             }
@@ -142,15 +189,17 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
                 EngineEvent::SessionEnded { ended, .. } => log::info!("sun down: {ended:?}"),
                 EngineEvent::Snapshot(_) => {}
             }
-            notify::on_event(&handle, other);
+            notify::on_event(handle, other);
         }
-    }));
-
-    let launched_hidden = std::env::args().any(|a| a == HIDDEN_FLAG);
-    if !(launched_hidden || settings.start_hidden) {
-        window::open_at_startup(app)?;
     }
-    Ok(())
+}
+
+/// Writes the log, logging rather than failing: history is never worth
+/// interrupting anything for.
+fn save_history(path: &std::path::Path, history: &History) {
+    if let Err(err) = persistence::save_history(path, history) {
+        log::warn!("could not save history: {err}");
+    }
 }
 
 fn apply_startup_plan(engine: &Engine, settings: &Settings) {

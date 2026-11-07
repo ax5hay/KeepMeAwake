@@ -1,13 +1,44 @@
-//! Loads and saves [`Settings`] as pretty JSON, atomically.
+//! Loads and saves [`Settings`] and the session [`History`] as pretty JSON,
+//! atomically.
 
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::core::Settings;
+use crate::core::history::History;
 
 /// File name inside the app's config directory.
 pub const SETTINGS_FILE: &str = "settings.json";
+
+/// The session log's file name inside the app's config directory.
+pub const HISTORY_FILE: &str = "history.json";
+
+/// Full path of the history file inside `config_dir`.
+pub fn history_path(config_dir: &Path) -> PathBuf {
+    config_dir.join(HISTORY_FILE)
+}
+
+/// Reads the session log. Missing or unreadable reads as empty: it is a log,
+/// and losing it must never stop the app.
+pub fn load_history(path: &Path) -> History {
+    match fs::read_to_string(path) {
+        Ok(text) => serde_json::from_str(&text).unwrap_or_else(|err| {
+            log::warn!("history file is not valid JSON, starting a new one: {err}");
+            History::default()
+        }),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => History::default(),
+        Err(err) => {
+            log::warn!("could not read history, starting a new one: {err}");
+            History::default()
+        }
+    }
+}
+
+/// Writes the session log, atomically like settings.
+pub fn save_history(path: &Path, history: &History) -> io::Result<()> {
+    write_json(path, history)
+}
 
 /// Full path of the settings file inside `config_dir`.
 pub fn settings_path(config_dir: &Path) -> PathBuf {
@@ -37,10 +68,14 @@ pub fn load(path: &Path) -> Settings {
 /// Writes settings via a temporary file and rename so a crash mid-write can
 /// never leave a truncated file behind.
 pub fn save(path: &Path, settings: &Settings) -> io::Result<()> {
+    write_json(path, settings)
+}
+
+fn write_json(path: &Path, value: &impl serde::Serialize) -> io::Result<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir)?;
     }
-    let json = serde_json::to_string_pretty(settings).map_err(io::Error::other)?;
+    let json = serde_json::to_string_pretty(value).map_err(io::Error::other)?;
     let tmp = path.with_extension("json.tmp");
     fs::write(&tmp, json)?;
     // On Windows `rename` fails if the target exists, so remove it first; a
@@ -87,6 +122,23 @@ mod tests {
             !path.with_extension("json.tmp").exists(),
             "temp file must be gone"
         );
+    }
+
+    #[test]
+    fn history_round_trips_and_survives_a_bad_file() {
+        use crate::core::Mode;
+        use crate::core::history::Ended;
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = history_path(dir.path());
+        assert_eq!(load_history(&path), History::default(), "missing");
+        let mut history = History::default();
+        history.open(1_000, Mode::Timed);
+        history.close(61_000, Ended::Timer);
+        save_history(&path, &history).unwrap();
+        assert_eq!(load_history(&path), history);
+        fs::write(&path, "[ not a log").unwrap();
+        assert_eq!(load_history(&path), History::default(), "corrupt");
     }
 
     #[test]
