@@ -2016,6 +2016,7 @@ name = "keepmeawake"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "core-foundation",
  "log",
  "parking_lot 0.13.0",
  "serde",

@@ -41,7 +41,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": ["nsis", "msi", "app", "dmg"],
     "category": "Utility",
     "shortDescription": "Keep your laptop awake while you need it.",
     "longDescription": "Keep me awake holds a Windows power request, the same mechanism a video player uses, instead of faking keystrokes. Timed sessions, a schedule, battery rules, a tray icon, and a window that gets out of the way. Nothing is typed and nothing moves.",
@@ -63,6 +63,12 @@
       },
       "wix": { "language": "en-US" },
       "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true }
+    },
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "signingIdentity": null,
+      "entitlements": null,
+      "dmg": { "windowSize": { "width": 540, "height": 380 } }
     }
   },
   "plugins": {}
