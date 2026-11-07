@@ -100,6 +100,12 @@ export function longStop(secs: number): string {
   return `${shown} hour${h === 1 ? '' : 's'}`;
 }
 
+/** Shown in the hotkey field while it waits for a combination. */
+export const HOTKEY_RECORDING = 'Press keys…';
+
+/** The Tips row for the global hotkey. */
+export const HOTKEY_TIP = 'Toggle from anywhere';
+
 /** Keyboard and tray help shown in Settings → Tips. */
 export const TIPS: ReadonlyArray<{ keys: string; does: string }> = [
   { keys: 'Space', does: 'Toggle awake and resting' },
@@ -109,3 +115,10 @@ export const TIPS: ReadonlyArray<{ keys: string; does: string }> = [
   { keys: 'Tray · right click', does: 'Every action, no window' },
   { keys: 'Horizon', does: 'Click the line for a tip' },
 ];
+
+/** The Tips rows with the current global hotkey (if any) after Space. */
+export function tipsWith(hotkey: string | null): ReadonlyArray<{ keys: string; does: string }> {
+  if (hotkey === null) return TIPS;
+  const [first, ...rest] = TIPS;
+  return [...(first ? [first] : []), { keys: hotkey, does: HOTKEY_TIP }, ...rest];
+}

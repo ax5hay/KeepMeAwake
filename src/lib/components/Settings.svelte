@@ -4,11 +4,13 @@
   import { onMount } from 'svelte';
 
   import DayPills from './DayPills.svelte';
+  import HotkeyField from './HotkeyField.svelte';
   import Row from './Row.svelte';
   import Segmented from './Segmented.svelte';
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
-  import { AUTHOR, TIPS } from '$lib/copy';
+  import { AUTHOR, tipsWith } from '$lib/copy';
+  import { displayAccelerator } from '$lib/hotkey';
   import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
   import { store } from '$lib/state.svelte';
   import type { Notifications, Schedule, StartupPlan, Theme } from '$lib/types';
@@ -246,9 +248,19 @@
     </section>
 
     <section>
+      <h2 class="eyebrow">Hotkey</h2>
+      <Row label="Hotkey" hint="Works in any app. Needs at least one of Ctrl, Alt, Win.">
+        <HotkeyField
+          value={settings.hotkey}
+          onchange={(v) => void store.updateSettings({ hotkey: v })}
+        />
+      </Row>
+    </section>
+
+    <section>
       <h2 class="eyebrow">Tips</h2>
       <dl class="tips">
-        {#each TIPS as tip (tip.keys)}
+        {#each tipsWith(settings.hotkey ? displayAccelerator(settings.hotkey) : null) as tip (tip.keys)}
           <dt>{tip.keys}</dt>
           <dd>{tip.does}</dd>
         {/each}
