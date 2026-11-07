@@ -5,6 +5,8 @@
   import Home from '$lib/components/Home.svelte';
   import Settings from '$lib/components/Settings.svelte';
   import TitleBar from '$lib/components/TitleBar.svelte';
+  import { windowAction } from '$lib/keys';
+  import { isMac } from '$lib/platform';
   import { store } from '$lib/state.svelte';
   import { watchTheme } from '$lib/theme';
 
@@ -33,17 +35,28 @@
   });
 
   function onKey(event: KeyboardEvent) {
-    const target = event.target as HTMLElement | null;
-    const typing = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
-    if (event.key === 'Escape') {
-      if (store.view === 'settings') store.view = 'home';
-      else void getCurrentWindow().close();
-    } else if (event.key === ' ' && !typing && target?.tagName !== 'BUTTON') {
-      event.preventDefault();
-      void store.toggle();
-    } else if (event.key === ',' && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
-      store.view = store.view === 'settings' ? 'home' : 'settings';
+    const target = (event.target as HTMLElement | null)?.tagName ?? '';
+    const action = windowAction(event, target, isMac);
+    if (action === null) return;
+    if (action !== 'back-or-close') event.preventDefault();
+    switch (action) {
+      case 'back-or-close':
+        if (store.view === 'settings') store.view = 'home';
+        else void getCurrentWindow().close();
+        break;
+      case 'toggle':
+        void store.toggle();
+        break;
+      case 'settings':
+        store.view = store.view === 'settings' ? 'home' : 'settings';
+        break;
+      // Same path as the title bar's close: to the menu bar, the sun stays up.
+      case 'close':
+        void getCurrentWindow().close();
+        break;
+      case 'minimise':
+        void getCurrentWindow().minimize();
+        break;
     }
   }
 </script>
