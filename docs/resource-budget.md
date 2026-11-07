@@ -4,23 +4,36 @@
 
 ## Budget
 
-| Metric                         | Budget              | Windows (0.2, release)                | macOS (release)                            | Why                                                              |
-| ------------------------------ | ------------------- | ------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
-| Private memory, tray only      | ≤ 12 MB             | 5.7 MB (0.1: 5.3 MB)                  | **16 MB resting, 17 MB awake** (over)      | one native process, no webview                                   |
-| Private memory, window open    | ≤ 90 MB             | 5.4 MB app + WebView2                 | 26 MB app + 30 MB WebContent               | the system webview is the floor; the page is small               |
-| CPU while resting              | 0 wake-ups          | 0 ms CPU in 60 s                      | 0 ms CPU in 60 s                           | the engine (and, on Windows, theme) threads block in the kernel  |
-| CPU while awake                | 1 wake-up / 30 s    | 1 / 30 s                              | 20 ms CPU in 60 s (two polls)              | battery poll only                                                |
-| CPU while resting, schedule on | ≤ 1 wake-up / 5 min | by design                             | by design                                  | the next window start, re-checked so sleep cannot make it late   |
-| Threads at rest                | no polling threads  | 30 (Tauri, WebView2 loader, plugins)  | 14 resting, 18 awake                       | `keepmeawake-engine` (and `keepmeawake-theme`) sleep until woken |
-| CPU, window open, idle         | ≤ 0.1%              | idle                                  | 10 ms CPU in 30 s                          | no animation loops; 1 Hz clock only in a timed session           |
-| Binary                         | ≤ 12 MB             | 4.2 MB exe · 1.5 MB NSIS · 2.1 MB MSI | 4.1 MB binary · 4.0 MB `.app` · 2.0 MB DMG | `opt-level = "s"`, LTO, stripped                                 |
-| UI bundle (JS + CSS, gzip)     | ≤ 60 KB             | 30 KB + 3.7 KB (0.1: 28 KB + 3.5 KB)  | 32 KB + 3.8 KB (both, from the next build) | Svelte compiles away; no framework runtime                       |
-| Fonts                          | ≤ 160 KB            | 149 KB                                | 149 KB                                     | one family, two files, latin subset                              |
-| Cold open of the window        | ≤ 400 ms            | under 1 s                             | 0.86 s from a cold launch                  | webview spin-up + first paint                                    |
+| Metric                         | Budget              | Windows (0.2, release)                                       | macOS (release)                                  | Why                                                                         |
+| ------------------------------ | ------------------- | ------------------------------------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------- |
+| Private memory, tray only      | ≤ 12 MB             | 4.5 MB after an update check (0.2: 5.7 MB)                   | **16 MB resting, 17 MB awake** (over)            | one native process, no webview                                              |
+| Private memory, window open    | ≤ 90 MB             | 5.4 MB app + WebView2                                        | 26 MB app + 30 MB WebContent                     | the system webview is the floor; the page is small                          |
+| CPU while resting              | 0 wake-ups          | 0 ms CPU in 60 s                                             | 0 ms CPU in 60 s                                 | the engine (and, on Windows, theme) threads block in the kernel             |
+| CPU while awake                | 1 wake-up / 30 s    | 1 / 30 s                                                     | 20 ms CPU in 60 s (two polls)                    | battery poll only                                                           |
+| CPU while resting, schedule on | ≤ 1 wake-up / 5 min | by design                                                    | by design                                        | the next window start, re-checked so sleep cannot make it late              |
+| Threads at rest                | no polling threads  | 30 (Tauri, WebView2 loader, plugins)                         | 14 resting, 18 awake                             | `keepmeawake-engine` (and `keepmeawake-theme`) sleep until woken            |
+| CPU, window open, idle         | ≤ 0.1%              | idle                                                         | 10 ms CPU in 30 s                                | no animation loops; 1 Hz clock only in a timed session                      |
+| Binary                         | ≤ 12 MB             | 5.6 MB exe · 2.2 MB NSIS · 3.0 MB MSI (0.2: 4.2 · 1.5 · 2.1) | 4.1 MB binary · 4.0 MB `.app` · 2.0 MB DMG (0.2) | `opt-level = "s"`, LTO, stripped; the updater's TLS is most of 0.3's growth |
+| UI bundle (JS + CSS, gzip)     | ≤ 60 KB             | 30 KB + 3.7 KB (0.1: 28 KB + 3.5 KB)                         | 32 KB + 3.8 KB (both, from the next build)       | Svelte compiles away; no framework runtime                                  |
+| Fonts                          | ≤ 160 KB            | 149 KB                                                       | 149 KB                                           | one family, two files, latin subset                                         |
+| Cold open of the window        | ≤ 400 ms            | under 1 s                                                    | 0.86 s from a cold launch                        | webview spin-up + first paint                                               |
 
 The sunset warning adds one engine wake per timed session, at the warning
 moment, and nothing in the window: the status line uses the 1 Hz clock a
 timed session already runs.
+
+Auto-update adds one thread, `keepmeawake-update`, asleep between checks:
+it wakes about 30 s after launch, then at most every 6 h to compare
+wall-clock times (a laptop's sleep stops the clock a thread sleeps on), and
+makes one HTTPS request a day, none with the switch off. The window adds
+nothing: the update arrives as an event, and progress is sent once per
+percent, not per chunk. The updater pulls in an HTTP client and TLS; this is
+the one feature allowed to cost that. Measured on Windows (release,
+2026-11-07): the exe grows from 4.2 MB to 5.6 MB and the NSIS installer is
+2.2 MB, MSI 3.0 MB; in the tray after its first check the app is 4.5 MB
+private with 13 threads and 0 ms CPU in an idle minute. The check runs on a
+current-thread runtime of its own: Tauri's shared runtime would have started
+a worker per core for it (45 threads, 6.4 MB on a many-core machine).
 
 The overnight guard adds no timer and no thread. While an Always session
 runs it reads the idle time once per battery poll (`GetLastInputInfo` on

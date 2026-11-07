@@ -44,7 +44,7 @@ timeline
 
 | Feature                                                         | Spec                                           | Layers                |
 | --------------------------------------------------------------- | ---------------------------------------------- | --------------------- |
-| Auto-update, signed, once a day, opt-out                        | [auto-update.md](specs/auto-update.md)         | app, ui, ci           |
+| Auto-update, signed, once a day, opt-out (built)                | [auto-update.md](specs/auto-update.md)         | app, ui, ci           |
 | Session history with how each session ended (built, unreleased) | [session-history.md](specs/session-history.md) | core, engine, app, ui |
 | Winget and Scoop                                                | [winget-scoop.md](specs/winget-scoop.md)       | ci, docs              |
 

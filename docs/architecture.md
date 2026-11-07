@@ -173,7 +173,7 @@ stretch was still paused for the battery as it ended.
 
 `app/mod.rs` builds the Tauri app. Plugins in order: single-instance (must be
 first), autostart (passes `--hidden`), opener, notification, global-shortcut,
-log. `setup` loads settings and the session log (marking an entry left open by
+updater, log. `setup` loads settings and the session log (marking an entry left open by
 the last run as `sleep`), starts the engine with its listener already
 attached (`Engine::start_with`, so the first events are heard), creates the
 tray, registers the hotkey (`app/hotkey.rs`), and opens the window unless
@@ -183,6 +183,32 @@ tray, emits `snapshot` to the window and hands the other events to
 `app/notify.rs` for toasts.
 `RunEvent::ExitRequested` with no exit code (the last window closed) is vetoed
 so the app lives in the tray.
+
+`app/update.rs` starts a thread, `keepmeawake-update`, that asks the updater
+plugin about 30 s after launch and then 24 h after the last check
+(`last_update_check_unix_ms`), sleeping at most 6 h at a time so a laptop
+that slept through the due time catches up within hours. With
+`check_for_updates` off it never asks. A newer release is kept in
+`AppState.update`, sent as the `update` event and shown by the tray.
+`install_update` checks again, downloads with `update-progress` events,
+lets the plugin verify the signature against the public key in
+`tauri.conf.json`, installs and relaunches (`AppHandle::restart`). On
+Windows the plugin runs the passive NSIS installer and exits the app
+itself, so `on_before_exit` shuts the engine down first.
+
+```mermaid
+sequenceDiagram
+    participant T as update thread
+    participant G as GitHub Releases
+    participant UI as Window
+    T->>G: GET releases/latest/download/latest.json (once a day)
+    G-->>T: version, per-platform URL and signature
+    T-->>UI: event "update" · tray "Update ready"
+    UI->>T: invoke install_update
+    T->>G: download the installer or .app.tar.gz
+    T-->>UI: event "update-progress" (per percent)
+    T->>T: verify signature, install, restart
+```
 
 ## IPC
 
@@ -212,6 +238,8 @@ sequenceDiagram
 | `quit_app`        |                        |                                                                                         |
 | `extend_session`  |                        | `Snapshot`: a timed session's end moved 30 minutes later                                |
 | `keep_it_up`      |                        | `Snapshot`: the overnight guard leaves this Always session alone                        |
+| `get_update`      |                        | `UpdateInfo \| null`: a newer release the daily check found                             |
+| `install_update`  |                        | nothing on success (the app relaunches); events `update-progress`; an error string      |
 | `get_history`     |                        | `History`: the session log, oldest entry first                                          |
 | `clear_history`   |                        | `History` (empty), also written to disk                                                 |
 
@@ -248,9 +276,13 @@ where it last was.
 ## Security posture
 
 - Runs as the signed-in user, never elevated.
-- No network access. Fonts and assets are bundled. Toasts go to the local
-  notification centre; they are sent from Rust, so the webview has no
-  notification permission.
+- One outbound request a day, from Rust: HTTPS to GitHub Releases for
+  `latest.json`, and the download when you click Install. Off with
+  **Check for updates daily**, and then there is no network access at all.
+  Updates are verified against the public key built into the app before
+  they run; the webview has no updater or process permission. Fonts and
+  assets are bundled. Toasts go to the local notification centre; they are
+  sent from Rust, so the webview has no notification permission.
 - One settings file and one log, per user (see **On disk**).
 - A handful of OS calls, one file per OS: on Windows power requests, power
   status, the last input time, two registry reads and a registry change

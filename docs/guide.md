@@ -13,7 +13,7 @@ flowchart TB
         ST["Status · Resting / Awake / Paused + one line of detail"]
         R["Rule · Always · 30m · 1h · 2h · 4h · 8h · Until…"]
         RW["Rows · Keep the screen on · Pause on low battery"]
-        D["Doors · Schedule · History · Ctrl+Alt+K"]
+        D["Doors · Schedule · Overnight · History · Ctrl+Alt+K"]
     end
     T --> S --> ST --> R --> RW --> D
 ```
@@ -39,7 +39,8 @@ in the morning the awake line adds a second sentence.
 | ------------------------- | ------- | ------------------------------------------------------------- |
 | resting                   | Resting | `Your laptop sleeps as usual.`                                |
 | resting, schedule waiting | Resting | `Your laptop sleeps as usual. Awake again at 9:00 am.`        |
-| always                    | Awake   | `Until you say otherwise.`                                    |
+| always                    | Awake   | `Until you say otherwise, or 6h untouched.`                   |
+| always, guard off or kept | Awake   | `Until you say otherwise.`                                    |
 | always, nobody around     | Awake   | `Nobody here for 6 hours. Resting at 3:12 am.` **Keep it up** |
 | timed                     | Awake   | `Until 5:30 pm · 1h 30m left`                                 |
 | timed, sunset near        | Awake   | `The sun sets in 5 minutes.` **Give it another 30m**          |
@@ -60,18 +61,19 @@ is longer than the warning (a 2-minute timer never warns), and not while a
 schedule window that lasts longer than the timer is open, since the sun
 stays up when the timer ends.
 
-**Overnight guard.** Always is the easiest session to forget. When an
+**Overnight guard.** Always is the easiest session to forget, so its line
+says how it can end: `Until you say otherwise, or 6h untouched.` When an
 Always session has had no keyboard, mouse or trackpad input for 6 hours
 (Settings → Waking → **Overnight guard**: Off · 4h · 6h · 8h), the sun asks
 once: the line turns to `Nobody here for 6 hours. Resting at 3:12 am.` with
 a link, **Keep it up**; the tray (the menu bar on a Mac) gains the same item
 and a toast says it if the window is closed. Then, within ten minutes:
 
-| Happens                         | Result                                                        |
-| ------------------------------- | ------------------------------------------------------------- |
-| any input                       | the question goes away quietly; the 6 hours start again       |
-| **Keep it up** (window or tray) | the guard leaves this session alone until it ends             |
-| nothing                         | the session ends, the laptop sleeps as usual, history: `idle` |
+| Happens                         | Result                                                                           |
+| ------------------------------- | -------------------------------------------------------------------------------- |
+| any input                       | the question goes away quietly; the 6 hours start again                          |
+| **Keep it up** (window or tray) | `Kept up. It will not ask again this time.`; the line drops the 6h until it ends |
+| nothing                         | the session ends, the laptop sleeps as usual, history: `idle`                    |
 
 The guard only reads how long since the last input; it never sends any.
 Timers and schedule windows end on their own and are never asked about. A
@@ -116,11 +118,14 @@ The hint under the battery row shows the live reading ("Plugged in · 100%").
 
 ### Doors
 
-The line at the foot, `Schedule · History · Ctrl+Alt+K`, opens Settings at
-that section: the schedule, the log of when the sun was up, and the hotkey,
-which shows the combination it is set to (`Hotkey` when it is off; `⌥⌘K` on
-a Mac). The settings button in the title bar (the sliders) opens Settings
-where you left it. The line hides when the window is shorter than 560 px.
+The line at the foot, `Schedule · Overnight · History · Ctrl+Alt+K`, opens
+Settings at that section: the schedule, the overnight guard (in Waking),
+the log of when the sun was up, and the hotkey, which shows the combination
+it is set to (`Hotkey` when it is off; `⌥⌘K` on a Mac). Hover one for what
+is behind it. When an update is ready the line leads with it,
+`Update 0.3.1`, opening About, and the hotkey door makes room. The settings
+button in the title bar (the sliders) opens Settings where you left it. The
+line hides when the window is shorter than 560 px.
 
 ## Keyboard
 
@@ -147,6 +152,7 @@ the app has no Dock icon and no place in Cmd-Tab: it is a menu bar app.
 |                               | while a schedule window is open: Skip today's schedule / Back on schedule |
 |                               | near the end of a timer: Give it another 30m                              |
 |                               | while the overnight guard asks: Keep it up                                |
+|                               | when an update is ready: `Update ready: 0.3.1` under the status line      |
 | hover                         | tooltip with the same status line as the menu                             |
 
 Icon states: sun above the line (awake), sun set (resting), bar across the sun
@@ -180,7 +186,8 @@ dark menu bar itself. Nothing to set.
 | Hotkey        | Hotkey                     | `Ctrl+Alt+K` by default. Change records a new one; Off removes it         |
 | History       |                            | the last 30 times the sun was up; see below                               |
 | Tips          |                            | the keyboard and tray table                                               |
-| About         |                            | version, how it works, author, Source, Quit                               |
+| About         | Check for updates daily    | once a day, from GitHub; on by default. See Updates below                 |
+|               |                            | version, how it works, author, Source, Quit                               |
 
 ![Settings → Waking, Paper](assets/overnight-settings-light.png) ![Settings → Waking, Night](assets/overnight-settings-dark.png)
 
@@ -259,6 +266,28 @@ hot key on macOS), which only listens. Nothing is ever typed into other
 applications.
 
 ![Settings → Hotkey, Paper](assets/hotkey-light.png) ![Settings → Hotkey, Night](assets/hotkey-dark.png)
+
+## Updates
+
+About half a minute after launch, and then once a day, the app asks GitHub
+whether a newer release exists (Settings → About → **Check for updates
+daily**, on by default). It is the only request the app makes; with the
+switch off it makes none. Nothing is installed without a click.
+
+| When                         | Where                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| a newer release is found     | Home's line leads with `Update 0.3.1`; the tray adds `Update ready: 0.3.1` |
+| the next time a window opens | once per version, a whisper: `A new version is up: 0.3.1.`                 |
+| Settings → About             | `0.3.1 is available · Install and restart`                                 |
+| you click it                 | `Downloading… 42%` over a hairline, then it installs and opens the new one |
+
+Every update is signed; one whose signature does not match the key built
+into the app is refused. On Windows the installer runs on its own, without
+questions, and the app comes back by itself. Only full releases are offered:
+pre-releases (such as 0.3.0) are never pushed to anyone. An offline check
+is not an error and says nothing; it tries again the next day.
+
+![An update on Home, Night](assets/update-home-dark.png) ![Settings → About with an update, Paper](assets/update-about-light.png)
 
 ## Where things are
 
