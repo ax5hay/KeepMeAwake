@@ -38,6 +38,7 @@ const base: Snapshot = {
       start_minutes: 540,
       end_minutes: 1080,
     },
+    notifications: { timer: true, battery: false, schedule: false },
   },
   app_version: '0.1.0',
 };
