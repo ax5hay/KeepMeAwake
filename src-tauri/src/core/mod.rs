@@ -1,5 +1,6 @@
 //! Pure domain logic. Nothing in this module performs I/O or talks to the OS.
 
+pub mod placement;
 pub mod plan;
 pub mod schedule;
 pub mod session;
