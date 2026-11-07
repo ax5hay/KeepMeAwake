@@ -113,13 +113,21 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
                 log::debug!("no UI to receive snapshot: {err}");
             }
         }
-        EngineEvent::TimerEnded { plan_secs } => log::info!("timed session of {plan_secs}s ended"),
-        EngineEvent::Paused(reason, battery) => {
-            log::info!("session paused: {reason:?} at {battery:?}");
+        other => {
+            match other {
+                EngineEvent::TimerEnded { plan_secs } => {
+                    log::info!("timed session of {plan_secs}s ended");
+                }
+                EngineEvent::Paused(reason, battery) => {
+                    log::info!("session paused: {reason:?} at {battery:?}");
+                }
+                EngineEvent::Resumed => log::info!("session resumed"),
+                EngineEvent::ScheduleStarted { .. } => log::info!("schedule window opened"),
+                EngineEvent::ScheduleEnded { .. } => log::info!("schedule window closed"),
+                EngineEvent::Snapshot(_) => {}
+            }
+            notify::on_event(&handle, other);
         }
-        EngineEvent::Resumed => log::info!("session resumed"),
-        EngineEvent::ScheduleStarted { .. } => log::info!("schedule window opened"),
-        EngineEvent::ScheduleEnded { .. } => log::info!("schedule window closed"),
     }));
 
     let launched_hidden = std::env::args().any(|a| a == HIDDEN_FLAG);

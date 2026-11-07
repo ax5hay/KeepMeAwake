@@ -189,10 +189,14 @@ pub fn tooltip(snapshot: &Snapshot) -> String {
 
 /// One line describing the current state, shared by tooltip and menu.
 pub fn status_line(snapshot: &Snapshot) -> String {
-    let now = SystemTime::now()
+    status_line_at(snapshot, now_unix_ms())
+}
+
+/// Wall clock now, Unix ms.
+pub(crate) fn now_unix_ms() -> u64 {
+    SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX));
-    status_line_at(snapshot, now)
+        .map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
 }
 
 /// [`status_line`] against an explicit wall clock, for tests.
@@ -243,7 +247,7 @@ fn pause_text(reason: crate::core::PauseReason) -> &'static str {
 
 /// A wall-clock moment as `6:00 pm`, with the weekday added (`9:00 am on
 /// Monday`) when it is further away than tomorrow.
-fn when(at_unix_ms: u64, now_unix_ms: u64) -> String {
+pub(crate) fn when(at_unix_ms: u64, now_unix_ms: u64) -> String {
     let (Some(at), Some(now)) = (local(at_unix_ms), local(now_unix_ms)) else {
         return String::new();
     };

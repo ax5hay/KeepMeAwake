@@ -25,6 +25,14 @@ export interface Settings {
   free_memory_when_hidden: boolean;
   theme: Theme;
   schedule: Schedule;
+  notifications: Notifications;
+}
+
+/** One switch per kind of desktop toast. */
+export interface Notifications {
+  timer: boolean;
+  battery: boolean;
+  schedule: boolean;
 }
 
 /** One window of time on chosen weekdays; `end_minutes < start_minutes` runs overnight. */

@@ -64,6 +64,30 @@ pub struct Settings {
     pub theme: Theme,
     /// Hours during which the laptop is kept awake without being asked.
     pub schedule: Schedule,
+    /// Which moments get a desktop toast.
+    pub notifications: Notifications,
+}
+
+/// One switch per kind of toast.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "snake_case")]
+pub struct Notifications {
+    /// A timed session ended on its own.
+    pub timer: bool,
+    /// The battery rule paused the sun, or the charger brought it back.
+    pub battery: bool,
+    /// A schedule window opened or closed.
+    pub schedule: bool,
+}
+
+impl Default for Notifications {
+    fn default() -> Self {
+        Self {
+            timer: true,
+            battery: false,
+            schedule: false,
+        }
+    }
 }
 
 /// One window of time on chosen weekdays, e.g. 09:00 until 18:00 Monday to
@@ -124,6 +148,7 @@ impl Default for Settings {
             free_memory_when_hidden: true,
             theme: Theme::System,
             schedule: Schedule::default(),
+            notifications: Notifications::default(),
         }
     }
 }
@@ -238,6 +263,18 @@ mod tests {
         assert_eq!(json["schedule"]["end_minutes"], 1080);
         assert_eq!(json["schedule"]["days"].as_array().map(Vec::len), Some(7));
         assert_eq!(json["schedule"]["enabled"], false);
+    }
+
+    #[test]
+    fn notifications_default_to_the_timer_only() {
+        let n = Settings::default().notifications;
+        assert!(n.timer);
+        assert!(!n.battery);
+        assert!(!n.schedule);
+        let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
+        assert_eq!(old.notifications, Notifications::default());
+        let json = serde_json::to_value(Settings::default()).unwrap();
+        assert_eq!(json["notifications"]["timer"], true);
     }
 
     #[test]
