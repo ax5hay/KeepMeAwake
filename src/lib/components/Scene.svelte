@@ -3,7 +3,11 @@
    * The horizon. Sky and ground are flat bands; the sun is the toggle. A grain
    * overlay keeps the flat colour from feeling like a screenshot of a slide,
    * and a band of afterglow above the line gives the flat sky its depth.
+   *
+   * Things to find: the horizon line gives tips, the seven stars can be lit
+   * one by one, and the reflection ripples.
    */
+  import { RIPPLE, horizonTip, starWhisper } from '$lib/copy';
   import { store } from '$lib/state.svelte';
   import { SCENE, remainingArcPath, sunPosition } from '$lib/sun';
 
@@ -21,11 +25,42 @@
     { x: 46, y: 38, r: 1.1 },
     { x: 92, y: 74, r: 0.8 },
     { x: 138, y: 30, r: 0.9 },
+    { x: 212, y: 104, r: 0.7 },
     { x: 246, y: 52, r: 1.1 },
     { x: 298, y: 26, r: 0.8 },
     { x: 338, y: 86, r: 1 },
-    { x: 212, y: 104, r: 0.7 },
   ];
+
+  let tip = $state(0);
+  let lit = $state<boolean[]>(stars.map(() => false));
+  let constellation = $state(false);
+  let rippling = $state(false);
+
+  const litCount = $derived(lit.filter(Boolean).length);
+  const constellationPath = stars.map((s, i) => `${i === 0 ? 'M' : 'L'} ${s.x} ${s.y}`).join(' ');
+
+  function onHorizon() {
+    store.say(horizonTip(tip));
+    tip += 1;
+  }
+
+  function onStar(index: number) {
+    if (awake || lit[index]) return;
+    lit = lit.map((v, i) => v || i === index);
+    const count = litCount + 1;
+    store.say(starWhisper(count));
+    if (count === stars.length) {
+      constellation = true;
+      setTimeout(() => (constellation = false), 3600);
+    }
+  }
+
+  function onReflection() {
+    if (!awake || rippling) return;
+    rippling = true;
+    store.say(RIPPLE, 2200);
+    setTimeout(() => (rippling = false), 900);
+  }
 </script>
 
 <div class="scene" data-mode={mode} data-paused={paused}>
@@ -49,8 +84,11 @@
     <rect class="afterglow" y={horizonY - 14} {width} height="14" />
 
     <g class="stars" data-visible={!awake}>
-      {#each stars as star (star.x)}
-        <circle cx={star.x} cy={star.y} r={star.r} />
+      <path class="constellation" class:shown={constellation} d={constellationPath} />
+      {#each stars as star, i (star.x)}
+        <circle class="star" class:lit={lit[i]} cx={star.x} cy={star.y} r={star.r} />
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <circle class="star-hit" cx={star.x} cy={star.y} r="9" onclick={() => onStar(i)} />
       {/each}
     </g>
 
@@ -69,9 +107,18 @@
     <rect class="ground" y={horizonY} {width} height={height - horizonY} />
     <rect class="horizon" x="22" y={horizonY - 1} width={width - 44} height="2" rx="1" />
 
-    <g class="reflection" opacity={awake ? 1 : 0}>
+    <g class="reflection" class:rippling opacity={awake ? 1 : 0}>
       <rect x={sun.x - 30} y={horizonY + 22} width="60" height="4" rx="2" />
       <rect x={sun.x - 16} y={horizonY + 38} width="32" height="4" rx="2" />
+      <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+      <rect
+        class="reflection-hit"
+        x={sun.x - 40}
+        y={horizonY + 14}
+        width="80"
+        height="34"
+        onclick={onReflection}
+      />
     </g>
 
     <rect class="grain" {width} {height} filter="url(#grain)" />
@@ -84,6 +131,15 @@
     aria-label={label}
     title="{label} (Space)"
     onclick={() => void store.toggle()}
+  ></button>
+
+  <button
+    type="button"
+    class="horizon-hit"
+    style="top: {(horizonY / height) * 100}%"
+    aria-label="Show a tip"
+    title="A tip"
+    onclick={onHorizon}
   ></button>
 </div>
 
@@ -135,17 +191,45 @@
     opacity: 0.02;
   }
 
-  .stars circle {
-    fill: var(--ink);
-  }
-
   .stars {
     opacity: 0;
     transition: opacity var(--t-slow) var(--ease);
+    pointer-events: none;
   }
 
   .stars[data-visible='true'] {
     opacity: var(--stars);
+    pointer-events: auto;
+  }
+
+  .star {
+    fill: var(--ink);
+    transition:
+      r var(--t-mid) var(--ease-out),
+      opacity var(--t-mid) var(--ease);
+  }
+
+  .star.lit {
+    r: 1.9;
+    fill: var(--sun);
+  }
+
+  .star-hit {
+    fill: transparent;
+    cursor: default;
+  }
+
+  .constellation {
+    fill: none;
+    stroke: var(--sun);
+    stroke-width: 0.6;
+    stroke-dasharray: 2 3;
+    opacity: 0;
+    transition: opacity var(--t-slow) var(--ease);
+  }
+
+  .constellation.shown {
+    opacity: 0.9;
   }
 
   .ground {
@@ -201,14 +285,30 @@
 
   .reflection rect {
     fill: var(--sun);
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform var(--t-slow) var(--ease-out);
   }
 
-  .reflection rect:first-child {
+  .reflection rect:nth-child(1) {
     opacity: 0.5;
   }
 
-  .reflection rect:last-child {
+  .reflection rect:nth-child(2) {
     opacity: 0.28;
+  }
+
+  .reflection.rippling rect:nth-child(1) {
+    transform: scaleX(1.35);
+  }
+
+  .reflection.rippling rect:nth-child(2) {
+    transform: scaleX(1.7);
+  }
+
+  .reflection rect.reflection-hit {
+    fill: transparent;
+    transition: none;
   }
 
   .reflection {
@@ -237,5 +337,20 @@
   .hit:focus-visible {
     outline: 1.5px solid var(--ink);
     outline-offset: 4px;
+  }
+
+  /* A thin strip over the horizon line. */
+  .horizon-hit {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    height: 14px;
+    transform: translateY(-50%);
+    border-radius: 7px;
+  }
+
+  .horizon-hit:focus-visible {
+    outline: 1.5px solid var(--ink);
+    outline-offset: 2px;
   }
 </style>
