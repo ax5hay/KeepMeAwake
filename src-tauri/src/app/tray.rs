@@ -294,6 +294,7 @@ fn pause_text(reason: crate::core::PauseReason) -> &'static str {
     match reason {
         LowBattery => "battery is low",
         OnBattery => "running on battery",
+        PowerRequestFailed if cfg!(target_os = "macos") => "macOS refused the request",
         PowerRequestFailed => "Windows refused the request",
     }
 }
@@ -452,6 +453,21 @@ mod tests {
     fn toggle_label_while_scheduled_lets_it_sleep() {
         assert_eq!(toggle_label(&scheduled(true, false)), "Let it sleep");
         assert_eq!(toggle_label(&scheduled(true, true)), "Keep awake");
+    }
+
+    #[test]
+    fn a_refused_request_names_this_os() {
+        let line = status_line(&snap(
+            Mode::Indefinite,
+            None,
+            Some(PauseReason::PowerRequestFailed),
+        ));
+        let os = if cfg!(target_os = "macos") {
+            "macOS"
+        } else {
+            "Windows"
+        };
+        assert_eq!(line, format!("Paused: {os} refused the request"));
     }
 
     #[test]
