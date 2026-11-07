@@ -11,13 +11,18 @@
   import { AUTHOR, TIPS } from '$lib/copy';
   import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
   import { store } from '$lib/state.svelte';
-  import type { Schedule, StartupPlan, Theme } from '$lib/types';
+  import type { Notifications, Schedule, StartupPlan, Theme } from '$lib/types';
 
   const settings = $derived(store.settings);
 
   function setSchedule(patch: Partial<Schedule>) {
     if (!settings) return;
     void store.updateSettings({ schedule: { ...settings.schedule, ...patch } });
+  }
+
+  function setNotifications(patch: Partial<Notifications>) {
+    if (!settings) return;
+    void store.updateSettings({ notifications: { ...settings.notifications, ...patch } });
   }
 
   function setTime(field: 'start_minutes' | 'end_minutes') {
@@ -211,6 +216,31 @@
           value={settings.theme}
           label="Appearance"
           onchange={(v) => void store.updateSettings({ theme: v })}
+        />
+      </Row>
+    </section>
+
+    <section>
+      <h2 class="eyebrow">Notifications</h2>
+      <Row label="When a timer ends">
+        <Switch
+          checked={settings.notifications.timer}
+          label="When a timer ends"
+          onchange={(v) => setNotifications({ timer: v })}
+        />
+      </Row>
+      <Row label="Battery pauses and resumes">
+        <Switch
+          checked={settings.notifications.battery}
+          label="Battery pauses and resumes"
+          onchange={(v) => setNotifications({ battery: v })}
+        />
+      </Row>
+      <Row label="Schedule starts and ends">
+        <Switch
+          checked={settings.notifications.schedule}
+          label="Schedule starts and ends"
+          onchange={(v) => setNotifications({ schedule: v })}
         />
       </Row>
     </section>
