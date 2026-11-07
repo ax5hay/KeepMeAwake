@@ -1,1 +1,1 @@
-doc-valid-idents = ["KeepMeAwake", "WebView2", "PowerToys", ".."]
+doc-valid-idents = ["KeepMeAwake", "WebView2", "PowerToys", "IOKit", "IOPMAssertions", ".."]
