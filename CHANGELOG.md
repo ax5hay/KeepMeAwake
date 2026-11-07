@@ -49,5 +49,5 @@ First release. A twenty-line Python script became a desktop app.
   late-night line.
 - Settings persisted atomically; rotating log file.
 
-[Unreleased]: https://github.com/BuiltByBajpai/KeepMeAwake/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/BuiltByBajpai/KeepMeAwake/releases/tag/v0.1.0
+[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.1.0

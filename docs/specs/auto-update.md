@@ -10,7 +10,7 @@ against GitHub Releases keeps every install current without a store.
 ## Experience
 
 - On launch and then every 24 hours, the app fetches
-  `https://github.com/BuiltByBajpai/KeepMeAwake/releases/latest/download/latest.json`.
+  `https://github.com/ax5hay/KeepMeAwake/releases/latest/download/latest.json`.
   Failures are silent (logged at `debug`).
 - When a newer version exists: the tray status line gains a second line
   `Update ready: 0.3.1`; the About section shows
@@ -38,7 +38,7 @@ pub last_update_check_unix_ms: u64, // 0; written by the app, not the UI
   "plugins": {
     "updater": {
       "pubkey": "<from tauri signer generate>",
-      "endpoints": ["https://github.com/BuiltByBajpai/KeepMeAwake/releases/latest/download/latest.json"]
+      "endpoints": ["https://github.com/ax5hay/KeepMeAwake/releases/latest/download/latest.json"]
     }
   }
   ```

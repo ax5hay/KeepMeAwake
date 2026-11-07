@@ -10,8 +10,8 @@ developer's equivalent. Both are a manifest and an automation step.
 ## Experience
 
 ```powershell
-winget install BuiltByBajpai.KeepMeAwake
-scoop bucket add bajpai https://github.com/BuiltByBajpai/scoop-bucket
+winget install AkshayBajpai.KeepMeAwake
+scoop bucket add bajpai https://github.com/ax5hay/scoop-bucket
 scoop install keepmeawake
 ```
 
@@ -19,7 +19,7 @@ Both install the NSIS build silently (`/S`) per user.
 
 ## Winget
 
-- Identifier `BuiltByBajpai.KeepMeAwake`, installer type `nullsoft`, scope
+- Identifier `AkshayBajpai.KeepMeAwake`, installer type `nullsoft`, scope
   `user`, silent switch `/S`.
 - Automation: `vedantmgoyal9/winget-releaser` runs on `release: published`,
   reads the NSIS asset, writes the three manifest files and opens the PR to
@@ -30,7 +30,7 @@ Both install the NSIS build silently (`/S`) per user.
 
 ## Scoop
 
-- New repo `BuiltByBajpai/scoop-bucket` with `bucket/keepmeawake.json`:
+- New repo `ax5hay/scoop-bucket` with `bucket/keepmeawake.json`:
 
   ```json
   {
@@ -38,13 +38,13 @@ Both install the NSIS build silently (`/S`) per user.
     "description": "Keeps your Windows laptop awake, politely.",
     "homepage": "https://akshaybajpai.com",
     "license": "MIT",
-    "url": "https://github.com/BuiltByBajpai/KeepMeAwake/releases/download/v0.3.0/KeepMeAwake_0.3.0_x64-setup.exe",
+    "url": "https://github.com/ax5hay/KeepMeAwake/releases/download/v0.3.0/KeepMeAwake_0.3.0_x64-setup.exe",
     "hash": "<sha256>",
     "innosetup": false,
     "installer": { "args": ["/S"] },
     "checkver": "github",
     "autoupdate": {
-      "url": "https://github.com/BuiltByBajpai/KeepMeAwake/releases/download/v$version/KeepMeAwake_$version_x64-setup.exe"
+      "url": "https://github.com/ax5hay/KeepMeAwake/releases/download/v$version/KeepMeAwake_$version_x64-setup.exe"
     }
   }
   ```
@@ -70,7 +70,7 @@ None in-repo; the acceptance list is the test.
 
 ## Acceptance
 
-- [ ] `winget install BuiltByBajpai.KeepMeAwake` on a clean machine installs
+- [ ] `winget install AkshayBajpai.KeepMeAwake` on a clean machine installs
       and launches the app; `winget upgrade` picks up the next release.
 - [ ] `scoop install keepmeawake` does the same; `scoop update` picks up the
       next release.
