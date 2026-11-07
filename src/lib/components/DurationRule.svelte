@@ -172,14 +172,6 @@
     padding: 2px 24px 8px;
   }
 
-  input[type='time'] {
-    padding: 4px 8px;
-    border: 1px solid var(--hair-strong);
-    border-radius: var(--radius-sm);
-    background: var(--paper);
-    font-variant-numeric: tabular-nums;
-  }
-
   .set {
     padding: 5px 10px;
     border-radius: var(--radius-sm);

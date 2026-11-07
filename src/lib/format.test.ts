@@ -5,11 +5,13 @@ import {
   formatClock,
   formatDuration,
   formatStop,
+  minutesToTime,
   nextOccurrence,
   progress,
   remainingSecs,
   statusText,
   suggestedUntil,
+  timeToMinutes,
 } from './format';
 import type { Snapshot } from './types';
 
@@ -154,5 +156,22 @@ describe('suggestedUntil', () => {
   it('is an hour ahead rounded up to a quarter hour', () => {
     expect(suggestedUntil(new Date(2026, 0, 1, 12, 1).getTime())).toBe('13:15');
     expect(suggestedUntil(new Date(2026, 0, 1, 12, 0).getTime())).toBe('13:00');
+  });
+});
+
+describe('minutesToTime / timeToMinutes', () => {
+  it('round-trips the schedule defaults and the day edges', () => {
+    expect(minutesToTime(540)).toBe('09:00');
+    expect(minutesToTime(1080)).toBe('18:00');
+    expect(minutesToTime(0)).toBe('00:00');
+    expect(minutesToTime(1439)).toBe('23:59');
+    for (const m of [0, 75, 540, 1439]) expect(timeToMinutes(minutesToTime(m))).toBe(m);
+  });
+
+  it('clamps and rejects', () => {
+    expect(minutesToTime(5000)).toBe('23:59');
+    expect(timeToMinutes('')).toBeNull();
+    expect(timeToMinutes('24:00')).toBeNull();
+    expect(timeToMinutes('9:5')).toBeNull();
   });
 });

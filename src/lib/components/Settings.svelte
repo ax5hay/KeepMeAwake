@@ -3,16 +3,29 @@
   import { openUrl } from '@tauri-apps/plugin-opener';
   import { onMount } from 'svelte';
 
+  import DayPills from './DayPills.svelte';
   import Row from './Row.svelte';
   import Segmented from './Segmented.svelte';
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
   import { AUTHOR, TIPS } from '$lib/copy';
-  import { formatStop } from '$lib/format';
+  import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
   import { store } from '$lib/state.svelte';
-  import type { StartupPlan, Theme } from '$lib/types';
+  import type { Schedule, StartupPlan, Theme } from '$lib/types';
 
   const settings = $derived(store.settings);
+
+  function setSchedule(patch: Partial<Schedule>) {
+    if (!settings) return;
+    void store.updateSettings({ schedule: { ...settings.schedule, ...patch } });
+  }
+
+  function setTime(field: 'start_minutes' | 'end_minutes') {
+    return (event: Event) => {
+      const minutes = timeToMinutes((event.currentTarget as HTMLInputElement).value);
+      if (minutes !== null) setSchedule({ [field]: minutes });
+    };
+  }
 
   let autostart = $state<boolean | null>(null);
   onMount(() => {
@@ -113,6 +126,42 @@
           onchange={(v) => void store.updateSettings({ keep_display_on: v })}
         />
       </Row>
+    </section>
+
+    <section>
+      <h2 class="eyebrow">Schedule</h2>
+      <Row label="Keep a schedule" hint="Awake during these hours, resting outside them.">
+        <Switch
+          checked={settings.schedule.enabled}
+          label="Keep a schedule"
+          onchange={(v) => setSchedule({ enabled: v })}
+        />
+      </Row>
+      <div
+        class="dependent"
+        class:off={!settings.schedule.enabled}
+        inert={!settings.schedule.enabled}
+      >
+        <Row label="Days">
+          <DayPills days={settings.schedule.days} onchange={(days) => setSchedule({ days })} />
+        </Row>
+        <Row label="From / Until" hint="Overnight is fine: 10:00 pm until 6:00 am.">
+          <div class="times">
+            <input
+              type="time"
+              aria-label="From"
+              value={minutesToTime(settings.schedule.start_minutes)}
+              onchange={setTime('start_minutes')}
+            />
+            <input
+              type="time"
+              aria-label="Until"
+              value={minutesToTime(settings.schedule.end_minutes)}
+              onchange={setTime('end_minutes')}
+            />
+          </div>
+        </Row>
+      </div>
     </section>
 
     <section>
@@ -219,6 +268,20 @@
   h2 {
     margin: 0 0 2px;
     font-weight: 500;
+  }
+
+  .dependent {
+    transition: opacity var(--t-fast) var(--ease);
+  }
+
+  .dependent.off {
+    opacity: 0.4;
+  }
+
+  .times {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .tips {
