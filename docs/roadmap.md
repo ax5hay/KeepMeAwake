@@ -40,13 +40,21 @@ timeline
 | Tray icons that follow the taskbar theme                      | [tray-icons-light-taskbar.md](specs/tray-icons-light-taskbar.md) | platform, app, brand        |
 | macOS: menu bar app on IOKit assertions (acceptance pending)  | [macos.md](specs/macos.md)                                       | platform, app, ui, ci       |
 
-## Next: 0.3
+## Shipped in 0.3
 
-| Feature                                                         | Spec                                           | Layers                |
-| --------------------------------------------------------------- | ---------------------------------------------- | --------------------- |
-| Auto-update, signed, once a day, opt-out (built)                | [auto-update.md](specs/auto-update.md)         | app, ui, ci           |
-| Session history with how each session ended (built, unreleased) | [session-history.md](specs/session-history.md) | core, engine, app, ui |
-| Winget and Scoop                                                | [winget-scoop.md](specs/winget-scoop.md)       | ci, docs              |
+| Feature                                                          | Spec                                           | Layers                    |
+| ---------------------------------------------------------------- | ---------------------------------------------- | ------------------------- |
+| Auto-update, signed, once a day, opt-out                         | [auto-update.md](specs/auto-update.md)         | app, ui, ci               |
+| Session history with how each session ended                      | [session-history.md](specs/session-history.md) | core, engine, app, ui     |
+| Sunset warning (from 0.4)                                        | [sunset-warning.md](specs/sunset-warning.md)   | engine, app, ui           |
+| Overnight guard (from 0.4)                                       | [overnight-guard.md](specs/overnight-guard.md) | platform, engine, app, ui |
+| Home's doors into Settings, settings sliders, a pass over the UI |                                                | ui                        |
+
+## Next
+
+| Feature          | Spec                                     | Layers   |
+| ---------------- | ---------------------------------------- | -------- |
+| Winget and Scoop | [winget-scoop.md](specs/winget-scoop.md) | ci, docs |
 
 macOS shipped in 0.2.0 as a pre-release, built on a Mac. The
 by-hand acceptance items that need a person at the Mac (menu bar click and
@@ -59,12 +67,12 @@ Scoped enough to size; each gets a full spec when it is next in line.
 
 ### 0.4: the sun looks after you
 
-| Feature                                                               | What                                                                                                                                                                                                                                          | Layers                 | Size |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---- |
-| Sunset warning ([spec](specs/sunset-warning.md), built, unreleased)   | Five minutes before a timed session ends: a toast `The sun sets in 5 minutes` and, in the window, the status line turns to it. One tray item and one whisper action: **Give it another 30m**. Setting: off / 2 / 5 / 10 min.                  | engine, app, ui        | S    |
-| After the sun sets                                                    | What happens when a timed or scheduled session ends: nothing (today), **lock**, **sleep**, **hibernate**. Uses `LockWorkStation` / `SetSuspendState`. A 30-second whisper countdown with **Not now** cancels it. Default: nothing.            | platform, engine, ui   | M    |
-| Overnight guard ([spec](specs/overnight-guard.md), built, unreleased) | If the session is Always and there has been no keyboard or mouse input for N hours (read-only `GetLastInputInfo`), ask once via toast and the window, then let it sleep. Default 6 hours; off available. Prevents the accidental all-nighter. | platform, engine, ui   | M    |
-| Sleep detection                                                       | Register for `PowerRegisterSuspendResumeNotification`; when Windows sleeps despite a held request (Modern Standby on battery, lid), record it in history as `sleep` with the real time, and show `Windows slept at 2:14 am` on the next open. | platform, app, history | S    |
+| Feature                                                              | What                                                                                                                                                                                                                                          | Layers                 | Size |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---- |
+| Sunset warning ([spec](specs/sunset-warning.md), shipped in 0.3.0)   | Five minutes before a timed session ends: a toast `The sun sets in 5 minutes` and, in the window, the status line turns to it. One tray item and one whisper action: **Give it another 30m**. Setting: off / 2 / 5 / 10 min.                  | engine, app, ui        | S    |
+| After the sun sets                                                   | What happens when a timed or scheduled session ends: nothing (today), **lock**, **sleep**, **hibernate**. Uses `LockWorkStation` / `SetSuspendState`. A 30-second whisper countdown with **Not now** cancels it. Default: nothing.            | platform, engine, ui   | M    |
+| Overnight guard ([spec](specs/overnight-guard.md), shipped in 0.3.0) | If the session is Always and there has been no keyboard or mouse input for N hours (read-only `GetLastInputInfo`), ask once via toast and the window, then let it sleep. Default 6 hours; off available. Prevents the accidental all-nighter. | platform, engine, ui   | M    |
+| Sleep detection                                                      | Register for `PowerRegisterSuspendResumeNotification`; when Windows sleeps despite a held request (Modern Standby on battery, lid), record it in history as `sleep` with the real time, and show `Windows slept at 2:14 am` on the next open. | platform, app, history | S    |
 
 ### 0.5: it notices where it is
 

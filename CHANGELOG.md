@@ -8,10 +8,11 @@ Versions: [SemVer](https://semver.org).
 ## [0.3.0] - 2026-11-07
 
 Session history, the sunset warning, the overnight guard and auto-update,
-with a pass over every screen. A pre-release: built and checked on
-Windows; the Mac's by-hand acceptance is still open. Installers are not yet
-code-signed, so Windows SmartScreen and macOS Gatekeeper ask once (see the
-guide); updates carry their own signature.
+with a pass over every screen. The first full release, and the first that
+updates itself: from here on, installs are offered each new release. Built
+and checked on Windows; on a Mac some acceptance is still by hand.
+Installers are not yet code-signed, so Windows SmartScreen and macOS
+Gatekeeper ask once (see the guide); updates carry their own signature.
 
 ### Changed
 

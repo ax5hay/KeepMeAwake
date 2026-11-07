@@ -4,7 +4,7 @@ The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
 **Last updated:** 2026-11-07 · by Claude Opus 5.5 (Windows session: UI pass, auto-update built, v0.3.0 released)
-**Release:** [v0.3.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.3.0), pre-release (v0.2.0 before it, also a pre-release).
+**Release:** [v0.3.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.3.0), the first **full** release and the latest; `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
 **Repo state:** `main` is green (`npm run verify` on Windows: vitest 108, cargo test 180;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
@@ -79,8 +79,11 @@ with `user.name` / `user.email` set locally to the ax5hay noreply address.
 Installed as development.md describes. `gh` is logged
 in as ax5hay. The updater signing key and its password are in
 a private location and
-in the repository secrets: **keep a copy somewhere safe** — without it no
-install can verify a future update. One snag: a shell opened before rustup
+in the repository secrets, with a verified backup (and a README on
+restoring the secrets) in a private backup,
+kept apart from the original. A copy
+off this machine (a password manager) would cover losing the PC: without
+the key no install can verify a future update. One snag: a shell opened before rustup
 was installed has no `cargo` on PATH, and the pre-commit hook then fails
 with `cargo: command not found`; new terminals are fine.
 
@@ -95,15 +98,15 @@ with `cargo: command not found`; new terminals are fine.
      leave the PC untouched for an hour;
    - on a laptop: unplug below the threshold (history: one row, one pause).
 2. **Install 0.3.0** from the releases page once (a dev build's toasts say
-   "Windows PowerShell"; an installed one should name the app), and walk
-   the auto-update acceptance below. When both platforms are happy, untick
-   **pre-release** on v0.3.0: that is also the moment updates start
-   reaching installs, since only full releases are offered.
+   "Windows PowerShell"; an installed one should name the app). It is a
+   full release, so the next one (0.3.1) is what proves auto-update end to
+   end: publish it through [`releasing.md`](releasing.md) and the installed
+   0.3.0 should offer it within a minute of launch (acceptance below).
 3. **Build, in this order:**
 
    | Spec                                  | State        | How, on Windows                                                                                                                                                                                         |
    | ------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | [winget-scoop](specs/winget-scoop.md) | spec, 0 of n | 0.3.0 is published (as a pre-release; winget wants a full one, so after the step above). The first winget submission is by hand (`wingetcreate new`), with `License: Proprietary`                       |
+   | [winget-scoop](specs/winget-scoop.md) | spec, 0 of n | unblocked: 0.3.0 is a full release. The first winget submission is by hand (`wingetcreate new` on the 0.3.0 NSIS URL), with `License: Proprietary`                                                      |
    | After the sun sets (roadmap 0.4)      | needs a spec | Windows-first: `LockWorkStation`, `SetSuspendState`. macOS has no public lock API and system sleep may need privileges; spec it as Windows-only with a macOS note, or `pmset sleepnow`-style sleep only |
    | Sleep detection (roadmap 0.4)         | needs a spec | `PowerRegisterSuspendResumeNotification` on Windows; the macOS equivalent is `IORegisterForSystemPower` (IOKit). Closes the history gap noted in the guide                                              |
 
@@ -168,7 +171,8 @@ on Windows is listed under **Where to start**.
 | 2026-11-07 | Overnight guard built on Windows (6 commits + 2 review fixes), CI green on both runners              | Claude Opus 5.5  |
 | 2026-11-07 | Settings button as sliders (a gear read as a sun); Home's doors into Settings; Home shots recaptured | Claude Opus 5.5  |
 | 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)          | Claude Opus 5.5  |
-| 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released as a pre-release      | Claude Opus 5.5  |
+| 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                       | Claude Opus 5.5  |
+| 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it; signing key backed up    | Claude Opus 5.5  |
 
 ## Decisions made on the macOS track
 
@@ -264,7 +268,7 @@ Always → timer → Always without an Off, since the session keeps its start.
 
 | Acceptance (spec)                                                   | Status                                                                                           |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Publish 0.3.0, then 0.3.1; a 0.3.0 install shows it within a minute | **by hand**, needs a full 0.3.x release after 0.3.0 (pre-releases are not offered)               |
+| Publish 0.3.0, then 0.3.1; a 0.3.0 install shows it within a minute | **by hand** with the next full release; 0.3.0 is full and the endpoint serves it (checked)       |
 | With the switch off, no request is made                             | by construction (the thread never asks while off); **by hand** with the debug log                |
 | A signature mismatch is refused and logged                          | **by hand**; the plugin verifies before installing, and the install path logs the error at warn  |
 | The check runs, fails quietly offline, and is stamped               | done on Windows: 30 s after launch, no `latest.json` on 0.2.0 → nothing shown, timestamp written |
@@ -281,12 +285,7 @@ one line; the whisper is once per version, remembered in localStorage.
 
 ## Open questions for Akshay
 
-- When should 0.3.0 become a full release? Updates reach installs only
-  from full releases, so until then nobody is offered anything, and winget
-  waits too.
-- Back up `a private locationthe key file` and its password somewhere
-  safe (a password manager). Losing it strands every install on its
-  version.
+- Keep the signing key backed up, privately.
 
 - Paid signing, to drop the first-open warnings: Apple Developer Program
   ($99 a year, includes notarization) and a Windows certificate (Azure

@@ -284,7 +284,8 @@ switch off it makes none. Nothing is installed without a click.
 Every update is signed; one whose signature does not match the key built
 into the app is refused. On Windows the installer runs on its own, without
 questions, and the app comes back by itself. Only full releases are offered:
-pre-releases (such as 0.3.0) are never pushed to anyone. An offline check
+pre-releases are never pushed to anyone. 0.3.0 is the first release that
+updates itself; a copy older than that is updated by installing once by hand. An offline check
 is not an error and says nothing; it tries again the next day.
 
 ![An update on Home, Night](assets/update-home-dark.png) ![Settings → About with an update, Paper](assets/update-about-light.png)
