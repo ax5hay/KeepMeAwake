@@ -1,7 +1,9 @@
 /**
  * The one reactive store. Holds the latest snapshot from the engine, a
- * once-per-second clock that only runs while a countdown is visible, and the
- * current view. Everything derived is computed from pure helpers in format.ts.
+ * once-per-second clock that only runs while a countdown is visible, the
+ * current view, and the "whisper": a line of text that briefly replaces the
+ * status detail (tips, easter eggs). Everything derived is computed from pure
+ * helpers in format.ts.
  */
 import { api, type Api } from './api';
 import { progress, remainingSecs, statusText } from './format';
@@ -9,14 +11,19 @@ import type { PlanRequest, Settings, Snapshot } from './types';
 
 export type View = 'home' | 'settings';
 
+/** How long a whisper stays on screen. */
+export const WHISPER_MS = 4200;
+
 export class AppStore {
   snapshot = $state<Snapshot | null>(null);
   now = $state(Date.now());
   view = $state<View>('home');
   error = $state<string | null>(null);
+  whisper = $state<string | null>(null);
 
   #api: Api;
   #ticker: ReturnType<typeof setInterval> | undefined;
+  #whisperTimer: ReturnType<typeof setTimeout> | undefined;
   #unlisten: (() => void) | undefined;
 
   constructor(backend: Api = api) {
@@ -34,6 +41,7 @@ export class AppStore {
     this.#unlisten?.();
     document.removeEventListener('visibilitychange', this.#syncTicker);
     this.#stopTicker();
+    if (this.#whisperTimer !== undefined) clearTimeout(this.#whisperTimer);
   }
 
   get ready(): boolean {
@@ -58,6 +66,16 @@ export class AppStore {
 
   get settings(): Settings | null {
     return this.snapshot?.settings ?? null;
+  }
+
+  /** Shows `text` under the title for a few seconds, then the detail returns. */
+  say(text: string, ms: number = WHISPER_MS): void {
+    this.whisper = text;
+    if (this.#whisperTimer !== undefined) clearTimeout(this.#whisperTimer);
+    this.#whisperTimer = setTimeout(() => {
+      this.whisper = null;
+      this.#whisperTimer = undefined;
+    }, ms);
   }
 
   async setPlan(request: PlanRequest): Promise<void> {
