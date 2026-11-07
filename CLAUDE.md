@@ -1,8 +1,10 @@
 # Keep me awake — notes for AI-assisted work
 
-Personal project by Akshay Bajpai (akshaybajpai.com). Read
-`docs/development.md` (conventions) and `docs/design.md` (UI rules) before
-changing anything. This file is the short version.
+Personal project by Akshay Bajpai (akshaybajpai.com). Start at
+`docs/HANDOFF.md` (where the last session stopped), then `docs/specs/BRIEF.md`
+if you are building a spec. Read `docs/development.md` (conventions) and
+`docs/design.md` (UI rules) before changing anything. This file is the short
+version.
 
 ## Shape
 
@@ -34,4 +36,6 @@ changing anything. This file is the short version.
   the one-line author footer.
 - Settings fields must default; a change of meaning bumps `SETTINGS_VERSION`.
 - Keep `docs/` and `CHANGELOG.md` current in the same change.
+- End every session by updating `docs/HANDOFF.md` (last updated, where to
+  start, in progress) and pushing it.
 - Do not add input injection of any kind; see ADR 0002 and the roadmap.
