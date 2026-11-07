@@ -116,7 +116,7 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
 
     let launched_hidden = std::env::args().any(|a| a == HIDDEN_FLAG);
     if !(launched_hidden || settings.start_hidden) {
-        window::show_main(app.clone());
+        window::open_at_startup(app)?;
     }
     Ok(())
 }

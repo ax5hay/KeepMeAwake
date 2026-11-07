@@ -52,7 +52,8 @@ pub struct Settings {
     pub pause_below_battery_percent: Option<u8>,
     /// Release the wake guard whenever the laptop is unplugged.
     pub pause_on_battery: bool,
-    /// Launch without showing the window (tray only).
+    /// Launch without showing the window (tray only). Launches triggered by
+    /// autostart are always hidden regardless of this.
     pub start_hidden: bool,
     /// Closing the window keeps the app running in the tray.
     pub close_to_tray: bool,
@@ -72,7 +73,7 @@ impl Default for Settings {
             startup_plan: StartupPlan::Off,
             pause_below_battery_percent: Some(20),
             pause_on_battery: false,
-            start_hidden: true,
+            start_hidden: false,
             close_to_tray: true,
             free_memory_when_hidden: true,
             theme: Theme::System,
@@ -109,6 +110,7 @@ mod tests {
         assert!(!s.pause_on_battery);
         assert!(s.close_to_tray);
         assert!(s.free_memory_when_hidden);
+        assert!(!s.start_hidden, "a manual launch should show the window");
         assert_eq!(s.startup_plan, StartupPlan::Off);
     }
 
