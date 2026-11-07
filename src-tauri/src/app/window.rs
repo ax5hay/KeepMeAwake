@@ -9,7 +9,7 @@
 
 use std::time::Duration;
 
-use tauri::{AppHandle, Manager, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 use super::AppState;
 
@@ -23,7 +23,7 @@ const SHOW_FALLBACK: Duration = Duration::from_millis(2500);
 /// and the event loop has not started, so the deferred path in [`show_main`]
 /// would never run.
 pub fn open_at_startup(app: &AppHandle) -> tauri::Result<()> {
-    create(app)
+    create(app).map(|_| ())
 }
 
 /// Shows the main window, creating it first if needed. Safe to call from any
@@ -58,7 +58,78 @@ pub fn show_main(app: AppHandle) {
     }
 }
 
-fn create(app: &AppHandle) -> tauri::Result<()> {
+/// Shows the main window dropped down beneath the menu bar icon at `icon`,
+/// creating it first if needed. Every click places it afresh, so it reopens
+/// under the icon after a close.
+#[cfg(target_os = "macos")]
+pub fn show_under_icon(app: AppHandle, icon: tauri::Rect) {
+    if let Some(window) = app.get_webview_window(MAIN) {
+        place_under(&window, icon);
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        return;
+    }
+    let main = app.clone();
+    let queued = main.run_on_main_thread(move || match create(&app) {
+        // Still hidden: the UI shows it once it has rendered, already in place.
+        Ok(window) => place_under(&window, icon),
+        Err(err) => log::error!("could not create main window: {err}"),
+    });
+    if let Err(err) = queued {
+        log::error!("could not reach the main thread to open the window: {err}");
+    }
+}
+
+/// Moves `window` so it hangs centred below `icon`, inside the work area of
+/// the screen the icon is on.
+#[cfg(target_os = "macos")]
+fn place_under(window: &WebviewWindow, icon: tauri::Rect) {
+    use crate::core::placement::{Rect, Size, under_icon};
+
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let at = icon.position.to_physical::<f64>(scale);
+    let size = icon.size.to_physical::<f64>(scale);
+    let Ok(Some(monitor)) = window.monitor_from_point(at.x + size.width / 2.0, at.y) else {
+        log::debug!("no screen under the menu bar icon; leaving the window where it is");
+        return;
+    };
+    let Ok(outer) = window.outer_size() else {
+        return;
+    };
+    let work = monitor.work_area();
+    let point = under_icon(
+        Rect {
+            x: pixel(at.x),
+            y: pixel(at.y),
+            width: u32::try_from(pixel(size.width)).unwrap_or(0),
+            height: u32::try_from(pixel(size.height)).unwrap_or(0),
+        },
+        Size {
+            width: outer.width,
+            height: outer.height,
+        },
+        Rect {
+            x: work.position.x,
+            y: work.position.y,
+            width: work.size.width,
+            height: work.size.height,
+        },
+    );
+    log::debug!("window under the menu bar icon at {point:?}");
+    if let Err(err) = window.set_position(tauri::PhysicalPosition::new(point.x, point.y)) {
+        log::warn!("could not move the window under the menu bar icon: {err}");
+    }
+}
+
+/// A screen coordinate in whole pixels.
+#[cfg(target_os = "macos")]
+#[allow(clippy::cast_possible_truncation)] // screen coordinates are far inside i32
+fn pixel(value: f64) -> i32 {
+    value.round() as i32
+}
+
+fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let config = app
         .config()
         .app
@@ -100,5 +171,5 @@ fn create(app: &AppHandle) -> tauri::Result<()> {
         }
     });
 
-    Ok(())
+    Ok(window)
 }
