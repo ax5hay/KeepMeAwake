@@ -119,7 +119,7 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Res
     submenu_items.push(&indefinite);
     let durations = Submenu::with_items(app, "Keep awake for", true, &submenu_items)?;
 
-    let open = MenuItem::with_id(app, ID_OPEN, "Open KeepMeAwake", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, ID_OPEN, "Open Keep me awake", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, ID_QUIT, "Quit", true, None::<&str>)?;
 
     Menu::with_items(
@@ -156,7 +156,7 @@ fn parse_duration_id(id: &str) -> Option<u64> {
 
 /// Tooltip shown when hovering the tray icon.
 pub fn tooltip(snapshot: &Snapshot) -> String {
-    format!("KeepMeAwake \u{2014} {}", status_line(snapshot))
+    format!("Keep me awake \u{2014} {}", status_line(snapshot))
 }
 
 /// One line describing the current state, shared by tooltip and menu.
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn tooltip_is_prefixed_with_app_name() {
-        assert!(tooltip(&snap(Mode::Off, None, None)).starts_with("KeepMeAwake"));
+        assert!(tooltip(&snap(Mode::Off, None, None)).starts_with("Keep me awake"));
     }
 
     #[test]
