@@ -143,10 +143,10 @@ than pretending.
 ### app
 
 `app/mod.rs` builds the Tauri app. Plugins in order: single-instance (must be
-first), autostart (passes `--hidden`), opener, log. `setup` loads settings,
+first), autostart (passes `--hidden`), opener, notification, log. `setup` loads settings,
 starts the engine, creates the tray, subscribes a listener that refreshes the
-tray and emits `snapshot` to the window, and opens the window unless launched
-hidden. `RunEvent::ExitRequested` with no exit code (the last window closed)
+tray, emits `snapshot` to the window and hands the other events to
+`app/notify.rs` for toasts, and opens the window unless launched hidden. `RunEvent::ExitRequested` with no exit code (the last window closed)
 is vetoed so the app lives in the tray.
 
 ## IPC
@@ -201,7 +201,9 @@ synchronous event handler can deadlock on Windows.
 ## Security posture
 
 - Runs as the signed-in user, never elevated.
-- No network access. Fonts and assets are bundled.
+- No network access. Fonts and assets are bundled. Toasts go to the local
+  Windows notification centre; they are sent from Rust, so the webview has no
+  notification permission.
 - One JSON file under `%APPDATA%`, one log under `%LOCALAPPDATA%`.
 - Four Win32 calls, all in one file.
 - No input is ever sent to other applications.

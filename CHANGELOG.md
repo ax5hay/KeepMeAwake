@@ -12,6 +12,10 @@ Versions: [SemVer](https://semver.org).
   a window and again to come back; a manual session always wins and is never
   cut short by a window closing. Settings → Schedule, a tray item while a
   window is open, and status lines that say when the sun rises again.
+- Notifications: quiet toasts when a timer ends (on by default), when the
+  battery rule pauses or the charger resumes, and when a schedule window
+  opens or closes. Each has its own switch in Settings → Notifications;
+  nothing is shown while the window is focused.
 
 ### Fixed
 

@@ -104,25 +104,48 @@ Icon states: sun above the line (awake), sun set (resting), bar across the sun
 
 ## Settings
 
-| Section  | Setting                   | Notes                                                                  |
-| -------- | ------------------------- | ---------------------------------------------------------------------- |
-| Startup  | Launch at sign-in         | registers under the current user; starts hidden                        |
-|          | Open the window at launch | only applies when you start it yourself                                |
-|          | Begin as                  | Resting · Awake · Default length                                       |
-| Waking   | Default length            | what the sun, tray toggle and Space use. Always, or a stop             |
-|          | Keep the screen on        | same switch as on the home pane                                        |
-| Schedule | Keep a schedule           | awake during these hours, resting outside them. Off by default         |
-|          | Days                      | Monday first; weekdays by default                                      |
-|          | From / Until              | 9:00 am until 6:00 pm by default; overnight is fine                    |
-| Battery  | Pause below               | Off, or 10–50%                                                         |
-|          | Pause whenever unplugged  | strictest: on battery means resting                                    |
-| Window   | Closing keeps it running  | off quits on close                                                     |
-|          | Free memory when closed   | destroys the UI on close (default); off hides it for an instant reopen |
-|          | Appearance                | System · Paper · Night                                                 |
-| Tips     |                           | the keyboard and tray table                                            |
-| About    |                           | version, how it works, author, Source, Quit                            |
+| Section       | Setting                    | Notes                                                                     |
+| ------------- | -------------------------- | ------------------------------------------------------------------------- |
+| Startup       | Launch at sign-in          | registers under the current user; starts hidden                           |
+|               | Open the window at launch  | only applies when you start it yourself                                   |
+|               | Begin as                   | Resting · Awake · Default length                                          |
+| Waking        | Default length             | what the sun, tray toggle and Space use. Always, or a stop                |
+|               | Keep the screen on         | same switch as on the home pane                                           |
+| Schedule      | Keep a schedule            | awake during these hours, resting outside them. Off by default            |
+|               | Days                       | Monday first; weekdays by default                                         |
+|               | From / Until               | 9:00 am until 6:00 pm by default; overnight is fine                       |
+| Battery       | Pause below                | Off, or 10–50%                                                            |
+|               | Pause whenever unplugged   | strictest: on battery means resting                                       |
+| Window        | Closing keeps it running   | off quits on close                                                        |
+|               | Free memory when closed    | destroys the UI on close (default); off hides it for an instant reopen    |
+|               | Appearance                 | System · Paper · Night                                                    |
+| Notifications | When a timer ends          | a toast when a timed session sets on its own. On by default               |
+|               | Battery pauses and resumes | when the battery rule pauses the sun, and when the charger brings it back |
+|               | Schedule starts and ends   | when a schedule window opens or closes                                    |
+| Tips          |                            | the keyboard and tray table                                               |
+| About         |                            | version, how it works, author, Source, Quit                               |
 
 ![Settings → Schedule, Paper](assets/schedule-settings-light.png) ![Settings → Schedule, Night](assets/schedule-settings-dark.png)
+
+## Notifications
+
+Quiet Windows toasts for the moments that matter while the window is closed,
+each behind its own switch in Settings → Notifications. Nothing is shown
+while the window is open and focused; the status line already says it.
+
+| Moment           | Title                    | Body                                      | Default |
+| ---------------- | ------------------------ | ----------------------------------------- | ------- |
+| timer ended      | `The sun has set`        | `Resting now. 2h 00m, as asked.`          | on      |
+| battery paused   | `Paused for the battery` | `Holding off at 18%. Plug in to resume.`  | off     |
+| battery resumed  | `Back up`                | `Charger connected. The sun is up again.` | off     |
+| schedule started | `On schedule`            | `Awake until 6:00 pm.`                    | off     |
+| schedule ended   | `Off schedule`           | `Resting until 9:00 am.`                  | off     |
+
+A toast is skipped when it would no longer be true: no "Resting now" if a
+schedule window took over, no schedule toasts while your own session hides
+the change.
+
+![Settings → Notifications, Paper](assets/notifications-light.png) ![Settings → Notifications, Night](assets/notifications-dark.png)
 
 ## Where things are
 
