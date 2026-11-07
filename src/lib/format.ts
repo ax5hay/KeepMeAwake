@@ -7,9 +7,11 @@ import {
   awakeAgain,
   isLate,
   onSchedule,
+  platformCopy,
   skippedUntil,
   skipping,
 } from './copy';
+import { isMac } from './platform';
 import type { PauseReason, Snapshot } from './types';
 
 /** `1h 05m`, `12m`, `45s`. Mirrors the Rust tray formatter. */
@@ -69,14 +71,15 @@ export function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
 }
 
-export function pauseText(reason: PauseReason): string {
+/** Why the sun is paused, as the end of a sentence. */
+export function pauseText(reason: PauseReason, mac: boolean = isMac): string {
   switch (reason) {
     case 'low_battery':
       return 'battery is low';
     case 'on_battery':
       return 'running on battery';
     case 'power_request_failed':
-      return 'Windows refused the request';
+      return platformCopy(mac).refused;
   }
 }
 

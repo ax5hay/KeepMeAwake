@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getCurrentWindow } from '@tauri-apps/api/window';
 
-  import { CREDIT } from '$lib/copy';
+  import { CREDIT, PLATFORM_COPY } from '$lib/copy';
   import { store } from '$lib/state.svelte';
 
   const win = getCurrentWindow();
@@ -24,7 +24,7 @@
       class="ctl"
       aria-label={store.view === 'settings' ? 'Back' : 'Settings'}
       aria-pressed={store.view === 'settings'}
-      title={store.view === 'settings' ? 'Back (Esc)' : 'Settings (Ctrl+,)'}
+      title={store.view === 'settings' ? 'Back (Esc)' : PLATFORM_COPY.settingsTitle}
       onclick={() => (store.view = store.view === 'settings' ? 'home' : 'settings')}
     >
       {#if store.view === 'settings'}
@@ -50,8 +50,8 @@
     <button
       type="button"
       class="ctl close"
-      aria-label="Close to tray"
-      title="Close to tray (Esc). The sun stays up."
+      aria-label={PLATFORM_COPY.closeLabel}
+      title={PLATFORM_COPY.closeTitle}
       onclick={() => void win.close()}
     >
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
