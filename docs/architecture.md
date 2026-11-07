@@ -1,30 +1,33 @@
 # Architecture
 
 Keep me awake is a [Tauri 2](https://v2.tauri.app) application: a Rust core
-that owns all behaviour and a Svelte UI rendered by the system WebView2 that
-exists only while the window is open.
+that owns all behaviour and a Svelte UI rendered by the system webview
+(WebView2 on Windows, WKWebView on macOS) that exists only while the window is
+open. Everything above `platform/` is shared between the two.
 
 ## Layers
 
 ```mermaid
 flowchart TB
-    subgraph exe["keepmeawake.exe"]
+    subgraph exe["keepmeawake.exe · KeepMeAwake.app"]
         direction TB
         app["app/<br/>commands · tray · window"]
         engine["engine/<br/>worker thread · policy"]
         core["core/<br/>Session · PlanRequest · Settings · Schedule · Snapshot<br/><i>pure, no I/O</i>"]
         platform["platform/<br/>PowerGuard · BatteryProbe · Clock · TaskbarTheme"]
-        win["platform/windows.rs<br/>PowerCreateRequest · PowerSetRequest<br/>GetSystemPowerStatus · registry theme<br/><i>the only unsafe</i>"]
+        win["platform/windows.rs<br/>PowerCreateRequest · PowerSetRequest<br/>GetSystemPowerStatus · registry theme<br/><i>unsafe, Windows only</i>"]
+        mac["platform/macos.rs<br/>IOPMAssertionCreateWithName · Release<br/>IOPSCopyPowerSourcesInfo<br/><i>unsafe, macOS only</i>"]
         persist["persistence.rs<br/>settings.json, atomic save"]
         app --> engine --> core
         engine --> platform --> win
+        platform --> mac
         app --> persist
     end
-    subgraph webview["WebView2 (while the window is open)"]
+    subgraph webview["WebView2 · WKWebView (while the window is open)"]
         direction TB
         api["lib/api.ts<br/>the only file that calls invoke()"]
         store["lib/state.svelte.ts<br/>one store, 1 Hz clock only during a countdown"]
-        pure["lib/format.ts · sun.ts · copy.ts<br/><i>pure, unit tested</i>"]
+        pure["lib/format.ts · sun.ts · copy.ts · platform.ts<br/><i>pure, unit tested</i>"]
         ui["components/<br/>Scene · DurationRule · Settings · …"]
         ui --> store --> api
         store --> pure
@@ -85,16 +88,17 @@ with the window even across sleep.
 
 ### platform
 
-Four traits so the engine and the tray never call Win32 directly.
+Four traits so the engine and the tray never call the OS directly.
 
-| Trait          | Windows implementation                             | Test double      |
-| -------------- | -------------------------------------------------- | ---------------- |
-| `PowerGuard`   | `PowerCreateRequest` + `PowerSetRequest` / `Clear` | `FakePowerGuard` |
-| `BatteryProbe` | `GetSystemPowerStatus`                             | `FakeBattery`    |
-| `Clock`        | `Instant::now`, `SystemTime`                       | `ManualClock`    |
-| `TaskbarTheme` | `RegGetValueW` on `SystemUsesLightTheme`           | `FakeTaskbar`    |
+| Trait          | Windows                                            | macOS                                                                     | Test double      |
+| -------------- | -------------------------------------------------- | ------------------------------------------------------------------------- | ---------------- |
+| `PowerGuard`   | `PowerCreateRequest` + `PowerSetRequest` / `Clear` | two IOPMAssertions: `PreventUserIdleSystemSleep`, `…DisplaySleep`         | `FakePowerGuard` |
+| `BatteryProbe` | `GetSystemPowerStatus`                             | first source of `IOPSCopyPowerSourcesInfo`; none means mains              | `FakeBattery`    |
+| `Clock`        | `Instant::now`, `SystemTime`                       | same                                                                      | `ManualClock`    |
+| `TaskbarTheme` | `RegGetValueW` on `SystemUsesLightTheme`           | `DarkTaskbar` (unused: the menu bar icon is a template image macOS tints) | `FakeTaskbar`    |
 
-Every `unsafe` block carries a `SAFETY:` comment; clippy's
+`unsafe` lives only in `windows.rs` and `macos.rs`, each compiled only on its
+own OS. Every block carries a `SAFETY:` comment; clippy's
 `undocumented_unsafe_blocks` is `deny`.
 
 `windows.rs` also exposes `wait_for_theme_change`, which blocks in
@@ -195,7 +199,7 @@ stateDiagram-v2
     [*] --> Tray: launch
     Tray --> Hidden: setup (manual launch) or tray click or second instance
     Hidden --> Visible: UI renders, calls show()<br/>(2.5 s fallback in Rust)
-    Visible --> Tray: close (default: destroy, WebView2 gone)
+    Visible --> Tray: close (default: destroy, webview gone)
     Visible --> HiddenKept: close with "Free memory when closed" off
     HiddenKept --> Visible: tray click
     Tray --> [*]: Quit
@@ -203,21 +207,30 @@ stateDiagram-v2
 
 The window is declared with `create: false` and built on demand. During
 `setup` it is created directly on the main thread; from tray and plugin
-callbacks it is created on a spawned thread, because creating windows from a
-synchronous event handler can deadlock on Windows.
+callbacks it is created on a spawned thread on Windows, because creating
+windows from a synchronous event handler can deadlock there, and queued with
+`run_on_main_thread` on macOS, because AppKit wants windows made on the main
+thread itself.
+
+On macOS the app runs with `ActivationPolicy::Accessory` (no Dock icon, no
+Cmd-Tab entry), and a click on the menu bar icon places the window centred
+beneath it, inside the work area of that screen, every time
+(`core::placement::under_icon`, pure and tested). Windows reopens the window
+where it last was.
 
 ## Security posture
 
 - Runs as the signed-in user, never elevated.
 - No network access. Fonts and assets are bundled. Toasts go to the local
-  Windows notification centre; they are sent from Rust, so the webview has no
+  notification centre; they are sent from Rust, so the webview has no
   notification permission.
-- One JSON file under `%APPDATA%`, one log under `%LOCALAPPDATA%`.
-- A handful of Win32 calls (power requests, power status, two registry
-  reads and a registry change notification), all in one file.
+- One settings file and one log, per user (see **On disk**).
+- A handful of OS calls, one file per OS: on Windows power requests, power
+  status, two registry reads and a registry change notification; on macOS
+  two power assertions and the power sources snapshot.
 - No input is ever sent to other applications. The global hotkey is
-  registered with `RegisterHotKey`, which only listens, and from Rust, so
-  the webview has no shortcut permission.
+  registered from Rust (`RegisterHotKey` on Windows, a Carbon hot key on
+  macOS), which only listens, so the webview has no shortcut permission.
 - CSP is `default-src 'self'`; the capability file grants only window
   dragging and visibility, autostart toggling, the commands above, and
   opening two allow-listed `https` origins.
@@ -226,11 +239,11 @@ synchronous event handler can deadlock on Windows.
 
 ## On disk
 
-| What      | Path                                                         |
-| --------- | ------------------------------------------------------------ |
-| Settings  | `%APPDATA%\dev.bajpai.keepmeawake\settings.json`             |
-| Log       | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\keepmeawake.log` |
-| Autostart | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`         |
+| What      | Windows                                                      | macOS                                                                   |
+| --------- | ------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Settings  | `%APPDATA%\dev.bajpai.keepmeawake\settings.json`             | `~/Library/Application Support/dev.bajpai.keepmeawake/settings.json`    |
+| Log       | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\keepmeawake.log` | `~/Library/Logs/dev.bajpai.keepmeawake/keepmeawake.log`                 |
+| Autostart | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`         | a LaunchAgent plist in `~/Library/LaunchAgents/`, written by the plugin |
 
 ---
 

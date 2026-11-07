@@ -50,7 +50,9 @@ timeline
 
 macOS is a parallel track, built on the personal Mac while the Windows items
 above are built on the work laptop. It ships with whichever release is next
-once it is accepted.
+once it is accepted. Status: built (all twelve commits of the spec, see
+`CHANGELOG.md`); the by-hand acceptance items that need a person at the Mac
+are listed in [`HANDOFF.md`](HANDOFF.md).
 
 ## After 0.3
 
@@ -86,6 +88,7 @@ Scoped enough to size; each gets a full spec when it is next in line.
 | Away mode              | `PowerRequestAwayModeRequired` for S3 machines: media keeps playing, screen off. Only shown when the machine reports S3.                                                                                                                          |
 | Localisation           | Strings are centralised in `copy.ts` and `tray.rs`; add a locale layer when there is a second language.                                                                                                                                           |
 | Linux                  | The non-Windows fallbacks already compile; a D-Bus `org.freedesktop.ScreenSaver` inhibitor and a StatusNotifier icon would make it real. After macOS.                                                                                             |
+| macOS battery events   | Replace the 30 s battery poll on macOS with `IOPSNotificationCreateRunLoopSource`, so an awake Mac wakes only when the power source changes.                                                                                                      |
 | Homebrew cask          | Joins Winget and Scoop once the macOS build is signed.                                                                                                                                                                                            |
 | Presence for chat apps | Power requests do not reset the idle timer chat apps read; keeping one "active" needs synthetic input, which this app does not send. Only ever as an explicit, labelled opt-in, and only if it can avoid injecting input into other applications. |
 

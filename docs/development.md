@@ -37,23 +37,41 @@ flowchart LR
 
 ```sh
 xcode-select --install
-brew install node rustup && rustup-init -y && . "$HOME/.cargo/env"
+brew install node rustup
+# Homebrew's rustup is keg-only: put its shims on PATH (and in ~/.zshrc),
+# or cargo is missing from npm scripts and the git hooks.
+export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
+rustup default stable
 npm install
 npm run dev     # first Rust build takes a few minutes
 ```
+
+For screenshots and for driving the menu bar from a script, give your
+terminal **Screen Recording** and **Accessibility** in System Settings →
+Privacy & Security; without them `screencapture` fails with "could not
+create image from display" and System Events cannot click the menu bar.
+`brew install librsvg` provides `rsvg-convert`, used to export the template
+icons and the DMG background from `design/`.
 
 Platform code lives in `src-tauri/src/platform/macos.rs` (see
 [`specs/macos.md`](specs/macos.md)). Everything else is shared, so a change to
 `core`, `engine` or the UI must still pass `npm run verify` on both machines.
 
-| Task                  | Windows                                                              | macOS                                                                                 |
-| --------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Prove the app holds   | `powercfg /requests` (elevated)                                      | `pmset -g assertions`                                                                 |
-| Kill a stray build    | `taskkill /IM keepmeawake.exe /F`                                    | `pkill -x KeepMeAwake`                                                                |
-| Screenshot the window | `scratchpad/ui.ps1 -Cmd shot`                                        | `screencapture -l$(osascript -e 'tell app "KeepMeAwake" to id of window 1') shot.png` |
-| Inspect the webview   | `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` | right-click → Inspect Element (debug builds)                                          |
-| Settings file         | `%APPDATA%\dev.bajpai.keepmeawake\`                                  | `~/Library/Application Support/dev.bajpai.keepmeawake/`                               |
-| Log                   | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\`                        | `~/Library/Logs/dev.bajpai.keepmeawake/`                                              |
+| Task                  | Windows                                                              | macOS                                                                                |
+| --------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Prove the app holds   | `powercfg /requests` (elevated)                                      | `pmset -g assertions`                                                                |
+| Kill a stray build    | `taskkill /IM keepmeawake.exe /F`                                    | `pkill -x KeepMeAwake`                                                               |
+| Screenshot the window | `scratchpad/ui.ps1 -Cmd shot`                                        | `screencapture -o -l<id> shot.png`, `<id>` from the snippet below (Screen Recording) |
+| Inspect the webview   | `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` | right-click → Inspect Element (debug builds)                                         |
+| Settings file         | `%APPDATA%\dev.bajpai.keepmeawake\`                                  | `~/Library/Application Support/dev.bajpai.keepmeawake/`                              |
+| Log                   | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\`                        | `~/Library/Logs/dev.bajpai.keepmeawake/`                                             |
+
+The window id for `screencapture` comes from CoreGraphics; the app is not
+scriptable, so AppleScript cannot give it:
+
+```sh
+swift -e 'import CoreGraphics; let l = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as! [[String: Any]]; print(l.first { ($0["kCGWindowOwnerName"] as? String)?.lowercased() == "keepmeawake" && ($0["kCGWindowLayer"] as? Int) == 0 }?["kCGWindowNumber"] ?? "")'
+```
 
 ## Two machines, one `main`
 
@@ -66,16 +84,16 @@ there.
 
 ## Daily commands
 
-| Command             | Does                                                                  |
-| ------------------- | --------------------------------------------------------------------- |
-| `npm run dev`       | Vite dev server + `tauri dev`. UI hot-reloads; Rust rebuilds on save. |
-| `npm run verify`    | What CI runs: lint, type-check, UI tests, clippy, Rust tests.         |
-| `npm run lint`      | ESLint (0 warnings) and Prettier check. `npm run format` to fix.      |
-| `npm run check`     | `svelte-check` with the strict tsconfig.                              |
-| `npm test`          | Vitest once; `npm run test:watch` for watch mode.                     |
-| `npm run lint:rust` | `cargo clippy --all-targets -D warnings` and `cargo fmt --check`.     |
-| `npm run test:rust` | `cargo test`.                                                         |
-| `npm run build`     | Release build plus NSIS and MSI installers.                           |
+| Command             | Does                                                                   |
+| ------------------- | ---------------------------------------------------------------------- |
+| `npm run dev`       | Vite dev server + `tauri dev`. UI hot-reloads; Rust rebuilds on save.  |
+| `npm run verify`    | What CI runs: lint, type-check, UI tests, clippy, Rust tests.          |
+| `npm run lint`      | ESLint (0 warnings) and Prettier check. `npm run format` to fix.       |
+| `npm run check`     | `svelte-check` with the strict tsconfig.                               |
+| `npm test`          | Vitest once; `npm run test:watch` for watch mode.                      |
+| `npm run lint:rust` | `cargo clippy --all-targets -D warnings` and `cargo fmt --check`.      |
+| `npm run test:rust` | `cargo test`.                                                          |
+| `npm run build`     | Release build plus NSIS and MSI installers (`.app` and `.dmg` on Mac). |
 
 Rust-only loops are faster from `src-tauri`: `cargo test`, `cargo clippy`.
 
@@ -96,7 +114,7 @@ Rust-only loops are faster from `src-tauri`: `cargo test`, `cargo clippy`.
 | `src/lib/components/`     | one component per file, styles scoped inside                       |
 | `src/styles/`             | `tokens.css` (palette, type, motion), `base.css` (reset)           |
 | `src-tauri/src/core/`     | pure domain, no I/O                                                |
-| `src-tauri/src/platform/` | OS traits; `windows.rs` is the only `unsafe`                       |
+| `src-tauri/src/platform/` | OS traits; `windows.rs` and `macos.rs` hold the only `unsafe`      |
 | `src-tauri/src/engine/`   | worker thread and policy                                           |
 | `src-tauri/src/app/`      | Tauri shell: commands, tray, window                                |
 | `src-tauri/capabilities/` | IPC permissions; keep minimal                                      |
@@ -108,7 +126,8 @@ Rust-only loops are faster from `src-tauri`: `cargo test`, `cargo clippy`.
 
 - Edition 2024, `rustfmt` per `rustfmt.toml`. Clippy `pedantic` is on and CI
   treats warnings as errors; an `#[allow]` needs a comment saying why.
-- `unsafe` only in `platform/windows.rs`, every block with a `SAFETY:` comment.
+- `unsafe` only in `platform/windows.rs` and `platform/macos.rs`, every block
+  with a `SAFETY:` comment.
 - Public items are documented. Doc comments say what and why, not how.
 - `thiserror` enums at the platform boundary; `Result<_, String>` only at the
   Tauri command boundary.
@@ -150,14 +169,14 @@ meaning, bump `SETTINGS_VERSION` and migrate in `persistence.rs`.
 
 ```mermaid
 flowchart LR
-    subgraph rust["cargo test (111)"]
-        core_t["core<br/>transitions · expiry · serde shape · defaults ·<br/>schedule windows, overnight, DST"]
+    subgraph rust["cargo test (117 on macOS; Windows runs its own platform tests)"]
+        core_t["core<br/>transitions · expiry · serde shape · defaults ·<br/>schedule windows, overnight, DST · menu bar placement"]
         engine_t["engine<br/>policy table · worker with fakes:<br/>apply/release · expiry events · battery pause/resume ·<br/>OS failure surfaced · shutdown"]
-        platform_t["platform<br/>pure decoders · one real power-request round trip ·<br/>taskbar theme read"]
+        platform_t["platform<br/>pure decoders · one real power round trip per OS<br/>(the Mac one checked with pmset) · taskbar theme read"]
         tray_t["tray · notify<br/>labels · tooltip · menu ids · icons decode ·<br/>toast text per event and switch"]
     end
-    subgraph ui["vitest (54)"]
-        fmt["format · sun · theme · copy · hotkey<br/>pure helpers · DayPills"]
+    subgraph ui["vitest (74)"]
+        fmt["format · sun · theme · copy · hotkey · keys · platform<br/>pure helpers, both platforms' copy · DayPills"]
         store_t["store<br/>against a fake backend, fake timers"]
     end
 ```
@@ -168,13 +187,13 @@ timeout (`wait_for_guard` in `engine/mod.rs`).
 
 ## Debugging
 
-| Need                  | Do                                                                           |
-| --------------------- | ---------------------------------------------------------------------------- |
-| see the log           | dev builds log at `debug` to stdout and the file; release at `info`          |
-| prove the request     | `powercfg /requests` (elevated) lists "KeepMeAwake is keeping this PC awake" |
-| inspect the UI        | right click → Inspect in dev builds                                          |
-| reset settings        | delete the JSON file                                                         |
-| screenshot the window | see `docs/assets/`; captured with a PowerShell `CopyFromScreen` helper       |
+| Need                  | Do                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| see the log           | dev builds log at `debug` to stdout and the file; release at `info`                                                                  |
+| prove the request     | `powercfg /requests` (elevated) lists "KeepMeAwake is keeping this PC awake"; on a Mac `pmset -g assertions` lists "…this Mac awake" |
+| inspect the UI        | right click → Inspect in dev builds                                                                                                  |
+| reset settings        | delete the JSON file                                                                                                                 |
+| screenshot the window | see `docs/assets/`; captured with a PowerShell `CopyFromScreen` helper                                                               |
 
 ## Working with an AI assistant
 
