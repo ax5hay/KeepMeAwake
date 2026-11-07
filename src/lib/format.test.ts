@@ -52,6 +52,7 @@ const base: Snapshot = {
       end_minutes: 1080,
     },
     notifications: { timer: true, battery: false, schedule: false },
+    hotkey: 'Ctrl+Alt+K',
   },
   app_version: '0.1.0',
 };

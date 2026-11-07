@@ -66,7 +66,14 @@ pub struct Settings {
     pub schedule: Schedule,
     /// Which moments get a desktop toast.
     pub notifications: Notifications,
+    /// Global hotkey that toggles from any app, in accelerator syntax
+    /// (`Ctrl+Alt+K`, `Super+Shift+F9`). `None` turns it off. Validated when
+    /// it is registered, not here.
+    pub hotkey: Option<String>,
 }
+
+/// The hotkey a fresh install gets.
+pub const DEFAULT_HOTKEY: &str = "Ctrl+Alt+K";
 
 /// One switch per kind of toast.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -149,6 +156,7 @@ impl Default for Settings {
             theme: Theme::System,
             schedule: Schedule::default(),
             notifications: Notifications::default(),
+            hotkey: Some(DEFAULT_HOTKEY.to_owned()),
         }
     }
 }
@@ -275,6 +283,19 @@ mod tests {
         assert_eq!(old.notifications, Notifications::default());
         let json = serde_json::to_value(Settings::default()).unwrap();
         assert_eq!(json["notifications"]["timer"], true);
+    }
+
+    #[test]
+    fn hotkey_defaults_on_and_off_survives_a_round_trip() {
+        assert_eq!(Settings::default().hotkey.as_deref(), Some("Ctrl+Alt+K"));
+        let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
+        assert_eq!(old.hotkey.as_deref(), Some("Ctrl+Alt+K"));
+        let off = Settings {
+            hotkey: None,
+            ..Settings::default()
+        };
+        let back: Settings = serde_json::from_str(&serde_json::to_string(&off).unwrap()).unwrap();
+        assert_eq!(back.hotkey, None, "an explicit null stays off");
     }
 
     #[test]

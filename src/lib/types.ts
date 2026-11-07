@@ -26,6 +26,8 @@ export interface Settings {
   theme: Theme;
   schedule: Schedule;
   notifications: Notifications;
+  /** Accelerator such as `Ctrl+Alt+K`; `null` turns the hotkey off. */
+  hotkey: string | null;
 }
 
 /** One switch per kind of desktop toast. */

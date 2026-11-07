@@ -6,7 +6,7 @@
 
 use tauri::{AppHandle, State};
 
-use super::AppState;
+use super::{AppState, hotkey};
 use crate::core::{PlanRequest, Settings, Snapshot};
 use crate::persistence;
 
@@ -42,17 +42,34 @@ pub fn resume_schedule(state: State<'_, AppState>) -> Snapshot {
     state.engine.unskip()
 }
 
-/// Persist and apply new settings. Fails only if the file cannot be written;
-/// the engine still receives the new values in that case.
+/// Persist and apply new settings. Fails if the file cannot be written (the
+/// engine still receives the new values) or if a new hotkey cannot be
+/// registered (everything else is applied and saved; the hotkey keeps its
+/// previous value).
 #[tauri::command]
-pub fn update_settings(state: State<'_, AppState>, settings: Settings) -> Result<Snapshot, String> {
-    let settings = settings.sanitized();
+pub fn update_settings(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    settings: Settings,
+) -> Result<Snapshot, String> {
+    let mut settings = settings.sanitized();
+    let previous = state.engine.settings().hotkey;
+    let mut hotkey_error = None;
+    if settings.hotkey != previous
+        && let Err(err) = hotkey::apply(&app, settings.hotkey.as_deref())
+    {
+        if let Err(again) = hotkey::apply(&app, previous.as_deref()) {
+            log::warn!("could not restore the previous hotkey: {again}");
+        }
+        settings.hotkey = previous;
+        hotkey_error = Some(err);
+    }
     let snapshot = state.engine.update_settings(settings.clone());
     persistence::save(&state.settings_path, &settings).map_err(|err| {
         log::error!("could not save settings: {err}");
         format!("Settings applied but could not be saved: {err}")
     })?;
-    Ok(snapshot)
+    hotkey_error.map_or(Ok(snapshot), Err)
 }
 
 /// Exit the application completely (not just hide to tray).

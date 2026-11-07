@@ -23,6 +23,9 @@ use crate::platform::{BatteryProbe, Clock, PowerGuard};
 
 /// Something the app shell may want to react to.
 #[derive(Debug, Clone, PartialEq, Eq)]
+// A handful of short-lived events per change, delivered by reference; boxing
+// the snapshot would add an allocation to save nothing measurable.
+#[allow(clippy::large_enum_variant)]
 pub enum EngineEvent {
     /// State changed; here is the new read model.
     Snapshot(Snapshot),
