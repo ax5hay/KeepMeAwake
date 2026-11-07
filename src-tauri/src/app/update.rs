@@ -134,9 +134,9 @@ fn check_and_record(app: &AppHandle) {
 }
 
 /// Runs `work` to completion on the calling thread. Tauri's shared runtime
-/// would start a worker per core the first time it is used (37 more
-/// threads on a many-core machine) for one request a day; a current-thread
-/// runtime does the same work with none, and is dropped right after.
+/// would start a worker per CPU core the first time it is used, for one
+/// request a day; a current-thread runtime does the same work with none,
+/// and is dropped right after.
 fn on_this_thread<T>(work: impl Future<Output = Option<T>>) -> Option<T> {
     match tokio::runtime::Builder::new_current_thread()
         .enable_all()

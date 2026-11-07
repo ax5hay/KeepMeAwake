@@ -68,7 +68,7 @@ pub last_update_check_unix_ms: u64, // 0; written by the app, not the UI
 - `release.yml`: set `includeUpdaterJson: true` on `tauri-action` and pass
   `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD` (already wired). The job must fail
   if the secret is missing once this spec ships; add a step that checks.
-- Generate the key pair once with `npx tauri signer generate -w a path outside the repo`;
+- Generate the key pair once with `npx tauri signer generate`, written outside the repo;
   commit the public key in the config, store the private key and password as
   repository secrets. Document in `docs/releasing.md`.
 

@@ -43,9 +43,11 @@ local `npm run build` working without the key; to build signed artifacts
 locally, set both variables and run
 `npm run build -- --config src-tauri/tauri.updater.conf.json`.
 
-The key pair was made once with
-`npx tauri signer generate -w a path outside the repo`. Losing the private
-key means no install can verify a new update: keep a copy somewhere safe.
+The key pair was made once with `npx tauri signer generate`, written to a
+path outside the repository. The private key, its password and where they
+are kept never go in the repo, its docs or commit messages. Losing the
+private key means no install can verify a new update: the owner keeps it
+backed up, privately.
 Rotating it means shipping the new public key in a release signed with the
 old one first.
 

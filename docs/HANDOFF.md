@@ -72,20 +72,20 @@ Then walk the by-hand acceptance in [`specs/macos.md`](specs/macos.md):
 ### On the Windows PC (Windows track): start here
 
 Development continues on Windows: what is left on the roadmap is mostly
-Windows-first. This PC is set up (below); work through this in order.
+Windows-first. The Windows PC is set up as [`development.md`](development.md)
+describes; work through this in order.
 
-**Set up on this PC (2026-11-07).** The clone is on the rewritten history,
-with `user.name` / `user.email` set locally to the ax5hay noreply address.
-Installed as development.md describes. `gh` is logged
-in as ax5hay. The updater signing key and its password are in
-a private location and
-in the repository secrets, with a verified backup (and a README on
-restoring the secrets) in a private backup,
-kept apart from the original. A copy
-off this machine (a password manager) would cover losing the PC: without
-the key no install can verify a future update. One snag: a shell opened before rustup
-was installed has no `cargo` on PATH, and the pre-commit hook then fails
-with `cargo: command not found`; new terminals are fine.
+**History was rewritten on 2026-11-07** to take private details out of
+every commit. On any clone made before that:
+`git fetch && git reset --hard origin/main && git fetch --tags --force`.
+Commit with the ax5hay noreply address as `user.email`
+(`git config --local`).
+
+The updater signing key never goes in the repo, in docs or in commit
+messages, nor does where it is kept; CI reads it from the repository
+secrets. Ask the owner for it. A shell opened before rustup was installed
+has no `cargo` on PATH and the pre-commit hook then fails with
+`cargo: command not found`; a new terminal fixes it.
 
 1. **Hand checks left on Windows** (no script can do these: they need a
    click on the tray, a look at the taskbar or a battery):
@@ -172,7 +172,7 @@ on Windows is listed under **Where to start**.
 | 2026-11-07 | Settings button as sliders (a gear read as a sun); Home's doors into Settings; Home shots recaptured | Claude Opus 5.5  |
 | 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)          | Claude Opus 5.5  |
 | 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                       | Claude Opus 5.5  |
-| 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it; signing key backed up    | Claude Opus 5.5  |
+| 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                 | Claude Opus 5.5  |
 
 ## Decisions made on the macOS track
 
@@ -193,7 +193,7 @@ Each is in its commit body; the ones a person might disagree with:
 | Acceptance (spec)                                         | Status                                                                                            |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | 30 m timer ends: a `timer` row with the right span        | done on the real app, Mac and Windows (Windows: one row across a timer, an extend and a new plan) |
-| Unplug below threshold, plug in, stop: one row, one pause | **by hand** on a laptop; unit tested                                |
+| Unplug below threshold, plug in, stop: one row, one pause | **by hand** on a laptop; unit tested                                                              |
 | Kill while Always, relaunch: a `sleep` row, end `–`       | done on the real app, Mac (`kill -9`) and Windows (`taskkill /F`)                                 |
 | Clear history empties the list and the file               | done on Windows: the link clicked in the window empties both                                      |
 | Screenshots of Settings → History, Paper and Night        | done from the real window on Windows: `docs/assets/history-*.png`                                 |
@@ -249,7 +249,8 @@ while the line says "under a minute".
 | Off in Settings: never asks. Timed sessions: never asks         | engine tested past a whole grace; the setting's four segments saved in the real window    |
 
 The real `GetLastInputInfo` reading is tested on Windows, and the real
-`CGEventSource` reading on CI's macOS runner. The hour untouched is still to be waited out by hand.
+`CGEventSource` reading on CI's macOS runner. The hour untouched is still
+to be waited out by hand.
 
 Decisions, each in its commit body: a paused session let go by the guard
 ends as `idle`, not `battery`; an Always session inside an open schedule
@@ -272,7 +273,7 @@ Always → timer → Always without an Off, since the session keeps its start.
 | With the switch off, no request is made                             | by construction (the thread never asks while off); **by hand** with the debug log                |
 | A signature mismatch is refused and logged                          | **by hand**; the plugin verifies before installing, and the install path logs the error at warn  |
 | The check runs, fails quietly offline, and is stamped               | done on Windows: 30 s after launch, no `latest.json` on 0.2.0 → nothing shown, timestamp written |
-| The release signs every updater artifact with the app's key         | done: `latest.json` lists Windows NSIS/MSI and Apple Silicon, each signed by the app's key  |
+| The release signs every updater artifact with the app's key         | done: `latest.json` lists Windows NSIS/MSI and Apple Silicon, each signed by the app's key       |
 
 Decisions, each in its commit body: no `tauri-plugin-process` (Tauri's own
 `restart`) and no webview updater permission (the UI calls the app's own
@@ -285,7 +286,9 @@ one line; the whisper is once per version, remembered in localStorage.
 
 ## Open questions for Akshay
 
-- Keep the signing key backed up, privately.
+- GitHub still holds the pre-rewrite commits under the six closed
+  Dependabot pull requests (`refs/pull/1…6/head`), which only GitHub
+  Support can remove; a request is drafted for you outside the repo.
 
 - Paid signing, to drop the first-open warnings: Apple Developer Program
   ($99 a year, includes notarization) and a Windows certificate (Azure

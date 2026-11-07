@@ -33,7 +33,7 @@ the one feature allowed to cost that. Measured on Windows (release,
 2.2 MB, MSI 3.0 MB; in the tray after its first check the app is 4.5 MB
 private with 13 threads and 0 ms CPU in an idle minute. The check runs on a
 current-thread runtime of its own: Tauri's shared runtime would have started
-a worker per core for it (45 threads, 6.4 MB on a many-core machine).
+a worker per CPU core for it (45 threads, 6.4 MB on the test machine).
 
 The overnight guard adds no timer and no thread. While an Always session
 runs it reads the idle time once per battery poll (`GetLastInputInfo` on

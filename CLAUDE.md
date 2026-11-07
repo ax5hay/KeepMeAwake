@@ -61,6 +61,11 @@ vX.Y.Z` and push the tag; `release.yml` drafts it. Check all four assets
 - End every session by updating `docs/HANDOFF.md` (last updated, where to
   start, in progress) and pushing it.
 - Do not add input injection of any kind; see ADR 0002 and the roadmap.
+- The repo is public. Files, docs and commit messages never carry secrets
+  or where they are kept (the updater key lives only in repository secrets
+  and with the owner), nor personal or machine details: no local paths,
+  usernames, emails other than the noreply address, account names, drive or
+  hardware details. Describe a machine by its role ("the Windows PC").
 - Nothing personal in the repo beyond the author's name and website: no
   machine models or specs, emails, places, employers. Commit as Akshay
   Bajpai with the ax5hay GitHub noreply address (repo-local git config).
