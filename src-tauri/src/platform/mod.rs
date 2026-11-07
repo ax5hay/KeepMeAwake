@@ -46,6 +46,23 @@ pub trait BatteryProbe: Send {
     fn read(&self) -> BatteryState;
 }
 
+/// Whether the taskbar is light, so the tray can pick icons that show on it.
+pub trait TaskbarTheme: Send + Sync {
+    /// `true` for a light taskbar.
+    fn is_light(&self) -> bool;
+}
+
+/// For platforms without a notion of taskbar theme: always dark, which is
+/// what the white tray icons were drawn for.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DarkTaskbar;
+
+impl TaskbarTheme for DarkTaskbar {
+    fn is_light(&self) -> bool {
+        false
+    }
+}
+
 /// Monotonic and wall clocks, injectable for tests.
 pub trait Clock: Send {
     /// Monotonic now.
@@ -109,7 +126,25 @@ pub mod fakes {
     use std::sync::{Arc, Mutex};
     use std::time::{Duration, Instant};
 
-    use super::{BatteryProbe, BatteryState, Clock, GuardState, PlatformError, PowerGuard};
+    use super::{
+        BatteryProbe, BatteryState, Clock, GuardState, PlatformError, PowerGuard, TaskbarTheme,
+    };
+
+    /// A taskbar whose theme the test sets.
+    #[derive(Debug, Clone, Default)]
+    pub struct FakeTaskbar(pub Arc<Mutex<bool>>);
+
+    impl FakeTaskbar {
+        pub fn set_light(&self, light: bool) {
+            *self.0.lock().unwrap() = light;
+        }
+    }
+
+    impl TaskbarTheme for FakeTaskbar {
+        fn is_light(&self) -> bool {
+            *self.0.lock().unwrap()
+        }
+    }
 
     /// Records every state applied and can be told to fail.
     #[derive(Debug, Default, Clone)]

@@ -6,22 +6,29 @@
 //! carries a human readable reason that shows up in `powercfg /requests`, and
 //! is released automatically if the process dies.
 //!
+//! The taskbar theme is read from, and watched in, the registry, so the tray
+//! icons can follow a light or dark taskbar without polling.
+//!
 //! This is the only module in the crate that contains `unsafe`.
 
 use std::iter::once;
 
-use windows::Win32::Foundation::{CloseHandle, HANDLE};
+use windows::Win32::Foundation::{CloseHandle, HANDLE, WIN32_ERROR};
 use windows::Win32::System::Power::{
     GetSystemPowerStatus, POWER_REQUEST_TYPE, PowerClearRequest, PowerCreateRequest,
     PowerRequestDisplayRequired, PowerRequestSystemRequired, PowerSetRequest, SYSTEM_POWER_STATUS,
+};
+use windows::Win32::System::Registry::{
+    HKEY, HKEY_CURRENT_USER, KEY_NOTIFY, REG_NOTIFY_CHANGE_LAST_SET, RRF_RT_REG_DWORD, RegCloseKey,
+    RegGetValueW, RegNotifyChangeKeyValue, RegOpenKeyExW,
 };
 use windows::Win32::System::SystemServices::POWER_REQUEST_CONTEXT_VERSION;
 use windows::Win32::System::Threading::{
     POWER_REQUEST_CONTEXT_SIMPLE_STRING, REASON_CONTEXT, REASON_CONTEXT_0,
 };
-use windows::core::PWSTR;
+use windows::core::{PCWSTR, PWSTR, w};
 
-use super::{BatteryProbe, PlatformError, PowerGuard};
+use super::{BatteryProbe, PlatformError, PowerGuard, TaskbarTheme};
 use crate::core::{BatteryState, GuardState};
 
 /// Text Windows shows next to our process in `powercfg /requests`.
@@ -141,6 +148,83 @@ impl BatteryProbe for WindowsBattery {
     }
 }
 
+/// Where Windows keeps the light/dark choice for the shell and for apps.
+const PERSONALIZE: PCWSTR = w!(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+
+/// 1 when the taskbar, Start and the tray use the light theme.
+const SYSTEM_USES_LIGHT_THEME: PCWSTR = w!("SystemUsesLightTheme");
+
+/// `true` when the taskbar uses the light theme (`SystemUsesLightTheme` = 1).
+/// A missing value (older Windows) reads as dark, the look the white icons
+/// were drawn for.
+pub fn taskbar_is_light() -> bool {
+    let mut value: u32 = 0;
+    let mut size: u32 = 4;
+    // SAFETY: both strings are static NUL-terminated UTF-16; `value` is a
+    // writable u32 and `size` says exactly that, and RRF_RT_REG_DWORD makes
+    // the call fail rather than write anything that is not a DWORD.
+    let status = unsafe {
+        RegGetValueW(
+            HKEY_CURRENT_USER,
+            PERSONALIZE,
+            SYSTEM_USES_LIGHT_THEME,
+            RRF_RT_REG_DWORD,
+            None,
+            Some((&raw mut value).cast()),
+            Some(&raw mut size),
+        )
+    };
+    status.is_ok() && value == 1
+}
+
+/// Blocks until something under the Personalize key changes, then returns.
+/// Used by a dedicated thread; the wait happens in the kernel, so it costs
+/// nothing while nobody touches the theme.
+pub fn wait_for_theme_change() -> Result<(), PlatformError> {
+    let mut key = HKEY::default();
+    // SAFETY: the subkey is a static NUL-terminated UTF-16 string and `key`
+    // is a valid place for the handle; it is closed below on every path.
+    let opened = unsafe {
+        RegOpenKeyExW(
+            HKEY_CURRENT_USER,
+            PERSONALIZE,
+            None,
+            KEY_NOTIFY,
+            &raw mut key,
+        )
+    };
+    if opened.is_err() {
+        return Err(win32_error("RegOpenKeyExW", opened));
+    }
+    // SAFETY: `key` is open with KEY_NOTIFY; with no event and
+    // `fasynchronous` false the call blocks until a value changes.
+    let waited =
+        unsafe { RegNotifyChangeKeyValue(key, false, REG_NOTIFY_CHANGE_LAST_SET, None, false) };
+    // SAFETY: `key` came from RegOpenKeyExW and is not used after this.
+    let _ = unsafe { RegCloseKey(key) };
+    if waited.is_err() {
+        return Err(win32_error("RegNotifyChangeKeyValue", waited));
+    }
+    Ok(())
+}
+
+/// The taskbar theme, read from the registry.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct WindowsTaskbarTheme;
+
+impl TaskbarTheme for WindowsTaskbarTheme {
+    fn is_light(&self) -> bool {
+        taskbar_is_light()
+    }
+}
+
+fn win32_error(call: &'static str, code: WIN32_ERROR) -> PlatformError {
+    PlatformError::Os {
+        call,
+        detail: windows::core::Error::from(code.to_hresult()).to_string(),
+    }
+}
+
 /// Pure decoding of the three bytes `GetSystemPowerStatus` returns, so the
 /// mapping can be tested without a battery.
 ///
@@ -245,6 +329,14 @@ mod tests {
         );
         guard.apply(GuardState::default()).expect("clear");
         assert_eq!(guard.current(), GuardState::default());
+    }
+
+    /// Reads the real registry value. Only asserts that it answers; the
+    /// value depends on the machine's theme.
+    #[test]
+    fn taskbar_theme_reads_without_error() {
+        let light = taskbar_is_light();
+        assert_eq!(WindowsTaskbarTheme.is_light(), light);
     }
 
     #[test]
