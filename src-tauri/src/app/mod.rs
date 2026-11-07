@@ -113,8 +113,10 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
                 log::debug!("no UI to receive snapshot: {err}");
             }
         }
-        EngineEvent::TimerEnded => log::info!("timed session ended"),
-        EngineEvent::Paused(reason) => log::info!("session paused: {reason:?}"),
+        EngineEvent::TimerEnded { plan_secs } => log::info!("timed session of {plan_secs}s ended"),
+        EngineEvent::Paused(reason, battery) => {
+            log::info!("session paused: {reason:?} at {battery:?}");
+        }
         EngineEvent::Resumed => log::info!("session resumed"),
         EngineEvent::ScheduleStarted { .. } => log::info!("schedule window opened"),
         EngineEvent::ScheduleEnded { .. } => log::info!("schedule window closed"),
