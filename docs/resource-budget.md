@@ -1,0 +1,50 @@
+# Resource budget
+
+"Tiny" is a feature, so it has numbers and a way to check them.
+
+## Budget
+
+| Metric                      | Budget           | Measured (0.1, debug build) | Why                                                    |
+| --------------------------- | ---------------- | --------------------------- | ------------------------------------------------------ |
+| Private memory, tray only   | ≤ 12 MB          | 5.2 MB                      | one native process, no WebView                         |
+| Private memory, window open | ≤ 90 MB          | see note                    | WebView2 is the floor; the page is small               |
+| CPU while resting           | 0 wake-ups       | 0                           | the engine thread blocks on a condvar                  |
+| CPU while awake             | 1 wake-up / 30 s | 1 / 30 s                    | battery poll only                                      |
+| CPU, window open, idle      | ≤ 0.1%           |                             | no animation loops; 1 Hz clock only in a timed session |
+| Binary                      | ≤ 12 MB          |                             | `opt-level = "s"`, LTO, stripped                       |
+| UI bundle (JS + CSS, gzip)  | ≤ 60 KB          |                             | Svelte compiles away; no framework runtime             |
+| Fonts                       | ≤ 160 KB         | 149 KB                      | one family, two files, latin subset                    |
+| Cold open of the window     | ≤ 400 ms         |                             | WebView2 spin-up + first paint                         |
+
+Note: WebView2 processes are shared with other apps on the machine and cannot
+be attributed cleanly from Task Manager; measure with the app alone on a clean
+session.
+
+## Measure
+
+```powershell
+# Memory for the app process
+Get-Process keepmeawake | Select-Object Id, @{n='PrivateMB';e={[math]::Round($_.PrivateMemorySize64/1MB,1)}}, Handles, Threads
+
+# Wake-ups: Resource Monitor → CPU → keepmeawake.exe, or
+# Windows Performance Recorder, CPU usage profile, one idle minute.
+
+# UI bundle
+npm run ui:build   # Vite prints gzip sizes per chunk
+```
+
+## Rules that protect it
+
+```mermaid
+flowchart TD
+    A["No setInterval faster than 1 s,<br/>and none unless a countdown is on screen"] --> keep["Budget holds"]
+    B["No CSS animation that runs while idle;<br/>transitions on state change only"] --> keep
+    C["Grain is a static filter;<br/>never animate baseFrequency"] --> keep
+    D["Engine waits are wait_until(deadline) or wait();<br/>the loop never spins"] --> keep
+    E["New crate or plugin: say what it adds<br/>to the binary and to idle memory"] --> keep
+    F["Window is destroyed on close by default;<br/>changing that needs a measured reason"] --> keep
+```
+
+---
+
+_Keep me awake · [Akshay Bajpai](https://akshaybajpai.com)_

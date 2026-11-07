@@ -1,0 +1,109 @@
+# Field guide
+
+Everything the app can do, including the parts that are not labelled.
+
+## The window
+
+```mermaid
+flowchart TB
+    subgraph Window["380 × 600, frameless"]
+        direction TB
+        T["Title bar · wordmark · gear · minimise · close"]
+        S["Scene · sky, sun, horizon, ground"]
+        ST["Status · Resting / Awake / Paused + one line of detail"]
+        R["Rule · Always · 30m · 1h · 2h · 4h · 8h · Until…"]
+        RW["Rows · Keep the screen on · Pause on low battery"]
+    end
+    T --> S --> ST --> R --> RW
+```
+
+### Scene
+
+| Element      | Click                     | Means                                                                      |
+| ------------ | ------------------------- | -------------------------------------------------------------------------- |
+| Sun          | toggles awake / resting   | above the line: awake; below it: resting; dimmed with a bar across: paused |
+| Horizon line | shows a tip               | there are nine; they cycle                                                 |
+| Stars        | lights one (resting only) | find all seven                                                             |
+| Reflection   | ripples (awake only)      |                                                                            |
+| Dotted arc   |                           | the path the sun still has to travel in a timed session                    |
+
+### Status
+
+The word is what the laptop is doing: **Resting**, **Awake**, **Paused**. The
+line under it says until when, or why it is paused. Between midnight and five
+in the morning the awake line adds a second sentence.
+
+### Rule
+
+Stops are durations measured from now. **Always** has no end. **Until…** opens
+a time field; the time is today if still ahead, otherwise tomorrow. The active
+stop carries a dot; while a custom time is set the last stop reads
+"Until 5:30 pm".
+
+### Rows
+
+| Row                  | On                                           | Off                                 |
+| -------------------- | -------------------------------------------- | ----------------------------------- |
+| Keep the screen on   | display and system are both held             | display may dim; system stays awake |
+| Pause on low battery | below 20% the sun pauses; resumes on charger | battery level is ignored            |
+
+The hint under the battery row shows the live reading ("Plugged in · 100%").
+
+## Keyboard
+
+| Keys     | Does                                   |
+| -------- | -------------------------------------- |
+| Space    | toggle awake / resting                 |
+| Esc      | back from settings, else close to tray |
+| Ctrl+,   | settings                               |
+| Tab / ←→ | move between stops and controls        |
+
+## Tray
+
+| Action      | Does                                                                     |
+| ----------- | ------------------------------------------------------------------------ |
+| left click  | open the window                                                          |
+| right click | status line · Keep awake / Let it sleep · Keep awake for ▸ · Open · Quit |
+| hover       | tooltip with the same status line as the menu                            |
+
+Icon states: sun above the line (awake), sun set (resting), bar across the sun
+(paused).
+
+## Settings
+
+| Section | Setting                   | Notes                                                                  |
+| ------- | ------------------------- | ---------------------------------------------------------------------- |
+| Startup | Launch at sign-in         | registers under the current user; starts hidden                        |
+|         | Open the window at launch | only applies when you start it yourself                                |
+|         | Begin as                  | Resting · Awake · Default length                                       |
+| Waking  | Default length            | what the sun, tray toggle and Space use. Always, or a stop             |
+|         | Keep the screen on        | same switch as on the home pane                                        |
+| Battery | Pause below               | Off, or 10–50%                                                         |
+|         | Pause whenever unplugged  | strictest: on battery means resting                                    |
+| Window  | Closing keeps it running  | off quits on close                                                     |
+|         | Free memory when closed   | destroys the UI on close (default); off hides it for an instant reopen |
+|         | Appearance                | System · Paper · Night                                                 |
+| Tips    |                           | the keyboard and tray table                                            |
+| About   |                           | version, how it works, author, Source, Quit                            |
+
+## Where things are
+
+| What      | Where                                                        |
+| --------- | ------------------------------------------------------------ |
+| Settings  | `%APPDATA%\dev.bajpai.keepmeawake\settings.json`             |
+| Log       | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\keepmeawake.log` |
+| Autostart | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`         |
+| Proof     | `powercfg /requests` (elevated) while awake                  |
+
+## When it will not hold
+
+- Lid closed, power button, Start → Sleep: Windows releases every request on
+  purpose. That is correct.
+- Modern Standby laptop on battery: Windows terminates system requests five
+  minutes after the sleep timeout. Plug in, or accept it.
+- "Paused: Windows refused the request": something blocked
+  `PowerCreateRequest`; check the log.
+
+---
+
+_Keep me awake · [Akshay Bajpai](https://akshaybajpai.com)_

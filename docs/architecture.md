@@ -1,0 +1,189 @@
+# Architecture
+
+Keep me awake is a [Tauri 2](https://v2.tauri.app) application: a Rust core
+that owns all behaviour and a Svelte UI rendered by the system WebView2 that
+exists only while the window is open.
+
+## Layers
+
+```mermaid
+flowchart TB
+    subgraph exe["keepmeawake.exe"]
+        direction TB
+        app["app/<br/>commands · tray · window"]
+        engine["engine/<br/>worker thread · policy"]
+        core["core/<br/>Session · PlanRequest · Settings · Snapshot<br/><i>pure, no I/O</i>"]
+        platform["platform/<br/>PowerGuard · BatteryProbe · Clock"]
+        win["platform/windows.rs<br/>PowerCreateRequest · PowerSetRequest<br/>GetSystemPowerStatus<br/><i>the only unsafe</i>"]
+        persist["persistence.rs<br/>settings.json, atomic save"]
+        app --> engine --> core
+        engine --> platform --> win
+        app --> persist
+    end
+    subgraph webview["WebView2 (while the window is open)"]
+        direction TB
+        api["lib/api.ts<br/>the only file that calls invoke()"]
+        store["lib/state.svelte.ts<br/>one store, 1 Hz clock only during a countdown"]
+        pure["lib/format.ts · sun.ts · copy.ts<br/><i>pure, unit tested</i>"]
+        ui["components/<br/>Scene · DurationRule · Settings · …"]
+        ui --> store --> api
+        store --> pure
+    end
+    api <-->|"invoke / event"| app
+```
+
+Dependencies point down only: `app → engine → core` and `engine → platform`.
+`core` imports nothing from the other layers and performs no I/O; that is what
+makes the state machine, the policy and the snapshot trivially testable, and it
+is the first thing to check in a review.
+
+### core
+
+| Type          | Role                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------ |
+| `PlanRequest` | the only mutation the UI can send: `off`, `indefinite`, `for {seconds}`, `until {unix_ms}`             |
+| `Session`     | off, indefinite, or timed with a deadline; remembers when it started and when the current plan was set |
+| `Settings`    | versioned, every field defaulted, `sanitized()` clamps ranges                                          |
+| `Snapshot`    | everything the UI and tray render, in one message                                                      |
+
+`until` is resolved to `for` against the wall clock before it reaches the state
+machine, which only knows monotonic time.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Off
+    Off --> Indefinite: indefinite
+    Off --> Timed: for / until
+    Indefinite --> Timed: for / until
+    Timed --> Indefinite: indefinite
+    Timed --> Off: deadline passes (Expired)
+    Indefinite --> Off: off
+    Timed --> Off: off
+```
+
+### platform
+
+Three traits so the engine never calls Win32 directly.
+
+| Trait          | Windows implementation                             | Test double      |
+| -------------- | -------------------------------------------------- | ---------------- |
+| `PowerGuard`   | `PowerCreateRequest` + `PowerSetRequest` / `Clear` | `FakePowerGuard` |
+| `BatteryProbe` | `GetSystemPowerStatus`                             | `FakeBattery`    |
+| `Clock`        | `Instant::now`, `SystemTime`                       | `ManualClock`    |
+
+Every `unsafe` block carries a `SAFETY:` comment; clippy's
+`undocumented_unsafe_blocks` is `deny`.
+
+### engine
+
+One thread, one loop, no polling while idle.
+
+```mermaid
+flowchart TD
+    wake(["wake: command, deadline or shutdown"]) --> tick["session.tick(now)<br/>timed session may expire"]
+    tick --> bat["battery.read()"]
+    bat --> decide["policy::decide(active, settings, battery)<br/>→ guards to hold, pause reason"]
+    decide --> apply["guard.apply(desired)<br/>idempotent"]
+    apply --> snap["build Snapshot"]
+    snap --> emit["deliver events to listeners<br/><i>lock released</i>"]
+    emit --> next{"next deadline?"}
+    next -->|"session end or<br/>battery poll in 30 s"| waitUntil["condvar.wait_until(deadline)"]
+    next -->|"none (resting)"| waitAny["condvar.wait()"]
+    waitUntil --> wake
+    waitAny --> wake
+```
+
+Commands from the UI and tray mutate state under the lock, notify the condvar
+and return the fresh snapshot immediately, so callers never wait on the
+worker. The thread is named `keepmeawake-engine`.
+
+The policy, as a table:
+
+| Session | On mains           | On battery, above threshold | On battery, below threshold | "Pause whenever unplugged" |
+| ------- | ------------------ | --------------------------- | --------------------------- | -------------------------- |
+| off     | nothing            | nothing                     | nothing                     | nothing                    |
+| active  | system (+ display) | system (+ display)          | nothing · `LowBattery`      | nothing · `OnBattery`      |
+
+If the OS refuses the request the snapshot says `PowerRequestFailed` rather
+than pretending.
+
+### app
+
+`app/mod.rs` builds the Tauri app. Plugins in order: single-instance (must be
+first), autostart (passes `--hidden`), opener, log. `setup` loads settings,
+starts the engine, creates the tray, subscribes a listener that refreshes the
+tray and emits `snapshot` to the window, and opens the window unless launched
+hidden. `RunEvent::ExitRequested` with no exit code (the last window closed)
+is vetoed so the app lives in the tray.
+
+## IPC
+
+```mermaid
+sequenceDiagram
+    actor U as You
+    participant UI as Svelte UI
+    participant E as Engine
+    participant W as Windows
+    U->>UI: click the 2h stop
+    UI->>E: invoke set_plan {kind: for, seconds: 7200}
+    E->>E: session.apply, notify worker
+    E-->>UI: Snapshot (returned)
+    E->>W: PowerSetRequest(System), PowerSetRequest(Display)
+    E-->>UI: event "snapshot"
+    E-->>E: tray.refresh(snapshot)
+```
+
+| Command           | Arguments              | Returns                                                       |
+| ----------------- | ---------------------- | ------------------------------------------------------------- |
+| `get_snapshot`    |                        | `Snapshot` (also re-reads battery)                            |
+| `set_plan`        | `request: PlanRequest` | `Snapshot`                                                    |
+| `toggle_session`  |                        | `Snapshot`                                                    |
+| `update_settings` | `settings: Settings`   | `Snapshot`, or an error string if the file could not be saved |
+| `quit_app`        |                        |                                                               |
+
+Field names are `snake_case` on both sides and cross the boundary untouched.
+`src/lib/types.ts` mirrors `core` one to one; a test on each side pins the
+JSON shape, because a mismatch here would be silent.
+
+## Window lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Tray: launch
+    Tray --> Hidden: setup (manual launch) or tray click or second instance
+    Hidden --> Visible: UI renders, calls show()<br/>(2.5 s fallback in Rust)
+    Visible --> Tray: close (default: destroy, WebView2 gone)
+    Visible --> HiddenKept: close with "Free memory when closed" off
+    HiddenKept --> Visible: tray click
+    Tray --> [*]: Quit
+```
+
+The window is declared with `create: false` and built on demand. During
+`setup` it is created directly on the main thread; from tray and plugin
+callbacks it is created on a spawned thread, because creating windows from a
+synchronous event handler can deadlock on Windows.
+
+## Security posture
+
+- Runs as the signed-in user, never elevated.
+- No network access. Fonts and assets are bundled.
+- One JSON file under `%APPDATA%`, one log under `%LOCALAPPDATA%`.
+- Four Win32 calls, all in one file.
+- No input is ever sent to other applications.
+- CSP is `default-src 'self'`; the capability file grants only window
+  dragging and visibility, autostart toggling, the five commands above, and
+  opening two allow-listed `https` origins.
+- Dependencies are locked (`package-lock.json`, `Cargo.lock`) and bumped by
+  Dependabot in grouped PRs.
+
+## On disk
+
+| What      | Path                                                         |
+| --------- | ------------------------------------------------------------ |
+| Settings  | `%APPDATA%\dev.bajpai.keepmeawake\settings.json`             |
+| Log       | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\keepmeawake.log` |
+| Autostart | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`         |
+
+---
+
+_Keep me awake · [Akshay Bajpai](https://akshaybajpai.com)_
