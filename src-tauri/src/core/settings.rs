@@ -70,6 +70,9 @@ pub struct Settings {
     /// (`Ctrl+Alt+K`, `Super+Shift+F9`). `None` turns it off. Validated when
     /// it is registered, not here.
     pub hotkey: Option<String>,
+    /// Minutes before a timed session ends to warn that the sun is about to
+    /// set. `None` turns the warning off.
+    pub sunset_warning_mins: Option<u8>,
 }
 
 /// The hotkey a fresh install gets: `⌘⌥K` on a Mac, `Ctrl+Alt+K` elsewhere.
@@ -162,6 +165,7 @@ impl Default for Settings {
             schedule: Schedule::default(),
             notifications: Notifications::default(),
             hotkey: Some(DEFAULT_HOTKEY.to_owned()),
+            sunset_warning_mins: Some(5),
         }
     }
 }
@@ -178,6 +182,9 @@ impl Settings {
         if let Some(secs) = self.default_duration_secs {
             // Between one minute and one week.
             self.default_duration_secs = Some(secs.clamp(60, 7 * 24 * 60 * 60));
+        }
+        if let Some(mins) = self.sunset_warning_mins {
+            self.sunset_warning_mins = Some(mins.clamp(1, 60));
         }
         self.schedule = self.schedule.sanitized();
         self
@@ -224,6 +231,26 @@ mod tests {
         let json = serde_json::to_string(&s).unwrap();
         let back: Settings = serde_json::from_str(&json).unwrap();
         assert_eq!(back, s);
+    }
+
+    #[test]
+    fn sunset_warning_defaults_to_five_minutes_and_is_clamped() {
+        assert_eq!(Settings::default().sunset_warning_mins, Some(5));
+        let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
+        assert_eq!(old.sunset_warning_mins, Some(5), "older files gain it");
+        let off: Settings =
+            serde_json::from_str(r#"{"version":1,"sunset_warning_mins":null}"#).unwrap();
+        assert_eq!(off.sunset_warning_mins, None);
+        let wild = Settings {
+            sunset_warning_mins: Some(0),
+            ..Settings::default()
+        };
+        assert_eq!(wild.sanitized().sunset_warning_mins, Some(1));
+        let wild = Settings {
+            sunset_warning_mins: Some(200),
+            ..Settings::default()
+        };
+        assert_eq!(wild.sanitized().sunset_warning_mins, Some(60));
     }
 
     #[test]

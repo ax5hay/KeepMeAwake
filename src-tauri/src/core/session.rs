@@ -134,6 +134,22 @@ impl Session {
         }
     }
 
+    /// Moves a timed session's deadline `by` later, keeping when it was
+    /// planned, so the plan grows and the arc stays continuous. Returns
+    /// `false`, changing nothing, unless the session is timed.
+    pub fn extend(&mut self, by: Duration) -> bool {
+        match self.mode.as_mut() {
+            Some(ActiveMode {
+                deadline: Some(deadline),
+                ..
+            }) => {
+                *deadline += by;
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// Advances time. A timed session whose deadline has passed turns off and
     /// reports [`SessionEvent::Expired`].
     pub fn tick(&mut self, now: Instant) -> Option<SessionEvent> {
@@ -176,6 +192,31 @@ mod tests {
             s.elapsed(now + Duration::from_secs(7)),
             Some(Duration::from_secs(7))
         );
+    }
+
+    #[test]
+    fn extending_a_timer_moves_its_end_and_grows_the_plan() {
+        let now = t0();
+        let mut s = Session::off();
+        s.apply(PlanRequest::For { seconds: 600 }, now);
+        assert!(s.extend(Duration::from_secs(1800)));
+        assert_eq!(s.deadline(), Some(now + Duration::from_secs(2400)));
+        assert_eq!(s.plan_duration(), Some(Duration::from_secs(2400)));
+        assert_eq!(s.started_at(), Some(now));
+        assert_eq!(s.mode(), Mode::Timed);
+    }
+
+    #[test]
+    fn extending_anything_but_a_timer_does_nothing() {
+        let now = t0();
+        let mut off = Session::off();
+        assert!(!off.extend(Duration::from_secs(1800)));
+        assert_eq!(off, Session::off());
+        let mut always = Session::off();
+        always.apply(PlanRequest::Indefinite, now);
+        let before = always;
+        assert!(!always.extend(Duration::from_secs(1800)));
+        assert_eq!(always, before);
     }
 
     #[test]

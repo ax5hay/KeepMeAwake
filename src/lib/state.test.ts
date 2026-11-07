@@ -40,6 +40,7 @@ const base: Snapshot = {
     },
     notifications: { timer: true, battery: false, schedule: false },
     hotkey: 'Ctrl+Alt+K',
+    sunset_warning_mins: 5,
   },
   app_version: '0.1.0',
 };

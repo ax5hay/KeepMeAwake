@@ -28,6 +28,8 @@ export interface Settings {
   notifications: Notifications;
   /** Accelerator such as `Ctrl+Alt+K`; `null` turns the hotkey off. */
   hotkey: string | null;
+  /** Minutes before a timed session ends to warn; `null` is off. */
+  sunset_warning_mins: number | null;
 }
 
 /** One switch per kind of desktop toast. */
