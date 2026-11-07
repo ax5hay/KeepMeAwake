@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 use chrono::{DateTime, Local, TimeZone};
 use parking_lot::{Condvar, Mutex, MutexGuard};
 
+use crate::core::history::Ended;
 use crate::core::schedule;
 use crate::core::{
     BatteryState, GuardState, Mode, PauseReason, PlanRequest, Schedule, ScheduleState, Session,
@@ -49,6 +50,25 @@ pub enum EngineEvent {
         /// When the next window opens, Unix ms.
         next_start_unix_ms: Option<u64>,
     },
+    /// The sun rose: a manual session or a schedule window began holding
+    /// the laptop awake after a stretch with neither. Reported once per
+    /// stretch, including the first one after launch.
+    SessionStarted {
+        /// The mode it started in.
+        mode: Mode,
+        /// Already paused as it started (say, unplugged below the threshold).
+        paused: Option<PauseReason>,
+        /// When, Unix ms.
+        at_unix_ms: u64,
+    },
+    /// The sun set: nothing wants the laptop awake any more, or the app is
+    /// quitting while something did.
+    SessionEnded {
+        /// Why.
+        ended: Ended,
+        /// When, Unix ms.
+        at_unix_ms: u64,
+    },
 }
 
 /// Receives engine events. Called off the engine lock, so it may call back
@@ -82,6 +102,11 @@ struct State {
     /// lands while the worker is delivering events (lock released, not yet
     /// waiting) would otherwise be lost until the next deadline.
     dirty: bool,
+    /// The sun was up at the last evaluation, as reported to listeners.
+    /// Kept apart from the session and the schedule because those can
+    /// change between evaluations; this is what makes every stretch report
+    /// exactly one start and one end.
+    awake: bool,
     shutdown: bool,
 }
 
@@ -119,6 +144,7 @@ impl Engine {
                 skip_until: None,
                 phase: view.phase(),
                 dirty: false,
+                awake: false,
                 shutdown: false,
             }),
             wake: Condvar::new(),
@@ -336,6 +362,14 @@ fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn 
             if let Err(err) = guard.apply(GuardState::default()) {
                 log::warn!("could not release power request on shutdown: {err}");
             }
+            if st.awake {
+                st.awake = false;
+                let quit = EngineEvent::SessionEnded {
+                    ended: ended_by(st.paused, Ended::User),
+                    at_unix_ms: shared.clock.unix_ms(),
+                };
+                MutexGuard::unlocked(&mut st, || deliver(shared, &[quit]));
+            }
             return;
         }
         st.dirty = false;
@@ -345,14 +379,7 @@ fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn 
         let deadline = next_wake(&st, now, unix_now);
 
         // Deliver events without holding the lock: listeners may call back.
-        MutexGuard::unlocked(&mut st, || {
-            let listeners = shared.listeners.lock();
-            for event in &events {
-                for listener in listeners.iter() {
-                    listener(event);
-                }
-            }
-        });
+        MutexGuard::unlocked(&mut st, || deliver(shared, &events));
 
         // A command or shutdown that arrived while the lock was released has
         // already been notified; waiting now would sleep through it.
@@ -365,6 +392,24 @@ fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn 
             }
             None => shared.wake.wait(&mut st),
         }
+    }
+}
+
+fn deliver(shared: &Shared, events: &[EngineEvent]) {
+    let listeners = shared.listeners.lock();
+    for event in events {
+        for listener in listeners.iter() {
+            listener(event);
+        }
+    }
+}
+
+/// How a stretch ended: `cause`, unless it was paused for the battery and
+/// never resumed, in which case the battery is what really ended it.
+fn ended_by(paused: Option<PauseReason>, cause: Ended) -> Ended {
+    match paused {
+        Some(PauseReason::LowBattery | PauseReason::OnBattery) => Ended::Battery,
+        _ => cause,
     }
 }
 
@@ -390,7 +435,8 @@ fn step(
     let mut events = Vec::new();
     let was_active = st.session.is_active() || st.phase == Phase::Holding;
     let plan_secs = st.session.plan_duration().map_or(0, |d| d.as_secs());
-    if st.session.tick(now) == Some(SessionEvent::Expired) {
+    let expired = st.session.tick(now) == Some(SessionEvent::Expired);
+    if expired {
         events.push(EngineEvent::TimerEnded { plan_secs });
     }
     if st.skip_until.is_some_and(|until| unix_now >= until) {
@@ -409,6 +455,7 @@ fn step(
         }),
         _ => {}
     }
+    let window_closed = st.phase == Phase::Holding && view.phase() == Phase::Closed;
     st.phase = view.phase();
     let active = st.session.is_active() || st.phase == Phase::Holding;
 
@@ -431,6 +478,32 @@ fn step(
             _ => {}
         }
     }
+    match (st.awake, active) {
+        (false, true) => events.push(EngineEvent::SessionStarted {
+            mode: if st.session.is_active() {
+                st.session.mode()
+            } else {
+                Mode::Scheduled
+            },
+            paused: st.paused,
+            at_unix_ms: unix_now,
+        }),
+        (true, false) => {
+            let cause = if expired {
+                Ended::Timer
+            } else if window_closed {
+                Ended::Schedule
+            } else {
+                Ended::User
+            };
+            events.push(EngineEvent::SessionEnded {
+                ended: ended_by(previously_paused, cause),
+                at_unix_ms: unix_now,
+            });
+        }
+        _ => {}
+    }
+    st.awake = active;
     events.insert(0, EngineEvent::Snapshot(build_snapshot(st, shared)));
     events
 }
@@ -708,6 +781,185 @@ mod tests {
             );
             thread::sleep(Duration::from_millis(5));
         }
+    }
+
+    /// The session events, in order, without the rest.
+    fn sessions(events: &[EngineEvent]) -> Vec<EngineEvent> {
+        events
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e,
+                    EngineEvent::SessionStarted { .. } | EngineEvent::SessionEnded { .. }
+                )
+            })
+            .cloned()
+            .collect()
+    }
+
+    fn started(mode: Mode, at_unix_ms: u64) -> EngineEvent {
+        EngineEvent::SessionStarted {
+            mode,
+            paused: None,
+            at_unix_ms,
+        }
+    }
+
+    fn ended(ended: Ended, at_unix_ms: u64) -> EngineEvent {
+        EngineEvent::SessionEnded { ended, at_unix_ms }
+    }
+
+    #[test]
+    fn a_session_turned_off_by_the_user_starts_and_ends_once() {
+        let r = rig(Settings::default());
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::Indefinite);
+        wait_for_guard(&r, |g| g.system);
+        // Changing the plan mid-session is the same stretch.
+        r.engine.set_plan(PlanRequest::For { seconds: 600 });
+        r.clock.advance(Duration::from_secs(60));
+        r.engine.set_plan(PlanRequest::Off);
+        wait_for_guard(&r, |g| g == GuardState::default());
+        assert_eq!(
+            sessions(&drain(&r)),
+            vec![
+                started(Mode::Indefinite, t0),
+                ended(Ended::User, t0 + 60_000)
+            ]
+        );
+    }
+
+    #[test]
+    fn a_timer_running_out_ends_the_session_as_timer() {
+        let r = rig(Settings::default());
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::For { seconds: 10 });
+        wait_for_guard(&r, |g| g.system);
+        r.clock.advance(Duration::from_secs(11));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        assert_eq!(
+            sessions(&drain(&r)),
+            vec![started(Mode::Timed, t0), ended(Ended::Timer, t0 + 11_000)]
+        );
+    }
+
+    #[test]
+    fn a_schedule_window_closing_ends_the_session_as_schedule() {
+        let r = rig_at(with_schedule(), 2, 8, 59);
+        drain(&r);
+        r.clock.advance(Duration::from_secs(60));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g.system);
+        r.clock.advance(Duration::from_secs(9 * 3600));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        assert_eq!(
+            sessions(&drain(&r)),
+            vec![
+                started(Mode::Scheduled, local_ms(2, 9, 0)),
+                ended(Ended::Schedule, local_ms(2, 18, 0))
+            ]
+        );
+    }
+
+    #[test]
+    fn a_session_paused_for_the_battery_ends_as_battery() {
+        let r = rig(Settings::default());
+        r.engine.set_plan(PlanRequest::Indefinite);
+        wait_for_guard(&r, |g| g.system);
+        r.battery.set(BatteryState {
+            on_ac: false,
+            percent: Some(10),
+        });
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        let at = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::Off);
+        let events = drain(&r);
+        assert_eq!(sessions(&events).last(), Some(&ended(Ended::Battery, at)));
+    }
+
+    #[test]
+    fn quitting_ends_the_session_as_user_or_battery() {
+        let r = rig(Settings::default());
+        r.engine.set_plan(PlanRequest::Indefinite);
+        wait_for_guard(&r, |g| g.system);
+        let at = r.clock.unix_ms();
+        r.engine.shutdown();
+        assert_eq!(sessions(&drain(&r)).last(), Some(&ended(Ended::User, at)));
+
+        let r = rig(Settings::default());
+        r.engine.set_plan(PlanRequest::Indefinite);
+        wait_for_guard(&r, |g| g.system);
+        r.battery.set(BatteryState {
+            on_ac: false,
+            percent: Some(10),
+        });
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        r.engine.shutdown();
+        assert_eq!(
+            sessions(&drain(&r)).last(),
+            Some(&ended(Ended::Battery, at))
+        );
+    }
+
+    #[test]
+    fn quitting_while_resting_reports_nothing() {
+        let r = rig(Settings::default());
+        drain(&r);
+        r.engine.shutdown();
+        assert_eq!(sessions(&drain(&r)), vec![]);
+    }
+
+    #[test]
+    fn launching_inside_a_window_opens_a_session_for_the_log() {
+        let r = rig_at(with_schedule(), 2, 10, 0);
+        wait_for_guard(&r, |g| g.system);
+        assert_eq!(
+            sessions(&drain(&r)),
+            vec![started(Mode::Scheduled, local_ms(2, 10, 0))]
+        );
+    }
+
+    #[test]
+    fn a_session_that_starts_unplugged_says_it_is_paused() {
+        let r = rig(Settings::default());
+        r.battery.set(BatteryState {
+            on_ac: false,
+            percent: Some(10),
+        });
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::Indefinite);
+        let events = drain(&r);
+        assert_eq!(
+            sessions(&events),
+            vec![EngineEvent::SessionStarted {
+                mode: Mode::Indefinite,
+                paused: Some(PauseReason::LowBattery),
+                at_unix_ms: t0,
+            }]
+        );
+    }
+
+    #[test]
+    fn a_manual_session_ending_inside_a_window_keeps_the_stretch_open() {
+        let r = rig_at(with_schedule(), 2, 10, 0);
+        wait_for_guard(&r, |g| g.system);
+        r.engine.set_plan(PlanRequest::For { seconds: 60 });
+        r.clock.advance(Duration::from_secs(61));
+        r.engine.refresh();
+        let events = drain(&r);
+        assert!(
+            events.contains(&EngineEvent::TimerEnded { plan_secs: 60 }),
+            "{events:?}"
+        );
+        assert_eq!(
+            sessions(&events),
+            vec![started(Mode::Scheduled, local_ms(2, 10, 0))],
+            "the window still holds, so the sun never set"
+        );
     }
 
     #[test]

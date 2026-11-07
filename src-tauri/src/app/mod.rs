@@ -138,6 +138,8 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
                 EngineEvent::Resumed => log::info!("session resumed"),
                 EngineEvent::ScheduleStarted { .. } => log::info!("schedule window opened"),
                 EngineEvent::ScheduleEnded { .. } => log::info!("schedule window closed"),
+                EngineEvent::SessionStarted { mode, .. } => log::info!("sun up: {mode:?}"),
+                EngineEvent::SessionEnded { ended, .. } => log::info!("sun down: {ended:?}"),
                 EngineEvent::Snapshot(_) => {}
             }
             notify::on_event(&handle, other);
