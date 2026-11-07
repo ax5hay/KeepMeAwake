@@ -95,4 +95,12 @@ describe('historyRows', () => {
     expect(slept?.span).toBe('10:15 pm – –');
     expect(slept?.day).toBe('Yesterday');
   });
+
+  it('says idle for a stretch the overnight guard let go', () => {
+    const history: History = {
+      version: 1,
+      entries: [entry({ mode: 'indefinite', ended: 'idle' })],
+    };
+    expect(historyRows(history, NOW, 'en-US')[0]?.ended).toBe('idle');
+  });
 });

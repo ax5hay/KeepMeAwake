@@ -79,6 +79,9 @@ pub struct Snapshot {
     /// The schedule's state; `mode` is `Scheduled` when it is what holds the
     /// laptop awake, and the timing fields then describe the window.
     pub schedule: ScheduleState,
+    /// While the overnight guard is asking whether anyone is there: when the
+    /// session will end unless someone answers, Unix ms. `None` otherwise.
+    pub guard_rests_at_unix_ms: Option<u64>,
     /// User preferences, so the UI has a single source of truth.
     pub settings: Settings,
     /// Application version, for the About section.
@@ -107,6 +110,7 @@ mod tests {
             paused: None,
             battery: BatteryState::default(),
             schedule: ScheduleState::default(),
+            guard_rests_at_unix_ms: None,
             settings: Settings::default(),
             app_version: "0.0.0".into(),
         }
@@ -141,5 +145,7 @@ mod tests {
         let json = serde_json::to_value(base()).unwrap();
         assert!(json.get("started_at_unix_ms").is_some());
         assert_eq!(json["mode"], "off");
+        assert!(json["guard_rests_at_unix_ms"].is_null());
+        assert_eq!(json["settings"]["overnight_guard_hours"], 6);
     }
 }

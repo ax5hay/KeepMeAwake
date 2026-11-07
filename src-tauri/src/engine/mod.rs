@@ -615,6 +615,7 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
         paused: st.paused,
         battery: st.battery,
         schedule: view.state(st.settings.schedule.enabled),
+        guard_rests_at_unix_ms: None,
         settings: st.settings.clone(),
         app_version: shared.app_version.clone(),
     };

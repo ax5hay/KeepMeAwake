@@ -21,6 +21,7 @@ const base: Snapshot = {
     window_end_unix_ms: null,
     next_start_unix_ms: null,
   },
+  guard_rests_at_unix_ms: null,
   settings: {
     version: 1,
     keep_display_on: true,
@@ -41,6 +42,7 @@ const base: Snapshot = {
     notifications: { timer: true, battery: false, schedule: false },
     hotkey: 'Ctrl+Alt+K',
     sunset_warning_mins: 5,
+    overnight_guard_hours: 6,
   },
   app_version: '0.1.0',
 };

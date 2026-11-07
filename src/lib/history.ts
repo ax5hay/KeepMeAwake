@@ -23,6 +23,7 @@ const ENDED: Readonly<Record<Ended, string>> = {
   timer: 'timer',
   schedule: 'schedule',
   battery: 'battery',
+  idle: 'idle',
   sleep: 'sleep',
   crash: 'crash',
 };

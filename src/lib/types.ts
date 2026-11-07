@@ -30,6 +30,8 @@ export interface Settings {
   hotkey: string | null;
   /** Minutes before a timed session ends to warn; `null` is off. */
   sunset_warning_mins: number | null;
+  /** Hours without input after which an Always session asks, then rests; `null` is off. */
+  overnight_guard_hours: number | null;
 }
 
 /** One switch per kind of desktop toast. */
@@ -77,6 +79,8 @@ export interface Snapshot {
   paused: PauseReason | null;
   battery: BatteryState;
   schedule: ScheduleState;
+  /** While the overnight guard asks: when the session ends unless answered. */
+  guard_rests_at_unix_ms: number | null;
   settings: Settings;
   app_version: string;
 }
@@ -88,7 +92,7 @@ export type PlanRequest =
   | { kind: 'until'; unix_ms: number };
 
 /** How an awake stretch ended. Mirrors `core::history::Ended`. */
-export type Ended = 'user' | 'timer' | 'schedule' | 'battery' | 'sleep' | 'crash';
+export type Ended = 'user' | 'timer' | 'schedule' | 'battery' | 'idle' | 'sleep' | 'crash';
 
 /** A stretch inside an entry during which the sun was up but not holding. */
 export interface Pause {

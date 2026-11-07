@@ -28,6 +28,9 @@ pub enum Ended {
     Schedule,
     /// It was paused for the battery and never resumed before it ended.
     Battery,
+    /// The overnight guard let it go: nobody had touched the machine for
+    /// hours and nobody answered the question.
+    Idle,
     /// It never ended cleanly: the next launch found it still open, so the
     /// machine slept, shut down or the app was killed while it was up.
     Sleep,
@@ -284,5 +287,15 @@ mod tests {
         assert_eq!(back, h);
         let empty: History = serde_json::from_str("{}").unwrap();
         assert_eq!(empty, History::default());
+    }
+
+    #[test]
+    fn the_overnight_guard_ending_serialises_as_idle() {
+        assert_eq!(
+            serde_json::to_value(Ended::Idle).unwrap(),
+            serde_json::json!("idle")
+        );
+        let back: Ended = serde_json::from_str(r#""idle""#).unwrap();
+        assert_eq!(back, Ended::Idle);
     }
 }

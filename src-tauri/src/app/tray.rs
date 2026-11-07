@@ -386,6 +386,7 @@ mod tests {
             paused,
             battery: BatteryState::default(),
             schedule: ScheduleState::default(),
+            guard_rests_at_unix_ms: None,
             settings: Settings::default(),
             app_version: String::new(),
         }
