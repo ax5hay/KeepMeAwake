@@ -12,7 +12,7 @@
     "type": "git",
     "url": "https://github.com/ax5hay/KeepMeAwake.git"
   },
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "engines": {
     "node": ">=22"

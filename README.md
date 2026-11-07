@@ -124,5 +124,9 @@ npm run build      # installers (or .app and .dmg) in src-tauri/target/release/b
 
 ## License
 
-[MIT](LICENSE) · Keep me awake is a personal project by
-[Akshay Bajpai](https://akshaybajpai.com).
+Keep me awake is a personal project by
+[Akshay Bajpai](https://akshaybajpai.com), under its own
+[license](LICENSE): all rights reserved. You may use the published builds and
+read and build the source for yourself; copying, redistributing or publishing
+changed versions needs his permission. The source is public so it can be
+checked, not so it can be reused.
