@@ -23,6 +23,16 @@ export interface Settings {
   close_to_tray: boolean;
   free_memory_when_hidden: boolean;
   theme: Theme;
+  schedule: Schedule;
+}
+
+/** One window of time on chosen weekdays; `end_minutes < start_minutes` runs overnight. */
+export interface Schedule {
+  enabled: boolean;
+  /** Monday first, seven entries. */
+  days: boolean[];
+  start_minutes: number;
+  end_minutes: number;
 }
 
 export interface GuardState {

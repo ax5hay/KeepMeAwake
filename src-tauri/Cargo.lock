@@ -1966,6 +1966,7 @@ dependencies = [
 name = "keepmeawake"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "log",
  "parking_lot 0.13.0",
  "serde",

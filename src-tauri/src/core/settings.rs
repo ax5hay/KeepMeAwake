@@ -62,6 +62,52 @@ pub struct Settings {
     pub free_memory_when_hidden: bool,
     /// Colour scheme.
     pub theme: Theme,
+    /// Hours during which the laptop is kept awake without being asked.
+    pub schedule: Schedule,
+}
+
+/// One window of time on chosen weekdays, e.g. 09:00 until 18:00 Monday to
+/// Friday. An `end_minutes` earlier than `start_minutes` means the window runs
+/// overnight and belongs to the day it starts on.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "snake_case")]
+pub struct Schedule {
+    /// The schedule applies at all.
+    pub enabled: bool,
+    /// Which weekdays have a window, Monday first.
+    pub days: [bool; 7],
+    /// Start of the window, minutes after local midnight.
+    pub start_minutes: u16,
+    /// End of the window, minutes after local midnight.
+    pub end_minutes: u16,
+}
+
+/// Last minute of a day, as minutes after midnight.
+pub const LAST_MINUTE: u16 = 24 * 60 - 1;
+
+impl Default for Schedule {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            days: [true, true, true, true, true, false, false],
+            start_minutes: 9 * 60,
+            end_minutes: 18 * 60,
+        }
+    }
+}
+
+impl Schedule {
+    /// Clamps the minutes into a day and switches off a zero-length window,
+    /// which would otherwise mean nothing at all.
+    #[must_use]
+    pub fn sanitized(mut self) -> Self {
+        self.start_minutes = self.start_minutes.min(LAST_MINUTE);
+        self.end_minutes = self.end_minutes.min(LAST_MINUTE);
+        if self.start_minutes == self.end_minutes {
+            self.enabled = false;
+        }
+        self
+    }
 }
 
 impl Default for Settings {
@@ -77,6 +123,7 @@ impl Default for Settings {
             close_to_tray: true,
             free_memory_when_hidden: true,
             theme: Theme::System,
+            schedule: Schedule::default(),
         }
     }
 }
@@ -94,6 +141,7 @@ impl Settings {
             // Between one minute and one week.
             self.default_duration_secs = Some(secs.clamp(60, 7 * 24 * 60 * 60));
         }
+        self.schedule = self.schedule.sanitized();
         self
     }
 }
@@ -150,6 +198,46 @@ mod tests {
         .sanitized();
         assert_eq!(s.pause_below_battery_percent, Some(95));
         assert_eq!(s.default_duration_secs, Some(60));
+    }
+
+    #[test]
+    fn schedule_defaults_to_weekday_office_hours_switched_off() {
+        let s = Schedule::default();
+        assert!(!s.enabled);
+        assert_eq!(s.days, [true, true, true, true, true, false, false]);
+        assert_eq!((s.start_minutes, s.end_minutes), (540, 1080));
+        let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
+        assert_eq!(old.schedule, Schedule::default());
+    }
+
+    #[test]
+    fn sanitize_clamps_schedule_minutes_and_disables_empty_windows() {
+        let s = Schedule {
+            enabled: true,
+            start_minutes: 5000,
+            end_minutes: 60,
+            ..Schedule::default()
+        }
+        .sanitized();
+        assert_eq!(s.start_minutes, LAST_MINUTE);
+        assert!(s.enabled);
+        let empty = Schedule {
+            enabled: true,
+            start_minutes: 600,
+            end_minutes: 600,
+            ..Schedule::default()
+        }
+        .sanitized();
+        assert!(!empty.enabled);
+    }
+
+    #[test]
+    fn schedule_serialises_snake_case() {
+        let json = serde_json::to_value(Settings::default()).unwrap();
+        assert_eq!(json["schedule"]["start_minutes"], 540);
+        assert_eq!(json["schedule"]["end_minutes"], 1080);
+        assert_eq!(json["schedule"]["days"].as_array().map(Vec::len), Some(7));
+        assert_eq!(json["schedule"]["enabled"], false);
     }
 
     #[test]

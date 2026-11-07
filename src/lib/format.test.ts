@@ -33,6 +33,12 @@ const base: Snapshot = {
     close_to_tray: true,
     free_memory_when_hidden: true,
     theme: 'system',
+    schedule: {
+      enabled: false,
+      days: [true, true, true, true, true, false, false],
+      start_minutes: 540,
+      end_minutes: 1080,
+    },
   },
   app_version: '0.1.0',
 };
