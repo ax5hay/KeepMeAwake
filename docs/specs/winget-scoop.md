@@ -25,7 +25,9 @@ Both install the NSIS build silently (`/S`) per user.
   reads the NSIS asset, writes the three manifest files and opens the PR to
   `microsoft/winget-pkgs` with a PAT stored as `WINGET_TOKEN`.
 - First submission is manual (`wingetcreate new`), because the identifier must
-  exist before the releaser can update it. Commit the generated manifests under
+  exist before the releaser can update it. Set `License: Proprietary` and
+  `LicenseUrl` to the repository's `LICENSE` there: the project has its own
+  license, which GitHub reports as "Other", so nothing can infer it. Commit the generated manifests under
   `packaging/winget/` for reference.
 
 ## Scoop
@@ -37,7 +39,10 @@ Both install the NSIS build silently (`/S`) per user.
     "version": "0.3.0",
     "description": "Keeps your Windows laptop awake, politely.",
     "homepage": "https://akshaybajpai.com",
-    "license": "MIT",
+    "license": {
+      "identifier": "Proprietary",
+      "url": "https://github.com/ax5hay/KeepMeAwake/blob/main/LICENSE"
+    },
     "url": "https://github.com/ax5hay/KeepMeAwake/releases/download/v0.3.0/KeepMeAwake_0.3.0_x64-setup.exe",
     "hash": "<sha256>",
     "innosetup": false,

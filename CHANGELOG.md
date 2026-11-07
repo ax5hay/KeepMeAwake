@@ -30,6 +30,14 @@ Versions: [SemVer](https://semver.org).
   Windows reads right on a Mac. Ships as an unsigned `.dmg` with a horizon
   background; CI builds and tests on both platforms.
 
+### Changed
+
+- License: Keep me awake is no longer MIT. It is under its own license, all
+  rights reserved: the builds are free to use and the source is free to read
+  and build for yourself, but copying, redistributing or publishing changed
+  versions needs the author's permission. Copies of the source taken while
+  it was public under MIT keep that grant.
+
 ### Fixed
 
 - A command that arrived while the engine was delivering events could sit
