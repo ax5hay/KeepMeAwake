@@ -61,6 +61,19 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
+      # Installs update themselves from latest.json, verified against the
+      # public key in tauri.conf.json. A release without the private key
+      # would ship artifacts no install can verify, so it stops here.
+      - name: Check the updater signing key is set
+        shell: bash
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$PASSWORD" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY and _PASSWORD must be repository secrets (see docs/releasing.md)" >&2
+            exit 1
+          fi
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,3 +81,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.draft.outputs.id }}
+          # The overlay turns on signed updater artifacts (.sig beside the
+          # NSIS installer and the .app.tar.gz); local builds leave it off.
+          args: --config src-tauri/tauri.updater.conf.json
+          # Both jobs merge their platform into one latest.json on the
+          # release; Windows installs update through the NSIS installer,
+          # the per-user one they were installed with.
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
