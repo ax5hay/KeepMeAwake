@@ -1,0 +1,42 @@
+name: Bug report
+description: Something does not behave as documented
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Settings → About, or the installer file name
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Settings → System → About, e.g. "Windows 11 24H2 (26100)"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the window
+        2. Pick 1h
+        3. Unplug
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log excerpt
+      description: '`%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\keepmeawake.log`, and `powercfg /requests` output if relevant'
+      render: text
