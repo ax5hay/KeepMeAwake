@@ -4,21 +4,21 @@
 
 ## Budget
 
-| Metric                      | Budget           | Measured (0.1, debug build) | Why                                                    |
-| --------------------------- | ---------------- | --------------------------- | ------------------------------------------------------ |
-| Private memory, tray only   | ≤ 12 MB          | 5.2 MB                      | one native process, no WebView                         |
-| Private memory, window open | ≤ 90 MB          | see note                    | WebView2 is the floor; the page is small               |
-| CPU while resting           | 0 wake-ups       | 0                           | the engine thread blocks on a condvar                  |
-| CPU while awake             | 1 wake-up / 30 s | 1 / 30 s                    | battery poll only                                      |
-| CPU, window open, idle      | ≤ 0.1%           |                             | no animation loops; 1 Hz clock only in a timed session |
-| Binary                      | ≤ 12 MB          |                             | `opt-level = "s"`, LTO, stripped                       |
-| UI bundle (JS + CSS, gzip)  | ≤ 60 KB          |                             | Svelte compiles away; no framework runtime             |
-| Fonts                       | ≤ 160 KB         | 149 KB                      | one family, two files, latin subset                    |
-| Cold open of the window     | ≤ 400 ms         |                             | WebView2 spin-up + first paint                         |
+| Metric                      | Budget           | Measured (0.1, release)               | Why                                                    |
+| --------------------------- | ---------------- | ------------------------------------- | ------------------------------------------------------ |
+| Private memory, tray only   | ≤ 12 MB          | 5.3 MB                                | one native process, no WebView                         |
+| Private memory, window open | ≤ 90 MB          | 5.4 MB app + WebView2                 | WebView2 is the floor; the page is small               |
+| CPU while resting           | 0 wake-ups       | 0                                     | the engine thread blocks on a condvar                  |
+| CPU while awake             | 1 wake-up / 30 s | 1 / 30 s                              | battery poll only                                      |
+| CPU, window open, idle      | ≤ 0.1%           | idle                                  | no animation loops; 1 Hz clock only in a timed session |
+| Binary                      | ≤ 12 MB          | 3.8 MB exe · 1.5 MB NSIS · 2.1 MB MSI | `opt-level = "s"`, LTO, stripped                       |
+| UI bundle (JS + CSS, gzip)  | ≤ 60 KB          | 28 KB + 3.5 KB                        | Svelte compiles away; no framework runtime             |
+| Fonts                       | ≤ 160 KB         | 149 KB                                | one family, two files, latin subset                    |
+| Cold open of the window     | ≤ 400 ms         | under 1 s                             | WebView2 spin-up + first paint                         |
 
-Note: WebView2 processes are shared with other apps on the machine and cannot
-be attributed cleanly from Task Manager; measure with the app alone on a clean
-session.
+Measured on a Core Ultra 5 laptop, Windows 11, 2026-11-07. WebView2 processes are
+shared with other apps on the machine and cannot be attributed cleanly from Task
+Manager; the app process itself stays at ~5 MB whether the window is open or not.
 
 ## Measure
 
