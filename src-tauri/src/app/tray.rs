@@ -17,12 +17,29 @@ use crate::core::{Mode, PlanRequest, Snapshot};
 /// Identifier used to look the tray up for updates.
 pub const TRAY_ID: &str = "main";
 
+// Each binary carries only its own platform's set.
+#[cfg(not(target_os = "macos"))]
 const ICON_ON: &[u8] = include_bytes!("../../icons/tray/on.png");
+#[cfg(not(target_os = "macos"))]
 const ICON_OFF: &[u8] = include_bytes!("../../icons/tray/off.png");
+#[cfg(not(target_os = "macos"))]
 const ICON_PAUSED: &[u8] = include_bytes!("../../icons/tray/paused.png");
+#[cfg(not(target_os = "macos"))]
 const ICON_ON_INK: &[u8] = include_bytes!("../../icons/tray/on-ink.png");
+#[cfg(not(target_os = "macos"))]
 const ICON_OFF_INK: &[u8] = include_bytes!("../../icons/tray/off-ink.png");
+#[cfg(not(target_os = "macos"))]
 const ICON_PAUSED_INK: &[u8] = include_bytes!("../../icons/tray/paused-ink.png");
+#[cfg(target_os = "macos")]
+const ICON_ON_TEMPLATE: &[u8] = include_bytes!("../../icons/tray/on-template.png");
+#[cfg(target_os = "macos")]
+const ICON_OFF_TEMPLATE: &[u8] = include_bytes!("../../icons/tray/off-template.png");
+#[cfg(target_os = "macos")]
+const ICON_PAUSED_TEMPLATE: &[u8] = include_bytes!("../../icons/tray/paused-template.png");
+
+/// Menu bar icons are template images on macOS: black with alpha, tinted by
+/// the system for a light or dark menu bar.
+const TEMPLATE: bool = cfg!(target_os = "macos");
 
 /// Durations offered in the "Keep awake for" submenu, in seconds.
 pub const DURATIONS: &[(u64, &str)] = &[
@@ -48,7 +65,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let menu = build_menu(app, &snapshot)?;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon_for(&snapshot, state.taskbar.is_light())?)
-        .icon_as_template(false)
+        .icon_as_template(TEMPLATE)
         .tooltip(tooltip(&snapshot))
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -86,7 +103,8 @@ pub fn refresh(app: &AppHandle, snapshot: &Snapshot) {
         .try_state::<AppState>()
         .is_some_and(|state| state.taskbar.is_light());
     if let Ok(icon) = icon_for(snapshot, light) {
-        let _ = tray.set_icon(Some(icon));
+        // Plain `set_icon` drops the template flag on macOS; this keeps it.
+        let _ = tray.set_icon_with_as_template(Some(icon), TEMPLATE);
     }
     let _ = tray.set_tooltip(Some(tooltip(snapshot)));
     match build_menu(app, snapshot) {
@@ -182,11 +200,22 @@ fn skip_label(snapshot: &Snapshot) -> Option<&'static str> {
     }
 }
 
-/// The icon for `snapshot`: white on a dark taskbar, ink on a light one.
+/// The icon for `snapshot`: white on a dark taskbar, ink on a light one, a
+/// template image in the macOS menu bar.
 fn icon_for(snapshot: &Snapshot, light: bool) -> tauri::Result<Image<'static>> {
     Image::from_bytes(icon_bytes(snapshot, light))
 }
 
+#[cfg(target_os = "macos")]
+fn icon_bytes(snapshot: &Snapshot, _light: bool) -> &'static [u8] {
+    match (snapshot.mode, snapshot.paused) {
+        (Mode::Off, _) => ICON_OFF_TEMPLATE,
+        (_, Some(_)) => ICON_PAUSED_TEMPLATE,
+        (_, None) => ICON_ON_TEMPLATE,
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
 fn icon_bytes(snapshot: &Snapshot, light: bool) -> &'static [u8] {
     match (snapshot.mode, snapshot.paused, light) {
         (Mode::Off, _, false) => ICON_OFF,
@@ -448,6 +477,27 @@ mod tests {
         assert_eq!(parse_duration_id("for:abc"), None);
     }
 
+    /// macOS tints a template image for the menu bar itself, so the theme
+    /// never picks the icon there.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn three_template_icons_whatever_the_menu_bar() {
+        let states = [
+            snap(Mode::Off, None, None),
+            snap(Mode::Indefinite, None, None),
+            snap(Mode::Indefinite, None, Some(PauseReason::OnBattery)),
+        ];
+        let expected = [ICON_OFF_TEMPLATE, ICON_ON_TEMPLATE, ICON_PAUSED_TEMPLATE];
+        for (state, want) in states.iter().zip(expected) {
+            assert!(icon_for(state, false).is_ok());
+            assert_eq!(icon_bytes(state, false), want);
+            assert_eq!(icon_bytes(state, true), want);
+        }
+        assert_ne!(ICON_ON_TEMPLATE, ICON_OFF_TEMPLATE);
+        assert_ne!(ICON_ON_TEMPLATE, ICON_PAUSED_TEMPLATE);
+    }
+
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn six_icons_decode_and_differ() {
         let states = [
