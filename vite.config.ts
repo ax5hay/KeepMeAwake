@@ -1,13 +1,15 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { svelteTesting } from '@testing-library/svelte/vite';
 import { fileURLToPath } from 'node:url';
 
 const host = process.env.TAURI_DEV_HOST;
 
 // https://v2.tauri.app/start/frontend/vite/
 export default defineConfig({
-  plugins: [svelte()],
+  // svelteTesting only acts under Vitest: browser Svelte in jsdom, DOM cleanup.
+  plugins: [svelte(), svelteTesting()],
   resolve: { alias: { $lib: fileURLToPath(new URL('./src/lib', import.meta.url)) } },
   // Tauri expects a fixed port and fails if it is not available.
   clearScreen: false,

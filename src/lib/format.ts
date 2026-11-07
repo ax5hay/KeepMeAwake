@@ -112,3 +112,30 @@ export function suggestedUntil(nowMs: number, aheadMs = 60 * 60 * 1000): string 
   const rounded = new Date(Math.ceil(t.getTime() / q) * q);
   return `${String(rounded.getHours()).padStart(2, '0')}:${String(rounded.getMinutes()).padStart(2, '0')}`;
 }
+
+/** Weekdays in the order the schedule stores them, Monday first. */
+export const WEEKDAYS: ReadonlyArray<{ letter: string; name: string }> = [
+  { letter: 'M', name: 'Monday' },
+  { letter: 'T', name: 'Tuesday' },
+  { letter: 'W', name: 'Wednesday' },
+  { letter: 'T', name: 'Thursday' },
+  { letter: 'F', name: 'Friday' },
+  { letter: 'S', name: 'Saturday' },
+  { letter: 'S', name: 'Sunday' },
+];
+
+/** Minutes after midnight as `HH:MM`, the value an `<input type="time">` takes. */
+export function minutesToTime(minutes: number): string {
+  const m = clamp(Math.round(minutes), 0, 24 * 60 - 1);
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
+/** `HH:MM` back to minutes after midnight, or `null` if it is not a time. */
+export function timeToMinutes(hhmm: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return hours * 60 + minutes;
+}

@@ -72,6 +72,15 @@ a:hover {
   text-decoration-color: var(--ink);
 }
 
+/* Time fields: the rule's Until… and the schedule's hours. */
+input[type='time'] {
+  padding: 4px 8px;
+  border: 1px solid var(--hair-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Shared text styles */
 .eyebrow {
   font-size: 11px;
@@ -83,6 +92,7 @@ a:hover {
 .hint {
   color: var(--ink-2);
   font-size: 12px;
+  text-wrap: pretty;
 }
 
 .sr-only {
