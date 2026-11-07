@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AUTHOR,
+  doors,
   HORIZON_TIPS,
   STAR_WHISPERS,
   horizonTip,
@@ -133,6 +134,25 @@ describe('overnight guard copy', () => {
     expect(`${nobodyHere(24, '12:59 am')} ${KEEP_IT_UP}`.length).toBeLessThanOrEqual(64);
     // As short as the sunset hint, which fits beside the same control.
     expect(OVERNIGHT_GUARD_HINT.length).toBeLessThanOrEqual(28);
+  });
+});
+
+describe('doors', () => {
+  it('opens the schedule, the history and the hotkey, which shows itself', () => {
+    expect(doors('Ctrl+Alt+K').map((d) => [d.section, d.label])).toEqual([
+      ['schedule', 'Schedule'],
+      ['history', 'History'],
+      ['hotkey', 'Ctrl+Alt+K'],
+    ]);
+    expect(doors('⌥⌘K')[2]?.title).toBe('⌥⌘K toggles from any app');
+    expect(doors(null)[2]?.label).toBe('Hotkey');
+  });
+
+  it('fits one line at the narrowest window, even with a long hotkey', () => {
+    const line = doors('Ctrl+Alt+Shift+F12')
+      .map((d) => d.label)
+      .join(' · ');
+    expect(line.length).toBeLessThanOrEqual(40);
   });
 });
 

@@ -41,6 +41,21 @@
     if (store.view === 'settings') void store.loadHistory();
   });
 
+  // Opened from one of Home's doors: bring that section to the top.
+  let scroller = $state<HTMLDivElement | null>(null);
+  $effect(() => {
+    const section = store.section;
+    if (store.view !== 'settings' || section === null || scroller === null) return;
+    const target = scroller.querySelector(`#settings-${section}`);
+    // Scroll this pane only; scrollIntoView would also move the clipped
+    // container the two panes slide in.
+    if (target) {
+      scroller.scrollTop +=
+        target.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    }
+    store.section = null;
+  });
+
   let autostart = $state<boolean | null>(null);
   onMount(() => {
     void isEnabled()
@@ -102,7 +117,7 @@
   ];
 </script>
 
-<div class="scroll">
+<div class="scroll" bind:this={scroller}>
   {#if settings}
     <section>
       <h2 class="eyebrow">Startup</h2>
@@ -178,7 +193,7 @@
       </Row>
     </section>
 
-    <section>
+    <section id="settings-schedule">
       <h2 class="eyebrow">Schedule</h2>
       <Row label="Keep a schedule" hint="Awake during these hours, resting outside them.">
         <Switch
@@ -290,7 +305,7 @@
       </Row>
     </section>
 
-    <section>
+    <section id="settings-hotkey">
       <h2 class="eyebrow">Hotkey</h2>
       <Row label="Hotkey" hint={PLATFORM_COPY.hotkeyHint}>
         <HotkeyField
@@ -300,7 +315,7 @@
       </Row>
     </section>
 
-    <section>
+    <section id="settings-history">
       <h2 class="eyebrow">History</h2>
       <History history={store.history} now={store.now} onclear={() => void store.clearHistory()} />
     </section>

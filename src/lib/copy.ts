@@ -147,6 +147,33 @@ export const KEEP_IT_UP = 'Keep it up';
 /** Settings → Waking → Overnight guard. */
 export const OVERNIGHT_GUARD_HINT = 'Ends an untouched Always.';
 
+/** A Settings section Home can open directly. */
+export type SettingsSection = 'schedule' | 'history' | 'hotkey';
+
+/** One way from Home straight into a Settings section. */
+export interface Door {
+  section: SettingsSection;
+  label: string;
+  /** Tooltip and accessible description: what is behind it. */
+  title: string;
+}
+
+/**
+ * The doorways at the foot of Home, for what never announces itself: the
+ * schedule (off until set), the log, and the hotkey, which shows its own
+ * combination so the line itself says it exists. `hotkey` is already
+ * formatted for display, or `null` when it is off.
+ */
+export function doors(hotkey: string | null): readonly Door[] {
+  return [
+    { section: 'schedule', label: 'Schedule', title: 'Awake on its own during set hours' },
+    { section: 'history', label: 'History', title: 'When the sun was up, and how it set' },
+    hotkey === null
+      ? { section: 'hotkey', label: 'Hotkey', title: 'Toggle from any app' }
+      : { section: 'hotkey', label: hotkey, title: `${hotkey} toggles from any app` },
+  ];
+}
+
 /** Settings → History before anything has been logged. */
 export const HISTORY_EMPTY = 'Nothing yet. The first sunset will be written here.';
 

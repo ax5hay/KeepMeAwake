@@ -3,8 +3,10 @@
   import Row from './Row.svelte';
   import Scene from './Scene.svelte';
   import Switch from './Switch.svelte';
-  import { EXTEND_LABEL, EXTENDED, KEEP_IT_UP } from '$lib/copy';
+  import { EXTEND_LABEL, EXTENDED, KEEP_IT_UP, doors } from '$lib/copy';
   import { batteryText } from '$lib/format';
+  import { displayAccelerator } from '$lib/hotkey';
+  import { isMac } from '$lib/platform';
   import { store } from '$lib/state.svelte';
 
   const settings = $derived(store.settings);
@@ -16,6 +18,9 @@
     const rule = threshold === null ? 'Off' : `Below ${threshold}%`;
     return `${rule} · ${batteryText(snapshot)}`;
   });
+  const ways = $derived(
+    doors(settings?.hotkey ? displayAccelerator(settings.hotkey, isMac) : null),
+  );
 </script>
 
 <Scene />
@@ -61,6 +66,15 @@
     />
   </Row>
 </section>
+
+<nav class="doors" aria-label="More in Settings">
+  {#each ways as door, i (door.section)}
+    {#if i > 0}<span class="dot" aria-hidden="true">·</span>{/if}
+    <button type="button" title={door.title} onclick={() => store.openSettings(door.section)}>
+      {door.label}
+    </button>
+  {/each}
+</nav>
 
 <style>
   .status {
@@ -122,6 +136,48 @@
 
   .rows {
     margin-top: auto;
-    padding: 0 24px 14px;
+    padding: 0 24px 4px;
+  }
+
+  /* The way in to what Home has no room for: a colophon, not a toolbar. */
+  .doors {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 2px;
+    margin: 0 24px;
+    padding: 6px 0 12px;
+    border-top: 1px solid var(--hair);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .doors button {
+    padding: 2px 6px;
+    color: var(--ink-2);
+    border-radius: var(--radius-sm);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+    transition:
+      color var(--t-fast) var(--ease),
+      text-decoration-color var(--t-fast) var(--ease);
+  }
+
+  .doors button:hover,
+  .doors button:focus-visible {
+    color: var(--ink);
+    text-decoration-color: var(--hair-strong);
+  }
+
+  .dot {
+    color: var(--ink-3);
+  }
+
+  /* At the minimum height the two rows need the room. */
+  @media (max-height: 560px) {
+    .doors {
+      display: none;
+    }
   }
 </style>

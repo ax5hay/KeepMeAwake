@@ -6,6 +6,7 @@
  * helpers in format.ts.
  */
 import { api, type Api } from './api';
+import type { SettingsSection } from './copy';
 import { progress, remainingSecs, statusText, sunsetSoon, toggleWhisper } from './format';
 import type { History, PlanRequest, Settings, Snapshot } from './types';
 
@@ -22,6 +23,8 @@ export class AppStore {
   whisper = $state<string | null>(null);
   /** The session log; loaded when Settings opens, not at launch. */
   history = $state<History | null>(null);
+  /** The Settings section to bring into view as Settings opens, if any. */
+  section = $state<SettingsSection | null>(null);
 
   #api: Api;
   #ticker: ReturnType<typeof setInterval> | undefined;
@@ -73,6 +76,12 @@ export class AppStore {
 
   get settings(): Settings | null {
     return this.snapshot?.settings ?? null;
+  }
+
+  /** Opens Settings, at `section` if given, else where it was left. */
+  openSettings(section: SettingsSection | null = null): void {
+    this.section = section;
+    this.view = 'settings';
   }
 
   /** The overnight guard is asking whether anyone is there. */

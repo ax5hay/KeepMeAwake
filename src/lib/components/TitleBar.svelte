@@ -25,16 +25,18 @@
       aria-label={store.view === 'settings' ? 'Back' : 'Settings'}
       aria-pressed={store.view === 'settings'}
       title={store.view === 'settings' ? 'Back (Esc)' : PLATFORM_COPY.settingsTitle}
-      onclick={() => (store.view = store.view === 'settings' ? 'home' : 'settings')}
+      onclick={() => (store.view === 'settings' ? (store.view = 'home') : store.openSettings())}
     >
       {#if store.view === 'settings'}
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" /></svg>
       {:else}
+        <!-- Sliders, not a gear: a gear at 16 px is one more sun in an app
+             whose only accent is the sun. -->
         <svg viewBox="0 0 16 16" aria-hidden="true">
-          <circle cx="8" cy="8" r="2.2" />
-          <path
-            d="M8 1.8v2.1M8 12.1v2.1M1.8 8h2.1M12.1 8h2.1M3.6 3.6l1.5 1.5M10.9 10.9l1.5 1.5M3.6 12.4l1.5-1.5M10.9 5.1l1.5-1.5"
-          />
+          <path d="M2.5 4h6.1M11.9 4h1.6M2.5 8h1.6M7.4 8h6.1M2.5 12h7.6M13.4 12h.1" />
+          <circle cx="10.25" cy="4" r="1.65" />
+          <circle cx="5.75" cy="8" r="1.65" />
+          <circle cx="11.75" cy="12" r="1.65" />
         </svg>
       {/if}
     </button>

@@ -250,6 +250,16 @@ describe('AppStore', () => {
     store.dispose();
   });
 
+  it('opens Settings at a section, or where it was left', () => {
+    const store = new AppStore(fakeApi(base).api);
+    store.openSettings('history');
+    expect(store.view).toBe('settings');
+    expect(store.section).toBe('history');
+    store.view = 'home';
+    store.openSettings();
+    expect(store.section).toBeNull();
+  });
+
   it('answers the overnight guard and stops asking', async () => {
     const asking: Snapshot = {
       ...base,

@@ -48,7 +48,8 @@
         void store.toggle();
         break;
       case 'settings':
-        store.view = store.view === 'settings' ? 'home' : 'settings';
+        if (store.view === 'settings') store.view = 'home';
+        else store.openSettings();
         break;
       // Same path as the title bar's close: to the menu bar, the sun stays up.
       case 'close':
