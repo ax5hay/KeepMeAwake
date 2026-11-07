@@ -32,11 +32,12 @@ Versions: [SemVer](https://semver.org).
 
 ### Changed
 
-- License: Keep me awake is no longer MIT. It is under its own license, all
-  rights reserved: the builds are free to use and the source is free to read
-  and build for yourself, but copying, redistributing or publishing changed
-  versions needs the author's permission. Copies of the source taken while
-  it was public under MIT keep that grant.
+- License: Keep me awake is no longer MIT. It has its own license, written
+  plainly: the builds are free to use and the source is free to read and
+  build for yourself, but copying it or publishing your own version needs
+  the author's yes. It is provided as is, at your own risk, with no
+  liability. Copies of the source taken while it was public under MIT keep
+  that grant.
 
 ### Fixed
 
