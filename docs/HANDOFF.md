@@ -3,7 +3,7 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-07 · by Claude Opus 5.5 (sunset warning built on the Mac, reviewed)
+**Last updated:** 2026-11-07 · by Claude Opus 5.5 (Mac session wrapped up; development moves to the Windows PC)
 **Release:** [v0.2.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.2.0), pre-release.
 **Repo state:** `main` is green (`npm run verify` on the Mac: vitest 91, cargo test 157;
 Windows runs its own platform tests in place of the Mac ones). **v0.2.0 is published as a
@@ -32,8 +32,11 @@ can collide, so commit it small and push it soon.
 
 ### On the Mac (macOS track)
 
-Setup is done on the Mac (rustup via Homebrew, librsvg). Two things
-the next session needs that this one did not have:
+Paused: development has moved to the Windows PC. When back on the Mac,
+pull, then work **Waiting for the other machine** for anything built on
+Windows (the overnight guard's macOS idle probe, for one). Setup is done
+here (rustup via Homebrew, librsvg). Two things the next session needs that
+this one did not have:
 
 1. `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"` in `~/.zshrc` (Homebrew's
    rustup is keg-only; without it `npm run verify` and the pre-commit hook
@@ -61,28 +64,47 @@ Then walk the by-hand acceptance in [`specs/macos.md`](specs/macos.md):
 | Resource numbers recorded                                        | done; menu bar footprint 16–17 MB is over the 12 MB budget |
 | CI matrix green on both runners                                  | done                                                       |
 
-### On the Windows PC (Windows track)
+### On the Windows PC (Windows track): start here
 
-0. **History was rewritten on 2026-11-07**: every commit is now authored by
-   the ax5hay GitHub account (code unchanged), and `v0.2.0` moved with it.
-   On a clone made before that:
+Development continues on Windows: what is left on the roadmap is mostly
+Windows-first. Work through this in order.
+
+0. **Reset the clone.** History was rewritten on 2026-11-07 (every commit
+   is now authored by the ax5hay GitHub account; code unchanged; `v0.2.0`
+   moved with it). On a clone made before that:
    `git fetch && git reset --hard origin/main && git fetch --tags --force`.
-   Commit with the ax5hay GitHub noreply address as
-   `user.email` (`git config --local`) so commits link to the account.
-1. Pull: session history and the sunset warning landed (shared code). Run `npm run verify` on
-   Windows once; the Rust count there differs from the Mac's because each OS
-   runs its own platform tests. Then walk both acceptance lists on Windows
-   (below) and tick them off under **Waiting for the other machine**.
-2. Install the v0.2.0 pre-release from the releases page and check it
-   once on Windows (toasts name the app when installed, per the old open
-   question). When both platforms are happy, untick **pre-release** on GitHub.
-3. Then [`specs/auto-update.md`](specs/auto-update.md) at commit 1. The
-   updater needs only Tauri's own free key pair (`tauri signer generate`,
-   stored as `TAURI_SIGNING_PRIVATE_KEY`); a paid OS certificate removes the
-   install warnings but is not a prerequisite. Check the spec still agrees.
-4. `taskkill /IM keepmeawake.exe /F` before testing a dev build;
+   Then `git config --local user.name "Akshay Bajpai"` and
+   `git config --local user.email <the ax5hay GitHub noreply address>` so
+   commits link to the account.
+1. **Verify the Mac's work on Windows.** `npm install`, then `npm run verify`
+   (the Rust count differs from the Mac's: each OS runs its own platform
+   tests). Then `npm run dev` and walk every row of **Waiting for the other
+   machine** below: the 0.2 behaviour (tray icons on a light and dark
+   taskbar, toasts, `Ctrl+Alt+K`), the history acceptance and the sunset
+   acceptance (both tables further down), including the tray items. Fix
+   anything Windows-specific there, and tick each row off.
+2. **Release.** Install the v0.2.0 pre-release from the releases page once
+   (toasts name the app when installed). When both platforms are happy,
+   untick **pre-release** on GitHub. The next release (0.3.0) can carry
+   history and the sunset warning: follow [`releasing.md`](releasing.md).
+3. **Build, in this order:**
+
+   | Spec                                        | State             | How, on Windows                                                                                                                                                                                                                                                                                                                                                |
+   | ------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | [auto-update](specs/auto-update.md)         | spec, 0 of 6      | `npm run tauri signer generate`, keep the private key out of the repo, store it and its password as the `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD` repository secrets; no paid certificate needed. The macOS `.app.tar.gz` is already built by the release job, so the updater can serve both                                                                   |
+   | [winget-scoop](specs/winget-scoop.md)       | spec, 0 of n      | after 0.3.0 is published; the first winget submission is by hand (`wingetcreate new`), with `License: Proprietary`                                                                                                                                                                                                                                             |
+   | [overnight-guard](specs/overnight-guard.md) | spec only, 1 of 7 | build commits 2–7 here. The Windows idle probe is `GetLastInputInfo` + `GetTickCount` (both `unsafe fn` in `windows` 0.62, features already enabled; subtract with `wrapping_sub`). Write the macOS probe too (`CGEventSourceSecondsSinceLastEventType`, in the spec): CI's `macos-latest` job compiles and tests it, and the Mac checks it by hand afterwards |
+   | After the sun sets (roadmap 0.4)            | needs a spec      | Windows-first: `LockWorkStation`, `SetSuspendState`. macOS has no public lock API and system sleep may need privileges; spec it as Windows-only with a macOS note, or `pmset sleepnow`-style sleep only                                                                                                                                                        |
+   | Sleep detection (roadmap 0.4)               | needs a spec      | `PowerRegisterSuspendResumeNotification` on Windows; the macOS equivalent is `IORegisterForSystemPower` (IOKit). Closes the history gap noted in the guide                                                                                                                                                                                                     |
+
+4. **Each feature:** spec → bottom-up commits → `npm run verify` → push →
+   add it to **Waiting for the other machine** for the Mac → update this
+   page. A Mac can't type-check the Windows build (Tauri's build script needs
+   the Windows SDK), and the reverse is true too, so CI on both runners is
+   the cross-platform compile check: watch it after each push.
+5. Driving the UI: `taskkill /IM keepmeawake.exe /F` before a dev build;
    `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` before
-   `npm run dev` lets you drive the UI over the DevTools protocol.
+   `npm run dev` lets you drive and inspect it over the DevTools protocol.
 
 ## Waiting for the other machine
 
@@ -108,6 +130,7 @@ apply there (see [`development.md`](development.md#two-machines-one-main)).
 | auto-update              | Windows | 0 of 6         | ready: needs the free updater key                                                                               |
 | session-history          | shared  | 5 of 5         | built on the Mac, reviewed, two review fixes in; acceptance below                                               |
 | sunset-warning           | shared  | 6 of 6         | spec written and built on the Mac, reviewed, two review fixes in; acceptance below                              |
+| overnight-guard          | shared  | 1 of 7         | spec written on the Mac; build continues on Windows (see Where to start)                                        |
 
 ## Done this cycle
 
@@ -120,6 +143,7 @@ apply there (see [`development.md`](development.md#two-machines-one-main)).
 | 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release    | Claude Opus 5.5  |
 | 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep          | Claude Opus 5.5  |
 | 2026-11-07 | Sunset warning: spec, built (6 commits) on the Mac, reviewed; two-machine rule written into the docs | Claude Opus 5.5  |
+| 2026-11-07 | Overnight guard specced; Mac session wrapped up, Windows start list rewritten                        | Claude Opus 5.5  |
 
 ## Decisions made on the macOS track
 
