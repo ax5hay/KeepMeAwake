@@ -178,6 +178,8 @@ Always to 2h, say) is the same row. **Clear history** empties it at once, with
 no confirmation: it is a log, not data. It lives in `history.json` beside the
 settings and is read only when Settings opens.
 
+![Settings → History, Paper](assets/history-light.png) ![Settings → History, Night](assets/history-dark.png)
+
 The app does not yet notice the machine sleeping (0.4 on the roadmap). A
 timer or window that ran out while the lid was shut is logged as ending when
 it was due, but a machine that sleeps and wakes inside the next window shows
