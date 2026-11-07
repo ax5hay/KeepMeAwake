@@ -3,13 +3,13 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-07 · by Claude Opus 5.5 (session history built on the Mac, reviewed)
+**Last updated:** 2026-11-07 · by Claude Opus 5.5 (sunset warning built on the Mac, reviewed)
 **Release:** [v0.2.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.2.0), pre-release.
-**Repo state:** `main` is green (`npm run verify` on the Mac: vitest 85, cargo test 142;
+**Repo state:** `main` is green (`npm run verify` on the Mac: vitest 91, cargo test 157;
 Windows runs its own platform tests in place of the Mac ones). **v0.2.0 is published as a
 pre-release** with Windows (`.exe`, `.msi`) and macOS (`.dmg`, `.app.tar.gz`, Apple Silicon,
-ad-hoc signed, not notarized) assets. Since then: **session history** (0.3) is built and under
-Unreleased in `CHANGELOG.md`. The project is under its own license, not MIT (see `LICENSE`).
+ad-hoc signed, not notarized) assets. Since then: **session history** (0.3) and the **sunset
+warning** (0.4) are built on the Mac and under Unreleased in `CHANGELOG.md`. The project is under its own license, not MIT (see `LICENSE`).
 
 ## Two tracks, two machines
 
@@ -69,9 +69,10 @@ Then walk the by-hand acceptance in [`specs/macos.md`](specs/macos.md):
    `git fetch && git reset --hard origin/main && git fetch --tags --force`.
    Commit with the ax5hay GitHub noreply address as
    `user.email` (`git config --local`) so commits link to the account.
-1. Pull: session history landed (shared code). Run `npm run verify` on
+1. Pull: session history and the sunset warning landed (shared code). Run `npm run verify` on
    Windows once; the Rust count there differs from the Mac's because each OS
-   runs its own platform tests. Then walk its acceptance on Windows (below).
+   runs its own platform tests. Then walk both acceptance lists on Windows
+   (below) and tick them off under **Waiting for the other machine**.
 2. Install the v0.2.0 pre-release from the releases page and check it
    once on Windows (toasts name the app when installed, per the old open
    question). When both platforms are happy, untick **pre-release** on GitHub.
@@ -89,11 +90,11 @@ Built on one machine, not yet built and checked on the other. A row goes
 when the other machine has run `npm run verify` and the acceptance items that
 apply there (see [`development.md`](development.md#two-machines-one-main)).
 
-| What            | Built on | Waits for | Check there                                                                   |
-| --------------- | -------- | --------- | ----------------------------------------------------------------------------- |
-| macOS track     | Mac      | Windows   | `npm run verify`; the Windows app still behaves as 0.2 (tray, toasts, hotkey) |
-| Session history | Mac      | Windows   | `npm run verify`; the history acceptance (below) on Windows                   |
-| Sunset warning  | Mac      | Windows   | in progress on the Mac; then its acceptance on Windows                        |
+| What            | Built on | Waits for | Check there                                                                    |
+| --------------- | -------- | --------- | ------------------------------------------------------------------------------ |
+| macOS track     | Mac      | Windows   | `npm run verify`; the Windows app still behaves as 0.2 (tray, toasts, hotkey)  |
+| Session history | Mac      | Windows   | `npm run verify`; the history acceptance (below) on Windows                    |
+| Sunset warning  | Mac      | Windows   | `npm run verify`; the sunset acceptance (below) on Windows, tray item included |
 
 ## In progress
 
@@ -106,17 +107,19 @@ apply there (see [`development.md`](development.md#two-machines-one-main)).
 | macos                    | macOS   | 12 of 12       | built, reviewed, four review fixes in; shipped in 0.2.0 as a pre-release; hand acceptance above is what is left |
 | auto-update              | Windows | 0 of 6         | ready: needs the free updater key                                                                               |
 | session-history          | shared  | 5 of 5         | built on the Mac, reviewed, two review fixes in; acceptance below                                               |
+| sunset-warning           | shared  | 6 of 6         | spec written and built on the Mac, reviewed, two review fixes in; acceptance below                              |
 
 ## Done this cycle
 
-| Date       | What                                                                                              | By               |
-| ---------- | ------------------------------------------------------------------------------------------------- | ---------------- |
-| 2026-11-07 | 0.1.0 built end to end; docs, CI, specs for 0.2 and 0.3; roadmap to 0.5                           | Claude Fable 5.1 |
-| 2026-11-07 | 0.2 built: schedule, notifications, global hotkey, taskbar-aware tray icons; engine wake-up fix   | Claude Opus 5.5  |
-| 2026-11-07 | Repo moved to `ax5hay` and made public; every link updated; bundle metadata made honest           | Claude Fable 5.1 |
-| 2026-11-07 | macOS scoped: `specs/macos.md`, Mac setup in `development.md`, two-track handoff                  | Claude Fable 5.1 |
-| 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release | Claude Opus 5.5  |
-| 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep       | Claude Opus 5.5  |
+| Date       | What                                                                                                 | By               |
+| ---------- | ---------------------------------------------------------------------------------------------------- | ---------------- |
+| 2026-11-07 | 0.1.0 built end to end; docs, CI, specs for 0.2 and 0.3; roadmap to 0.5                              | Claude Fable 5.1 |
+| 2026-11-07 | 0.2 built: schedule, notifications, global hotkey, taskbar-aware tray icons; engine wake-up fix      | Claude Opus 5.5  |
+| 2026-11-07 | Repo moved to `ax5hay` and made public; every link updated; bundle metadata made honest              | Claude Fable 5.1 |
+| 2026-11-07 | macOS scoped: `specs/macos.md`, Mac setup in `development.md`, two-track handoff                     | Claude Fable 5.1 |
+| 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release    | Claude Opus 5.5  |
+| 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep          | Claude Opus 5.5  |
+| 2026-11-07 | Sunset warning: spec, built (6 commits) on the Mac, reviewed; two-machine rule written into the docs | Claude Opus 5.5  |
 
 ## Decisions made on the macOS track
 
@@ -161,6 +164,26 @@ Deferred from review, all minor:
   Settings off screen (cheap, but wasted).
 - An unreadable `history.json` (corrupt, or from a newer build) is replaced
   on the next save without a backup; `Entry` has no `serde(default)` yet.
+
+## Sunset warning: acceptance and what is deferred
+
+| Acceptance (spec)                                             | Status                                                                                       |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 6-minute timer: at 5 left a toast, the status line, the link  | engine event checked on the real app (320 s timer warns at 20 s); toast and tray **by hand** |
+| Give it another 30m from the window moves the end, re-warns   | **by hand**; engine, store and harness click tested                                          |
+| The same from the tray                                        | **by hand**                                                                                  |
+| 2-minute timer never warns; Off never warns; timer switch off | unit tested; **by hand** on the real app                                                     |
+
+Decisions (each in its commit body): the toast follows the existing
+**When a timer ends** switch; no warning while an open schedule window
+outlasts the timer; `Session::extend` keeps the plan's start, so the arc
+grows (progress jumps back) rather than restarting.
+
+Deferred from review, all minor: the link also shows while paused ("Holding
+off while … Give it another 30m"); the click always whispers "Another 30
+minutes." and keyboard focus drops to the page; a hand-edited warning
+outside 2/5/10 selects no segment; under a minute the toast says "1 minute"
+while the line says "under a minute".
 
 ## Open questions for Akshay
 
