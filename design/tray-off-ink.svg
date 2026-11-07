@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Off: the sun has set; only its top edge shows beneath the horizon. Ink, for light taskbars. -->
+  <path d="M19 46 A13 13 0 0 1 45 46 Z" fill="#1C1B18" fill-opacity="0.45"/>
+  <rect x="8" y="43" width="48" height="5" rx="2.5" fill="#1C1B18" fill-opacity="0.8"/>
+</svg>
