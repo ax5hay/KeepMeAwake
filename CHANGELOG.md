@@ -21,6 +21,14 @@ Versions: [SemVer](https://semver.org).
   another app owns is refused and the old one kept.
 - Tray icons follow the taskbar: ink on a light taskbar, white on a dark
   one, switching within a second when Windows changes mode.
+- macOS: the same app as a menu bar app (no Dock icon) for macOS 12 and
+  later on Apple Silicon. It holds IOKit power assertions, visible by name in
+  `pmset -g assertions`, reads the battery from IOKit power sources, drops
+  the window down beneath the menu bar icon, uses template icons macOS tints
+  itself, and defaults the hotkey to `⌥⌘K`. `⌘W`, `⌘M`, `⌘,` and `⌘Q` work
+  in the window, and every string that named the tray, the taskbar or
+  Windows reads right on a Mac. Ships as an unsigned `.dmg` with a horizon
+  background; CI builds and tests on both platforms.
 
 ### Fixed
 

@@ -83,27 +83,34 @@ The hint under the battery row shows the live reading ("Plugged in · 100%").
 
 ## Keyboard
 
-| Keys       | Does                                                                      |
-| ---------- | ------------------------------------------------------------------------- |
-| Space      | toggle awake / resting                                                    |
-| Ctrl+Alt+K | toggle from any app, window open or not (recordable in Settings → Hotkey) |
-| Esc        | back from settings, else close to tray                                    |
-| Ctrl+,     | settings                                                                  |
-| Tab / ←→   | move between stops and controls                                           |
+| Windows    | macOS    | Does                                                                      |
+| ---------- | -------- | ------------------------------------------------------------------------- |
+| Space      | Space    | toggle awake / resting                                                    |
+| Ctrl+Alt+K | ⌥⌘K      | toggle from any app, window open or not (recordable in Settings → Hotkey) |
+| Esc        | Esc      | back from settings, else close to the tray or menu bar                    |
+|            | ⌘W       | close to the menu bar                                                     |
+|            | ⌘M       | minimise                                                                  |
+|            | ⌘Q       | quit                                                                      |
+| Ctrl+,     | ⌘,       | settings                                                                  |
+| Tab / ←→   | Tab / ←→ | move between stops and controls                                           |
 
-## Tray
+## Tray and menu bar
 
-| Action      | Does                                                                      |
-| ----------- | ------------------------------------------------------------------------- |
-| left click  | open the window                                                           |
-| right click | status line · Keep awake / Let it sleep · Keep awake for ▸ · Open · Quit  |
-|             | while a schedule window is open: Skip today's schedule / Back on schedule |
-| hover       | tooltip with the same status line as the menu                             |
+On Windows the sun lives in the tray. On a Mac it lives in the menu bar, and
+the app has no Dock icon and no place in Cmd-Tab: it is a menu bar app.
+
+| Action                         | Does                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| click (left click on Windows)  | open the window; on a Mac it drops down centred beneath the menu bar icon |
+| right click (or Control-click) | status line · Keep awake / Let it sleep · Keep awake for ▸ · Open · Quit  |
+|                                | while a schedule window is open: Skip today's schedule / Back on schedule |
+| hover                          | tooltip with the same status line as the menu                             |
 
 Icon states: sun above the line (awake), sun set (resting), bar across the sun
-(paused). The icons follow the taskbar theme: white on a dark taskbar, ink on a
-light one, switching within a second when Windows changes mode. Nothing to
-set.
+(paused). On Windows the icons follow the taskbar theme: white on a dark
+taskbar, ink on a light one, switching within a second when Windows changes
+mode. On a Mac they are template images, which macOS tints for a light or
+dark menu bar itself. Nothing to set.
 
 ## Settings
 
@@ -153,27 +160,30 @@ the change.
 
 ## Hotkey
 
-`Ctrl+Alt+K` does what the sun does, from any app, with the window open or
-closed: the tray icon changes and nothing opens. Settings → Hotkey shows the
-combination with **Change** and **Off**. Change listens for the next keys you
-press with at least one of Ctrl, Alt or Win (`Press keys…`), shows them as
-you hold them and saves when you let go; Esc cancels. If another app already
-owns the combination, the old one stays and the window says
+`Ctrl+Alt+K` (on a Mac, `⌥⌘K`) does what the sun does, from any app, with the
+window open or closed: the tray or menu bar icon changes and nothing opens.
+Settings → Hotkey shows the combination with **Change** and **Off**. Change
+listens for the next keys you press with at least one of Ctrl, Alt or Win (on
+a Mac ⌘, ⌃ or ⌥) (`Press keys…`), shows them as you hold them and saves when
+you let go; Esc cancels. A Mac shows the combination in glyphs, in the order
+its menus use. If another app or the system already owns the combination
+(`⌘Space`, say), the old one stays and the window says
 `That combination is already taken.`
 
-The hotkey is registered with Windows (`RegisterHotKey`), which only listens.
-Nothing is ever typed into other applications.
+The hotkey is registered with the OS (`RegisterHotKey` on Windows, a Carbon
+hot key on macOS), which only listens. Nothing is ever typed into other
+applications.
 
 ![Settings → Hotkey, Paper](assets/hotkey-light.png) ![Settings → Hotkey, Night](assets/hotkey-dark.png)
 
 ## Where things are
 
-| What      | Where                                                        |
-| --------- | ------------------------------------------------------------ |
-| Settings  | `%APPDATA%\dev.bajpai.keepmeawake\settings.json`             |
-| Log       | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\keepmeawake.log` |
-| Autostart | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`         |
-| Proof     | `powercfg /requests` (elevated) while awake                  |
+| What      | Windows                                                      | macOS                                                                |
+| --------- | ------------------------------------------------------------ | -------------------------------------------------------------------- |
+| Settings  | `%APPDATA%\dev.bajpai.keepmeawake\settings.json`             | `~/Library/Application Support/dev.bajpai.keepmeawake/settings.json` |
+| Log       | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\keepmeawake.log` | `~/Library/Logs/dev.bajpai.keepmeawake/keepmeawake.log`              |
+| Autostart | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`         | a LaunchAgent in `~/Library/LaunchAgents/`                           |
+| Proof     | `powercfg /requests` (elevated) while awake                  | `pmset -g assertions` while awake                                    |
 
 ## When it will not hold
 
@@ -183,6 +193,21 @@ Nothing is ever typed into other applications.
   minutes after the sleep timeout. Plug in, or accept it.
 - "Paused: Windows refused the request": something blocked
   `PowerCreateRequest`; check the log.
+- Mac lid closed with no external display: macOS sleeps regardless of any
+  assertion, by design. With a display, power and a keyboard attached
+  (clamshell mode) it stays up.
+- "Paused: macOS refused the request": IOKit turned the assertion down;
+  check the log for the `IOReturn` code.
+
+## Installing on a Mac
+
+The Mac build is not notarized yet, so the first open needs one extra step:
+drag the sun to Applications from the disk image, then right-click
+**KeepMeAwake** → **Open** → **Open**, once. Or, in Terminal:
+`xattr -d com.apple.quarantine /Applications/KeepMeAwake.app`. It runs on
+macOS 12 or later on Apple Silicon. An Intel Mac needs a universal build
+(`npm run build -- --target universal-apple-darwin`); the releases do not
+include one yet.
 
 ---
 

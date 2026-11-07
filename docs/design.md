@@ -59,18 +59,30 @@ line (the sun's colour at 10–16% opacity, like a risograph) and a static
 film-grain overlay (`feTurbulence`, 8% multiply on Paper, 5% screen on Night)
 that is rendered once and composited.
 
-Theme follows Windows by default; Settings offers Paper and Night by name.
+Theme follows the system (Windows or macOS) by default; Settings offers Paper
+and Night by name.
 
 ## Type
 
 | Face                | Where                                   | Why                                                    |
 | ------------------- | --------------------------------------- | ------------------------------------------------------ |
 | Fraunces (variable) | the status word, the wordmark, whispers | one voice with character, used in exactly three places |
-| Segoe UI Variable   | everything else                         | native to Windows 11, perfect at 12–13 px              |
+| Segoe UI Variable   | everything else, on Windows             | native to Windows 11, perfect at 12–13 px              |
+| SF Pro (system)     | everything else, on macOS               | `-apple-system` in the same stack; native to the Mac   |
 
 Fraunces is bundled (latin subset, upright and italic, 150 KB together) and
 set at `opsz 72`, `SOFT 50`. Tabular numerals wherever a number can change.
 No icon font: the few icons are 1.3 px stroked SVG paths drawn to a 16 px grid.
+
+SF Pro sets about 14% wider than Segoe at 12 px. Rather than tighten its
+tracking, which makes the system face look pinched, long hints are allowed to
+wrap to a second line; the Tips rows and the rule's stop labels still fit at
+380 px. Shortcuts on a Mac are shown in glyphs (`⌥⌘K`), modifiers in the order
+macOS menus use: ⌃ ⌥ ⇧ ⌘.
+
+The menu bar icon on macOS is a **template image**: the same three tray
+drawings in pure black with alpha, 22 pt at 2x, which macOS tints for a light
+or dark menu bar. No colour, so the sun's amber stays in the window.
 
 ## Layout
 
