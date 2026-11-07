@@ -83,6 +83,18 @@ Then walk the by-hand acceptance in [`specs/macos.md`](specs/macos.md):
    `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` before
    `npm run dev` lets you drive the UI over the DevTools protocol.
 
+## Waiting for the other machine
+
+Built on one machine, not yet built and checked on the other. A row goes
+when the other machine has run `npm run verify` and the acceptance items that
+apply there (see [`development.md`](development.md#two-machines-one-main)).
+
+| What            | Built on | Waits for | Check there                                                                   |
+| --------------- | -------- | --------- | ----------------------------------------------------------------------------- |
+| macOS track     | Mac      | Windows   | `npm run verify`; the Windows app still behaves as 0.2 (tray, toasts, hotkey) |
+| Session history | Mac      | Windows   | `npm run verify`; the history acceptance (below) on Windows                   |
+| Sunset warning  | Mac      | Windows   | in progress on the Mac; then its acceptance on Windows                        |
+
 ## In progress
 
 | Spec                     | Track   | Commit reached | Notes                                                                                                           |
@@ -170,8 +182,9 @@ Deferred from review, all minor:
 
 At the end of every session: set **Last updated**, move your spec's row in
 **In progress** (commit number reached, anything half-done), append to **Done
-this cycle**, and rewrite the **Where to start** list for your track so the
-next agent can begin in one step. Commit it as `docs(handoff): …` and push.
+this cycle**, add what you built to **Waiting for the other machine** (and
+tick off what you checked from the other side), and rewrite **Where to
+start** for both machines so either can begin in one step. Commit it as `docs(handoff): …` and push.
 
 ---
 

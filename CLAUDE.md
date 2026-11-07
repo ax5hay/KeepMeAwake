@@ -13,9 +13,16 @@ version.
 - Layers: `app → engine → core`, `engine → platform`. `core` has no I/O.
 - The only `unsafe` is in `src-tauri/src/platform/windows.rs` and
   `src-tauri/src/platform/macos.rs`. Nowhere else.
-- Two machines push to `main`: Windows work on a Windows PC, macOS work on a
-  Mac (`docs/specs/macos.md`). Pull first; keep platform work
-  inside `platform/` and `cfg` blocks.
+- Development happens on two machines, a Windows PC and a Mac, both pushing
+  to `main`. Pull first; keep platform work inside `platform/` and `cfg`
+  blocks.
+- Anything built on one machine is not done until it is built and checked on
+  the other: `npm run verify` there, and the spec's acceptance items that
+  apply. Until then it is listed under **Waiting for the other machine** in
+  `docs/HANDOFF.md`.
+- Every change updates the docs it touches in the same series of commits,
+  and every session ends by updating `docs/HANDOFF.md` so the other machine
+  knows exactly where to start.
 - `src/lib/types.ts` mirrors `src-tauri/src/core` field for field, `snake_case`.
   Change both or neither.
 - UI copy that is more than a label lives in `src/lib/copy.ts`.

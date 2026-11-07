@@ -75,12 +75,24 @@ swift -e 'import CoreGraphics; let l = CGWindowListCopyWindowInfo(.optionOnScree
 
 ## Two machines, one `main`
 
-The Windows work happens on a Windows PC, the macOS work on a Mac, both
-pushing small commits to `main`. Pull before you start; read and
-update [`HANDOFF.md`](HANDOFF.md) at both ends of a session. Shared files
-(`core`, `engine`, `copy.ts`, the docs) are where conflicts can appear, so
-keep platform work inside `platform/` and `cfg` blocks wherever it can live
-there.
+Development happens on both a Windows PC and a Mac, each pushing small
+commits to `main`. Most of the code is shared, so a change made on one
+machine reaches both platforms, and each platform has to see it working.
+
+```mermaid
+flowchart LR
+    build["Build on one machine<br/>verify · commit · push"] --> handoff["HANDOFF.md:<br/>add it to Waiting for the other machine,<br/>rewrite that machine's Where to start"]
+    handoff --> other["Other machine: pull,<br/>npm run verify, walk the acceptance<br/>that applies there"]
+    other --> done["Tick it off in HANDOFF.md,<br/>fix anything platform-specific there"]
+```
+
+| Rule                              | In practice                                                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Pull before you start             | `git pull`, then read [`HANDOFF.md`](HANDOFF.md)                                                                               |
+| Built here is not done everywhere | a feature built on the Mac is checked on Windows before it ships, and the other way round                                      |
+| Docs move with the code           | guide, architecture, roadmap, changelog and specs change in the same series of commits as the behaviour                        |
+| The handoff is the baton          | at the end of every session, update **Waiting for the other machine** and **Where to start** for both machines, then push      |
+| Platform work stays in its lane   | `platform/` and `cfg` blocks; shared files (`core`, `engine`, `copy.ts`, the docs) are where conflicts appear, so commit small |
 
 ## Daily commands
 

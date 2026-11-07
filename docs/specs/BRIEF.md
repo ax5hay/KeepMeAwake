@@ -41,6 +41,10 @@ the contract. The specs in this folder are the work.
   window at 380 × 600, saved under `docs/assets/` and referenced from the guide.
 - The resource budget still holds; new numbers recorded if anything measurable
   changed.
+- Built and checked on both a Windows PC and a Mac. A spec built on one
+  machine stays listed under **Waiting for the other machine** in
+  `docs/HANDOFF.md` until the other has run `npm run verify` and the
+  acceptance items that apply there.
 
 ## How to work
 
