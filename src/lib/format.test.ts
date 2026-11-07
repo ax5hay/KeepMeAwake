@@ -59,6 +59,8 @@ const base: Snapshot = {
     hotkey: 'Ctrl+Alt+K',
     sunset_warning_mins: 5,
     overnight_guard_hours: 6,
+    check_for_updates: true,
+    last_update_check_unix_ms: 0,
   },
   app_version: '0.1.0',
 };

@@ -32,6 +32,22 @@ export interface Settings {
   sunset_warning_mins: number | null;
   /** Hours without input after which an Always session asks, then rests; `null` is off. */
   overnight_guard_hours: number | null;
+  /** Ask GitHub once a day for a newer release. */
+  check_for_updates: boolean;
+  /** When it last asked, Unix ms; 0 for never. Written by the app, not the UI. */
+  last_update_check_unix_ms: number;
+}
+
+/** A newer release found by the daily check. Mirrors `app::update::UpdateInfo`. */
+export interface UpdateInfo {
+  version: string;
+  notes: string | null;
+}
+
+/** How far an update's download has got. Mirrors `app::update::Progress`. */
+export interface UpdateProgress {
+  downloaded: number;
+  total: number | null;
 }
 
 /** One switch per kind of desktop toast. */

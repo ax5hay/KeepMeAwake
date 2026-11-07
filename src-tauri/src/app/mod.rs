@@ -7,6 +7,7 @@ pub mod history;
 pub mod hotkey;
 pub mod notify;
 pub mod tray;
+pub mod update;
 pub mod window;
 
 use std::path::PathBuf;
@@ -43,6 +44,8 @@ pub struct AppState {
     pub history_path: PathBuf,
     /// Light or dark taskbar, for the tray icon set.
     pub taskbar: Box<dyn TaskbarTheme>,
+    /// A newer release, as last found by the daily check.
+    pub update: Mutex<Option<update::UpdateInfo>>,
 }
 
 /// Builds and runs the application. Blocks until exit.
@@ -80,6 +83,7 @@ pub fn run() {
             commands::quit_app,
             commands::get_history,
             commands::clear_history,
+            commands::get_update,
         ])
         .setup(|app| setup(app.handle()).map_err(Into::into))
         .build(tauri::generate_context!())
@@ -154,9 +158,11 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         history,
         history_path,
         taskbar: make_taskbar(),
+        update: Mutex::new(None),
     });
     tray::create(app)?;
     watch_taskbar_theme(app, &engine);
+    update::start(app);
     if let Err(err) = hotkey::apply(app, settings.hotkey.as_deref()) {
         log::warn!("hotkey not registered at launch: {err}");
     }

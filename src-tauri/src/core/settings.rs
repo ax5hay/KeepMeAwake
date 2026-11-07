@@ -77,6 +77,11 @@ pub struct Settings {
     /// Always session asks once, then lets the laptop sleep. `None` turns
     /// the overnight guard off.
     pub overnight_guard_hours: Option<u8>,
+    /// Ask GitHub once a day whether a newer release exists.
+    pub check_for_updates: bool,
+    /// When that was last asked, Unix ms; 0 for never. Written by the app,
+    /// not the UI.
+    pub last_update_check_unix_ms: u64,
 }
 
 /// The hotkey a fresh install gets: `⌘⌥K` on a Mac, `Ctrl+Alt+K` elsewhere.
@@ -171,6 +176,8 @@ impl Default for Settings {
             hotkey: Some(DEFAULT_HOTKEY.to_owned()),
             sunset_warning_mins: Some(5),
             overnight_guard_hours: Some(6),
+            check_for_updates: true,
+            last_update_check_unix_ms: 0,
         }
     }
 }
@@ -279,6 +286,18 @@ mod tests {
             };
             assert_eq!(s.sanitized().overnight_guard_hours, Some(clamped));
         }
+    }
+
+    #[test]
+    fn update_checks_default_on_and_never_checked() {
+        let s = Settings::default();
+        assert!(s.check_for_updates);
+        assert_eq!(s.last_update_check_unix_ms, 0);
+        let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
+        assert!(old.check_for_updates, "older files gain it, on");
+        let json = serde_json::to_value(&s).unwrap();
+        assert_eq!(json["check_for_updates"], true);
+        assert_eq!(json["last_update_check_unix_ms"], 0);
     }
 
     #[test]

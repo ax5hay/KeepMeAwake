@@ -6,6 +6,7 @@
 
 use tauri::{AppHandle, State};
 
+use super::update::UpdateInfo;
 use super::{AppState, hotkey};
 use crate::core::history::History;
 use crate::core::{PlanRequest, Settings, Snapshot};
@@ -67,7 +68,10 @@ pub fn update_settings(
     settings: Settings,
 ) -> Result<Snapshot, String> {
     let mut settings = settings.sanitized();
-    let previous = state.engine.settings().hotkey;
+    let current = state.engine.settings();
+    // The app writes this; the window's copy may be a check behind.
+    settings.last_update_check_unix_ms = current.last_update_check_unix_ms;
+    let previous = current.hotkey;
     let mut hotkey_error = None;
     if settings.hotkey != previous
         && let Err(err) = hotkey::apply(&app, settings.hotkey.as_deref())
@@ -103,6 +107,12 @@ pub fn clear_history(state: State<'_, AppState>) -> Result<History, String> {
         format!("History cleared but could not be saved: {err}")
     })?;
     Ok(history.clone())
+}
+
+/// The newer release the daily check found, if any.
+#[tauri::command]
+pub fn get_update(state: State<'_, AppState>) -> Option<UpdateInfo> {
+    state.update.lock().clone()
 }
 
 /// Exit the application completely (not just hide to tray).
