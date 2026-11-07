@@ -1,21 +1,46 @@
-MIT License
+Keep me awake License
 
-Copyright (c) 2026 Akshay Bajpai
+Copyright (c) 2026 Akshay Bajpai (https://akshaybajpai.com).
+All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Keep me awake (the "Software"), its source code, its design, its name and its
+artwork belong to Akshay Bajpai. The source is published so that it can be
+read and checked; publishing it does not make it open source. You may use the
+Software only as this license allows. Anything it does not allow needs the
+author's written permission.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+You may:
+
+1. Download the builds the author publishes and use them, free of charge, on
+   your own machines, for personal use or for your own work.
+2. Read the source code, and build it from source for your own use on your
+   own machines.
+3. Make changes to your own copy for your own use, and offer changes back to
+   the author as a pull request or patch.
+
+You may not, without the author's written permission:
+
+1. Copy, publish, distribute, sell, rent or sublicense the Software, in source
+   or built form, whether changed or not, including as part of another
+   product or package.
+2. Publish a modified version or a work derived from the Software.
+3. Use the name "Keep me awake", the sun-and-horizon artwork, or anything
+   confusingly similar, for another product.
+
+Contributions: if you send the author a change, you agree that he may use,
+change and publish it as part of the Software under any terms he chooses, and
+you confirm that you have the right to give it.
+
+Hosting: where the source is hosted on a public service (such as GitHub), the
+service's own terms may let its users view and fork the repository there.
+This license grants nothing beyond those terms and the rights above.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For permission to do anything this license does not allow, contact the author
+through https://akshaybajpai.com.
