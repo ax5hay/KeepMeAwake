@@ -42,15 +42,28 @@ pub fn decide(
     )
 }
 
-/// The next moment the engine must wake up on its own: the session deadline or
-/// the next battery poll, whichever comes first. `None` means "sleep until a
-/// command arrives".
-pub fn next_deadline(session: &Session, now: Instant) -> Option<Instant> {
-    if !session.is_active() {
-        return None;
-    }
-    let poll = now + BATTERY_POLL;
-    Some(session.deadline().map_or(poll, |d| d.min(poll)))
+/// Longest the engine sleeps while the schedule waits for its next window.
+/// Windows stops counting wait timeouts while the machine sleeps, so one
+/// long wait set at night could fire hours late after the lid opens in the
+/// morning; re-checking every few minutes bounds that lateness.
+pub const SCHEDULE_RECHECK: Duration = Duration::from_secs(5 * 60);
+
+/// The next moment the engine must wake up on its own: the session deadline,
+/// the next battery poll while anything is holding the laptop awake, or the
+/// next schedule boundary (capped by [`SCHEDULE_RECHECK`]), whichever comes
+/// first. `None` means "sleep until a command arrives".
+pub fn next_deadline(
+    session: &Session,
+    scheduled: bool,
+    schedule_boundary: Option<Instant>,
+    now: Instant,
+) -> Option<Instant> {
+    let poll = (session.is_active() || scheduled).then(|| now + BATTERY_POLL);
+    let boundary = schedule_boundary.map(|at| at.min(now + SCHEDULE_RECHECK));
+    [session.deadline(), poll, boundary]
+        .into_iter()
+        .flatten()
+        .min()
 }
 
 #[cfg(test)]
@@ -161,7 +174,10 @@ mod tests {
 
     #[test]
     fn no_deadline_when_off() {
-        assert_eq!(next_deadline(&Session::off(), Instant::now()), None);
+        assert_eq!(
+            next_deadline(&Session::off(), false, None, Instant::now()),
+            None
+        );
     }
 
     #[test]
@@ -169,7 +185,10 @@ mod tests {
         let now = Instant::now();
         let mut s = Session::off();
         s.apply(PlanRequest::Indefinite, now);
-        assert_eq!(next_deadline(&s, now), Some(now + BATTERY_POLL));
+        assert_eq!(
+            next_deadline(&s, false, None, now),
+            Some(now + BATTERY_POLL)
+        );
     }
 
     #[test]
@@ -177,8 +196,43 @@ mod tests {
         let now = Instant::now();
         let mut s = Session::off();
         s.apply(PlanRequest::For { seconds: 5 }, now);
-        assert_eq!(next_deadline(&s, now), Some(now + Duration::from_secs(5)));
+        assert_eq!(
+            next_deadline(&s, false, None, now),
+            Some(now + Duration::from_secs(5))
+        );
         s.apply(PlanRequest::For { seconds: 3600 }, now);
-        assert_eq!(next_deadline(&s, now), Some(now + BATTERY_POLL));
+        assert_eq!(
+            next_deadline(&s, false, None, now),
+            Some(now + BATTERY_POLL)
+        );
+    }
+
+    #[test]
+    fn a_window_keeps_the_battery_poll_running() {
+        let now = Instant::now();
+        assert_eq!(
+            next_deadline(&Session::off(), true, None, now),
+            Some(now + BATTERY_POLL)
+        );
+    }
+
+    #[test]
+    fn schedule_boundary_wakes_exactly_when_near_and_is_capped_when_far() {
+        let now = Instant::now();
+        let soon = now + Duration::from_secs(60);
+        assert_eq!(
+            next_deadline(&Session::off(), false, Some(soon), now),
+            Some(soon)
+        );
+        let tomorrow = now + Duration::from_secs(15 * 3600);
+        assert_eq!(
+            next_deadline(&Session::off(), false, Some(tomorrow), now),
+            Some(now + SCHEDULE_RECHECK)
+        );
+        let edge = now + Duration::from_secs(10);
+        assert_eq!(
+            next_deadline(&Session::off(), true, Some(edge), now),
+            Some(edge)
+        );
     }
 }

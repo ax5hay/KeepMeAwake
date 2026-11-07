@@ -191,6 +191,13 @@ pub mod fakes {
             }
         }
 
+        /// A clock whose wall time starts at `unix_ms`.
+        pub fn at(unix_ms: u64) -> Self {
+            Self {
+                inner: Arc::new(Mutex::new((Instant::now(), unix_ms))),
+            }
+        }
+
         pub fn advance(&self, by: Duration) {
             let mut g = self.inner.lock().unwrap();
             g.0 += by;
