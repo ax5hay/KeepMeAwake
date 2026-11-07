@@ -14,9 +14,9 @@ flowchart TB
         app["app/<br/>commands · tray · window"]
         engine["engine/<br/>worker thread · policy"]
         core["core/<br/>Session · PlanRequest · Settings · Schedule · Snapshot<br/><i>pure, no I/O</i>"]
-        platform["platform/<br/>PowerGuard · BatteryProbe · Clock · TaskbarTheme"]
-        win["platform/windows.rs<br/>PowerCreateRequest · PowerSetRequest<br/>GetSystemPowerStatus · registry theme<br/><i>unsafe, Windows only</i>"]
-        mac["platform/macos.rs<br/>IOPMAssertionCreateWithName · Release<br/>IOPSCopyPowerSourcesInfo<br/><i>unsafe, macOS only</i>"]
+        platform["platform/<br/>PowerGuard · BatteryProbe · IdleProbe · Clock · TaskbarTheme"]
+        win["platform/windows.rs<br/>PowerCreateRequest · PowerSetRequest<br/>GetSystemPowerStatus · GetLastInputInfo · registry theme<br/><i>unsafe, Windows only</i>"]
+        mac["platform/macos.rs<br/>IOPMAssertionCreateWithName · Release<br/>IOPSCopyPowerSourcesInfo · CGEventSource idle time<br/><i>unsafe, macOS only</i>"]
         persist["persistence.rs<br/>settings.json, atomic save"]
         app --> engine --> core
         engine --> platform --> win
@@ -88,12 +88,13 @@ with the window even across sleep.
 
 ### platform
 
-Four traits so the engine and the tray never call the OS directly.
+Five traits so the engine and the tray never call the OS directly.
 
 | Trait          | Windows                                            | macOS                                                                     | Test double      |
 | -------------- | -------------------------------------------------- | ------------------------------------------------------------------------- | ---------------- |
 | `PowerGuard`   | `PowerCreateRequest` + `PowerSetRequest` / `Clear` | two IOPMAssertions: `PreventUserIdleSystemSleep`, `…DisplaySleep`         | `FakePowerGuard` |
 | `BatteryProbe` | `GetSystemPowerStatus`                             | first source of `IOPSCopyPowerSourcesInfo`; none means mains              | `FakeBattery`    |
+| `IdleProbe`    | `GetLastInputInfo` − `GetTickCount`, wrapping      | `CGEventSourceSecondsSinceLastEventType`, HID state, any input            | `FakeIdle`       |
 | `Clock`        | `Instant::now`, `SystemTime`                       | same                                                                      | `ManualClock`    |
 | `TaskbarTheme` | `RegGetValueW` on `SystemUsesLightTheme`           | `DarkTaskbar` (unused: the menu bar icon is a template image macOS tints) | `FakeTaskbar`    |
 
@@ -156,11 +157,17 @@ The engine also reports each stretch with the sun up exactly once:
 `SessionEnded { ended, at_unix_ms }` when it sets, including on quit.
 `SunsetSoon { ends_at_unix_ms, secs_left }` comes once per deadline when a
 timed session reaches its warning (`policy::sunset_warning_at`); the worker
-wakes for it, and `Engine::extend` re-arms it by moving the deadline. A
+wakes for it, and `Engine::extend` re-arms it by moving the deadline.
+`OvernightAsk { idle_secs, rests_at_unix_ms }` comes once per question when
+an Always session has had no input for the guard's hours. The idle time is
+read on the steps the 30 s battery poll already makes, and only while it can
+matter. Input withdraws the question; `Engine::keep_it_up` dismisses the
+guard for that session; an unanswered question ends the session after
+`policy::GUARD_GRACE` (10 minutes, a wake the worker adds) as `Idle`. A
 `State::awake` flag holds what was last reported, so a startup plan or a
-window already open at launch is reported too. `Ended` is `Timer`, `Schedule`
-or `User`, or `Battery` if the stretch was still paused for the battery as it
-ended.
+window already open at launch is reported too. `Ended` is `Idle` when the
+guard let it go, else `Timer`, `Schedule` or `User`, or `Battery` if the
+stretch was still paused for the battery as it ended.
 
 ### app
 
@@ -204,6 +211,7 @@ sequenceDiagram
 | `update_settings` | `settings: Settings`   | `Snapshot`, or an error string if the file could not be saved or the hotkey was refused |
 | `quit_app`        |                        |                                                                                         |
 | `extend_session`  |                        | `Snapshot`: a timed session's end moved 30 minutes later                                |
+| `keep_it_up`      |                        | `Snapshot`: the overnight guard leaves this Always session alone                        |
 | `get_history`     |                        | `History`: the session log, oldest entry first                                          |
 | `clear_history`   |                        | `History` (empty), also written to disk                                                 |
 
@@ -245,9 +253,11 @@ where it last was.
   notification permission.
 - One settings file and one log, per user (see **On disk**).
 - A handful of OS calls, one file per OS: on Windows power requests, power
-  status, two registry reads and a registry change notification; on macOS
-  two power assertions and the power sources snapshot.
-- No input is ever sent to other applications. The global hotkey is
+  status, the last input time, two registry reads and a registry change
+  notification; on macOS two power assertions, the power sources snapshot
+  and the HID idle time.
+- No input is ever sent to other applications. The overnight guard only
+  reads how long ago the last input was; neither OS asks permission for it. The global hotkey is
   registered from Rust (`RegisterHotKey` on Windows, a Carbon hot key on
   macOS), which only listens, so the webview has no shortcut permission.
 - CSP is `default-src 'self'`; the capability file grants only window

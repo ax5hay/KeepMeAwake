@@ -34,16 +34,17 @@ The word is what the laptop is doing: **Resting**, **Awake**, **Paused**. The
 line under it says until when, or why it is paused. Between midnight and five
 in the morning the awake line adds a second sentence.
 
-| State                     | Word    | Line                                                   |
-| ------------------------- | ------- | ------------------------------------------------------ |
-| resting                   | Resting | `Your laptop sleeps as usual.`                         |
-| resting, schedule waiting | Resting | `Your laptop sleeps as usual. Awake again at 9:00 am.` |
-| always                    | Awake   | `Until you say otherwise.`                             |
-| timed                     | Awake   | `Until 5:30 pm · 1h 30m left`                          |
-| timed, sunset near        | Awake   | `The sun sets in 5 minutes.` **Give it another 30m**   |
-| schedule window           | Awake   | `Until 6:00 pm · on schedule`                          |
-| window skipped            | Resting | `Skipping today's schedule until 6:00 pm.`             |
-| paused                    | Paused  | `Holding off while battery is low.`                    |
+| State                     | Word    | Line                                                          |
+| ------------------------- | ------- | ------------------------------------------------------------- |
+| resting                   | Resting | `Your laptop sleeps as usual.`                                |
+| resting, schedule waiting | Resting | `Your laptop sleeps as usual. Awake again at 9:00 am.`        |
+| always                    | Awake   | `Until you say otherwise.`                                    |
+| always, nobody around     | Awake   | `Nobody here for 6 hours. Resting at 3:12 am.` **Keep it up** |
+| timed                     | Awake   | `Until 5:30 pm · 1h 30m left`                                 |
+| timed, sunset near        | Awake   | `The sun sets in 5 minutes.` **Give it another 30m**          |
+| schedule window           | Awake   | `Until 6:00 pm · on schedule`                                 |
+| window skipped            | Resting | `Skipping today's schedule until 6:00 pm.`                    |
+| paused                    | Paused  | `Holding off while battery is low.`                           |
 
 When the next window is further off than tomorrow the line names the day:
 `Awake again at 9:00 am on Monday.`
@@ -57,6 +58,26 @@ says it if the window is closed. Only timed sessions, only when the timer
 is longer than the warning (a 2-minute timer never warns), and not while a
 schedule window that lasts longer than the timer is open, since the sun
 stays up when the timer ends.
+
+**Overnight guard.** Always is the easiest session to forget. When an
+Always session has had no keyboard, mouse or trackpad input for 6 hours
+(Settings → Waking → **Overnight guard**: Off · 4h · 6h · 8h), the sun asks
+once: the line turns to `Nobody here for 6 hours. Resting at 3:12 am.` with
+a link, **Keep it up**; the tray (the menu bar on a Mac) gains the same item
+and a toast says it if the window is closed. Then, within ten minutes:
+
+| Happens                         | Result                                                        |
+| ------------------------------- | ------------------------------------------------------------- |
+| any input                       | the question goes away quietly; the 6 hours start again       |
+| **Keep it up** (window or tray) | the guard leaves this session alone until it ends             |
+| nothing                         | the session ends, the laptop sleeps as usual, history: `idle` |
+
+The guard only reads how long since the last input; it never sends any.
+Timers and schedule windows end on their own and are never asked about. A
+paused Always session is guarded too, since it would resume on the charger.
+A machine that cannot say how long it has been idle is never stopped.
+
+![Nobody around, Paper](assets/overnight-home-light.png) ![Nobody around, Night](assets/overnight-home-dark.png)
 
 ### Schedule
 
@@ -116,6 +137,7 @@ the app has no Dock icon and no place in Cmd-Tab: it is a menu bar app.
 | right click                   | status line · Keep awake / Let it sleep · Keep awake for ▸ · Open · Quit  |
 |                               | while a schedule window is open: Skip today's schedule / Back on schedule |
 |                               | near the end of a timer: Give it another 30m                              |
+|                               | while the overnight guard asks: Keep it up                                |
 | hover                         | tooltip with the same status line as the menu                             |
 
 Icon states: sun above the line (awake), sun set (resting), bar across the sun
@@ -133,6 +155,7 @@ dark menu bar itself. Nothing to set.
 |               | Begin as                   | Resting · Awake · Default length                                          |
 | Waking        | Default length             | what the sun, tray toggle and Space use. Always, or a stop                |
 |               | Warn before sunset         | Off · 2m · 5m · 10m before a timer ends; 5m by default                    |
+|               | Overnight guard            | Off · 4h · 6h · 8h without input before Always asks, then rests; 6h       |
 |               | Keep the screen on         | same switch as on the home pane                                           |
 | Schedule      | Keep a schedule            | awake during these hours, resting outside them. Off by default            |
 |               | Days                       | Monday first; weekdays by default                                         |
@@ -149,6 +172,8 @@ dark menu bar itself. Nothing to set.
 | History       |                            | the last 30 times the sun was up; see below                               |
 | Tips          |                            | the keyboard and tray table                                               |
 | About         |                            | version, how it works, author, Source, Quit                               |
+
+![Settings → Waking, Paper](assets/overnight-settings-light.png) ![Settings → Waking, Night](assets/overnight-settings-dark.png)
 
 ![Settings → Schedule, Paper](assets/schedule-settings-light.png) ![Settings → Schedule, Night](assets/schedule-settings-dark.png)
 
@@ -170,6 +195,7 @@ stretch with the sun up, newest first, at most 30 shown (200 are kept):
 | `timer`    | a timed session ran out                                                           |
 | `schedule` | the schedule window it belonged to closed                                         |
 | `battery`  | it was paused for the battery and never resumed before it ended                   |
+| `idle`     | the overnight guard let it go: hours without input, and nobody answered           |
 | `sleep`    | it never ended cleanly: the machine slept or shut down, or the app was killed     |
 
 Pauses show as a thin inset line under their row:
@@ -195,6 +221,7 @@ while the window is open and focused; the status line already says it.
 | ---------------- | ------------------------ | ---------------------------------------------------------------- | ------------------------- |
 | timer ended      | `The sun has set`        | `Resting now. 2h 00m, as asked.`                                 | on                        |
 | sunset near      | `The sun sets soon`      | `In 5 minutes. Give it another 30m from the tray or the window.` | on, with the timer switch |
+| nobody around    | `Nobody around`          | `No input for 6 hours. Resting at 3:12 am unless you're back.`   | on, with the guard        |
 | battery paused   | `Paused for the battery` | `Holding off at 18%. Plug in to resume.`                         | off                       |
 | battery resumed  | `Back up`                | `Charger connected. The sun is up again.`                        | off                       |
 | schedule started | `On schedule`            | `Awake until 6:00 pm.`                                           | off                       |
@@ -239,6 +266,9 @@ applications.
   purpose. That is correct.
 - Modern Standby laptop on battery: Windows terminates system requests five
   minutes after the sleep timeout. Plug in, or accept it.
+- Always, with nobody at the keyboard for the overnight guard's hours: the
+  sun asks, and ten minutes later lets the machine sleep. Keep it up, or
+  turn the guard off in Settings → Waking, for an unattended all-nighter.
 - "Paused: Windows refused the request": something blocked
   `PowerCreateRequest`; check the log.
 - Mac lid closed with no external display: macOS sleeps regardless of any

@@ -22,6 +22,13 @@ The sunset warning adds one engine wake per timed session, at the warning
 moment, and nothing in the window: the status line uses the 1 Hz clock a
 timed session already runs.
 
+The overnight guard adds no timer and no thread. While an Always session
+runs it reads the idle time once per battery poll (`GetLastInputInfo` on
+Windows, `CGEventSourceSecondsSinceLastEventType` on macOS, each a single
+call of microseconds); at rest, during timers and with the guard off it
+reads nothing. A question adds one engine wake, at the end of its ten-minute
+grace.
+
 0.3's session history adds one small file write as each stretch starts and
 ends (`history.json`, at most 200 entries, a few tens of KB) and nothing at
 idle: it is written from the engine's existing events, and read only when

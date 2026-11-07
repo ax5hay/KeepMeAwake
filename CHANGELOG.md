@@ -7,6 +7,13 @@ Versions: [SemVer](https://semver.org).
 
 ### Added
 
+- Overnight guard: when an Always session has had no keyboard, mouse or
+  trackpad input for 6 hours (Off, 4, 6 or 8 in Settings → Waking), the sun
+  asks once ("Nobody here for 6 hours. Resting at 3:12 am.") in the window,
+  the tray or menu bar and a toast. Any input withdraws the question, Keep
+  it up leaves that session alone, and with no answer in ten minutes the
+  session ends and history says `idle`. It only reads how long since the
+  last input; it never sends any.
 - Sunset warning: a few minutes before a timed session ends (5 by default;
   Off, 2, 5 or 10 in Settings → Waking), the status line says so and offers
   Give it another 30m, the tray or menu bar gains the same item, and a toast

@@ -181,13 +181,13 @@ meaning, bump `SETTINGS_VERSION` and migrate in `persistence.rs`.
 
 ```mermaid
 flowchart LR
-    subgraph rust["cargo test (117 on macOS; Windows runs its own platform tests)"]
+    subgraph rust["cargo test (173 on Windows; each OS runs its own platform tests)"]
         core_t["core<br/>transitions · expiry · serde shape · defaults ·<br/>schedule windows, overnight, DST · menu bar placement"]
-        engine_t["engine<br/>policy table · worker with fakes:<br/>apply/release · expiry events · battery pause/resume ·<br/>OS failure surfaced · shutdown"]
-        platform_t["platform<br/>pure decoders · one real power round trip per OS<br/>(the Mac one checked with pmset) · taskbar theme read"]
+        engine_t["engine<br/>policy table · worker with fakes:<br/>apply/release · expiry events · battery pause/resume ·<br/>sunset warning · overnight guard · OS failure surfaced · shutdown"]
+        platform_t["platform<br/>pure decoders · one real power round trip per OS<br/>(the Mac one checked with pmset) · taskbar theme read · idle reading"]
         tray_t["tray · notify<br/>labels · tooltip · menu ids · icons decode ·<br/>toast text per event and switch"]
     end
-    subgraph ui["vitest (74)"]
+    subgraph ui["vitest (97)"]
         fmt["format · sun · theme · copy · hotkey · keys · platform<br/>pure helpers, both platforms' copy · DayPills"]
         store_t["store<br/>against a fake backend, fake timers"]
     end
