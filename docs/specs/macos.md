@@ -258,7 +258,9 @@ on the left and the Applications alias on the right, Paper palette, 540 × 380
 `bundle.macOS.dmg.background`.
 
 Build for Apple Silicon by default; `npm run build -- --target universal-apple-darwin`
-when an Intel machine asks for it (Rosetta covers it meanwhile).
+when an Intel machine asks for it. (Rosetta does not help here: it runs Intel
+code on Apple Silicon, not the reverse, so an arm64-only build does not open
+on an Intel Mac.)
 
 ### Signing and notarization
 
