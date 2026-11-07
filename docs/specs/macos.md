@@ -39,20 +39,20 @@ flowchart LR
 
 ### What a Mac user sees differently
 
-| Surface           | Windows                                  | macOS                                                                 |
-| ----------------- | ---------------------------------------- | --------------------------------------------------------------------- |
-| Icon              | tray, white or ink by taskbar theme      | menu bar, **template image**; macOS tints it for light, dark and Mica |
-| Left click        | opens the window where it last was       | opens the window **centred under the menu bar icon**                  |
-| Right click       | menu                                     | menu (Control-click too)                                              |
-| Dock / Cmd-Tab    | taskbar entry while the window is open   | none: `ActivationPolicy::Accessory`                                   |
-| Window chrome     | custom title bar, our minimise and close | same bar; **Cmd+W** closes to the menu bar, **Cmd+M** minimises       |
-| Settings shortcut | `Ctrl+,`                                 | `Cmd+,`                                                               |
-| Default hotkey    | `Ctrl+Alt+K`                             | `Cmd+Alt+K` (shown as `⌘⌥K`)                                          |
-| Proof it is awake | `powercfg /requests`                     | `pmset -g assertions`                                                 |
-| UI sans           | Segoe UI Variable                        | the system font (SF Pro via `-apple-system`)                          |
-| Toasts            | Windows notification centre              | Notification Center; only from a bundled `.app`, not from `tauri dev` |
-| Launch at sign-in | `HKCU\...\Run`                           | a LaunchAgent in `~/Library/LaunchAgents`, written by the plugin      |
-| Quit              | tray menu, Settings                      | tray menu, Settings, **Cmd+Q**                                        |
+| Surface           | Windows                                  | macOS                                                                       |
+| ----------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
+| Icon              | tray, white or ink by taskbar theme      | menu bar, **template image**; macOS tints it for light, dark and Mica       |
+| Left click        | opens the window where it last was       | opens the window **centred under the menu bar icon**                        |
+| Right click       | menu                                     | menu (Control-click opens the window: tray-icon reports it as a left click) |
+| Dock / Cmd-Tab    | taskbar entry while the window is open   | none: `ActivationPolicy::Accessory`                                         |
+| Window chrome     | custom title bar, our minimise and close | same bar; **Cmd+W** closes to the menu bar, **Cmd+M** minimises             |
+| Settings shortcut | `Ctrl+,`                                 | `Cmd+,`                                                                     |
+| Default hotkey    | `Ctrl+Alt+K`                             | `Cmd+Alt+K` (shown as `⌘⌥K`)                                                |
+| Proof it is awake | `powercfg /requests`                     | `pmset -g assertions`                                                       |
+| UI sans           | Segoe UI Variable                        | the system font (SF Pro via `-apple-system`)                                |
+| Toasts            | Windows notification centre              | Notification Center; only from a bundled `.app`, not from `tauri dev`       |
+| Launch at sign-in | `HKCU\...\Run`                           | a LaunchAgent in `~/Library/LaunchAgents`, written by the plugin            |
+| Quit              | tray menu, Settings                      | tray menu, Settings, **Cmd+Q**                                              |
 
 Copy that names the OS or the tray reads correctly on both: see
 **UI → copy** below. Nothing in the window should say "taskbar" or "Windows"

@@ -56,9 +56,9 @@ Grab the latest installer from the
 per-user and needs no administrator rights. Windows 10 (1809+) or Windows 11.
 
 On a Mac (macOS 12+, Apple Silicon), open the `.dmg` and drag the sun to
-Applications. The build is not notarized yet, so open it the first time with
-right-click → **Open**; the [field guide](docs/guide.md#installing-on-a-mac)
-has the details.
+Applications. The build is not notarized yet, so macOS asks once before the
+first open (Privacy & Security → **Open Anyway** on macOS 15+); the
+[field guide](docs/guide.md#installing-on-a-mac) has the steps.
 
 Or build it from source: see [Development](#development).
 
