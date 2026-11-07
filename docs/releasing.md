@@ -19,14 +19,17 @@ flowchart LR
     cl["CHANGELOG.md<br/>Unreleased → x.y.z"] --> bump["npm version x.y.z --no-git-tag-version<br/>Cargo.toml + cargo update -p keepmeawake"]
     bump --> commit["git commit<br/>chore(release): vx.y.z"]
     commit --> tag["git tag vx.y.z<br/>git push --tags"]
-    tag --> ci["release.yml<br/>windows-latest"]
-    ci --> draft["Draft GitHub Release<br/>NSIS + MSI, notes from CHANGELOG"]
+    tag --> ci["release.yml<br/>windows-latest · macos-latest"]
+    ci --> draft["Draft GitHub Release<br/>NSIS + MSI · DMG + .app.tar.gz<br/>notes from CHANGELOG"]
     draft --> publish["Review, publish"]
 ```
 
 ## Signing
 
-Installers are unsigned until a certificate is in place. When one is, add
+Installers are unsigned until a certificate is in place, on both platforms.
+On macOS that means the first open needs right-click → Open (see the guide);
+notarization needs an Apple Developer account and the `APPLE_*` secrets listed
+in [`specs/macos.md`](specs/macos.md). When one is, add
 `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` as
 repository secrets and set `bundle.windows.certificateThumbprint`. The updater
 (roadmap) requires it.
