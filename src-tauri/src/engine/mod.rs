@@ -27,9 +27,13 @@ pub enum EngineEvent {
     /// State changed; here is the new read model.
     Snapshot(Snapshot),
     /// A timed session finished on its own.
-    TimerEnded,
-    /// An active session stopped guarding because of power conditions.
-    Paused(PauseReason),
+    TimerEnded {
+        /// How long the session was set for, in seconds.
+        plan_secs: u64,
+    },
+    /// An active session stopped guarding because of power conditions, with
+    /// the battery reading that caused it.
+    Paused(PauseReason, BatteryState),
     /// A paused session is guarding again.
     Resumed,
     /// A schedule window opened and is holding the laptop awake.
@@ -382,8 +386,9 @@ fn step(
 ) -> Vec<EngineEvent> {
     let mut events = Vec::new();
     let was_active = st.session.is_active() || st.phase == Phase::Holding;
+    let plan_secs = st.session.plan_duration().map_or(0, |d| d.as_secs());
     if st.session.tick(now) == Some(SessionEvent::Expired) {
-        events.push(EngineEvent::TimerEnded);
+        events.push(EngineEvent::TimerEnded { plan_secs });
     }
     if st.skip_until.is_some_and(|until| unix_now >= until) {
         st.skip_until = None;
@@ -418,7 +423,7 @@ fn step(
 
     if active && was_active {
         match (previously_paused, st.paused) {
-            (None, Some(reason)) => events.push(EngineEvent::Paused(reason)),
+            (None, Some(reason)) => events.push(EngineEvent::Paused(reason, st.battery)),
             (Some(_), None) => events.push(EngineEvent::Resumed),
             _ => {}
         }
@@ -608,7 +613,10 @@ mod tests {
         r.engine.refresh();
         wait_for_guard(&r, |g| g == GuardState::default());
         let events = drain(&r);
-        assert!(events.contains(&EngineEvent::TimerEnded), "{events:?}");
+        assert!(
+            events.contains(&EngineEvent::TimerEnded { plan_secs: 10 }),
+            "{events:?}"
+        );
         assert_eq!(r.engine.snapshot().mode, Mode::Off);
     }
 
@@ -642,7 +650,13 @@ mod tests {
         let snap = r.engine.snapshot();
         assert_eq!(snap.mode, Mode::Indefinite, "session stays on while paused");
         assert_eq!(snap.paused, Some(PauseReason::LowBattery));
-        assert!(drain(&r).contains(&EngineEvent::Paused(PauseReason::LowBattery)));
+        assert!(drain(&r).contains(&EngineEvent::Paused(
+            PauseReason::LowBattery,
+            BatteryState {
+                on_ac: false,
+                percent: Some(10),
+            }
+        )));
 
         r.battery.set(BatteryState {
             on_ac: true,
@@ -789,7 +803,12 @@ mod tests {
         r.clock.advance(Duration::from_secs(61 * 60));
         r.engine.refresh();
         let events = drain(&r);
-        assert!(!events.contains(&EngineEvent::TimerEnded), "{events:?}");
+        assert!(
+            !events
+                .iter()
+                .any(|e| matches!(e, EngineEvent::TimerEnded { .. })),
+            "{events:?}"
+        );
         let snap = r.engine.snapshot();
         assert_eq!(snap.mode, Mode::Timed);
         assert!(!snap.schedule.in_window);
@@ -805,7 +824,10 @@ mod tests {
         r.clock.advance(Duration::from_secs(61));
         r.engine.refresh();
         let events = drain(&r);
-        assert!(events.contains(&EngineEvent::TimerEnded), "{events:?}");
+        assert!(
+            events.contains(&EngineEvent::TimerEnded { plan_secs: 60 }),
+            "{events:?}"
+        );
         assert_eq!(r.engine.snapshot().mode, Mode::Scheduled);
         assert!(r.guard.current().system);
         assert_eq!(r.guard.history().len(), 1, "never let go in between");
@@ -909,7 +931,13 @@ mod tests {
         let snap = r.engine.snapshot();
         assert_eq!(snap.mode, Mode::Scheduled);
         assert_eq!(snap.paused, Some(PauseReason::LowBattery));
-        assert!(drain(&r).contains(&EngineEvent::Paused(PauseReason::LowBattery)));
+        assert!(drain(&r).contains(&EngineEvent::Paused(
+            PauseReason::LowBattery,
+            BatteryState {
+                on_ac: false,
+                percent: Some(5),
+            }
+        )));
     }
 
     #[test]
