@@ -99,12 +99,12 @@ The hint under the battery row shows the live reading ("Plugged in · 100%").
 On Windows the sun lives in the tray. On a Mac it lives in the menu bar, and
 the app has no Dock icon and no place in Cmd-Tab: it is a menu bar app.
 
-| Action                         | Does                                                                      |
-| ------------------------------ | ------------------------------------------------------------------------- |
-| click (left click on Windows)  | open the window; on a Mac it drops down centred beneath the menu bar icon |
-| right click (or Control-click) | status line · Keep awake / Let it sleep · Keep awake for ▸ · Open · Quit  |
-|                                | while a schedule window is open: Skip today's schedule / Back on schedule |
-| hover                          | tooltip with the same status line as the menu                             |
+| Action                        | Does                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| click (left click on Windows) | open the window; on a Mac it drops down centred beneath the menu bar icon |
+| right click                   | status line · Keep awake / Let it sleep · Keep awake for ▸ · Open · Quit  |
+|                               | while a schedule window is open: Skip today's schedule / Back on schedule |
+| hover                         | tooltip with the same status line as the menu                             |
 
 Icon states: sun above the line (awake), sun set (resting), bar across the sun
 (paused). On Windows the icons follow the taskbar theme: white on a dark
@@ -201,11 +201,17 @@ applications.
 
 ## Installing on a Mac
 
-The Mac build is not notarized yet, so the first open needs one extra step:
-drag the sun to Applications from the disk image, then right-click
-**KeepMeAwake** → **Open** → **Open**, once. Or, in Terminal:
-`xattr -d com.apple.quarantine /Applications/KeepMeAwake.app`. It runs on
-macOS 12 or later on Apple Silicon. An Intel Mac needs a universal build
+The Mac build is signed ad hoc but not notarized yet, so macOS asks once
+before the first open. Drag the sun to Applications from the disk image and
+open it; macOS says it cannot check the app for malicious software. Then:
+
+| macOS         | Do, once                                                                                     |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| 15 and later  | System Settings → Privacy & Security, scroll to **KeepMeAwake was blocked**, **Open Anyway** |
+| 12 to 14      | right-click **KeepMeAwake** in Applications → **Open** → **Open**                            |
+| any, Terminal | `xattr -d com.apple.quarantine /Applications/KeepMeAwake.app`                                |
+
+It runs on macOS 12 or later on Apple Silicon. An Intel Mac needs a universal build
 (`npm run build -- --target universal-apple-darwin`); the releases do not
 include one yet.
 

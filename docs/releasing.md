@@ -27,7 +27,9 @@ flowchart LR
 ## Signing
 
 Installers are unsigned until a certificate is in place, on both platforms.
-On macOS that means the first open needs right-click → Open (see the guide);
+On macOS the bundle is signed ad hoc (`signingIdentity: "-"`), so the
+signature verifies but Gatekeeper still asks once (Privacy & Security → Open
+Anyway; see the guide);
 notarization needs an Apple Developer account and the `APPLE_*` secrets listed
 in [`specs/macos.md`](specs/macos.md). When one is, add
 `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` as
