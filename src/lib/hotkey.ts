@@ -87,7 +87,8 @@ const MAC_KEYS: Readonly<Record<string, string>> = {
 export function displayAccelerator(accelerator: string, mac = false): string {
   const parts = accelerator.split('+');
   if (!mac) return parts.map((part) => (part === 'Super' ? 'Win' : part)).join('+');
-  const key = parts.at(-1) ?? '';
+  // Not `parts.at(-1)`: Array.prototype.at is Safari 15.4+, and macOS 12.0 has 15.0.
+  const key = parts[parts.length - 1] ?? '';
   const mods = new Set(parts.slice(0, -1));
   const glyphs = MAC_MODIFIERS.filter(([, names]) => names.some((n) => mods.has(n))).map(
     ([glyph]) => glyph,
