@@ -13,21 +13,25 @@ actually want the machine to sleep.
 
 ## At a glance
 
-| Area      | What you get                                                                                         |
-| --------- | ---------------------------------------------------------------------------------------------------- |
-| Control   | One sun. Click it, press Space, or use the tray.                                                     |
-| Time      | 30m · 1h · 2h · 4h · 8h · until a time of day. The sun sets as the time runs out.                    |
-| Safety    | Pauses below a battery level (20% by default) or whenever unplugged; resumes when plugged in.        |
-| Screen    | Keep the display on, or let it dim while the machine keeps running.                                  |
-| Tray      | Left click opens the window. Right click does everything else. Starts at sign-in, quietly.           |
-| Footprint | One native process of about 5 MB while in the tray. No polling. The UI exists only while it is open. |
-| Look      | Paper and Night, following Windows. A horizon, a sun, a serif, and nothing else.                     |
+| Area      | What you get                                                                                                                |
+| --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Control   | One sun. Click it, press Space, or use the tray.                                                                            |
+| Hotkey    | `Ctrl+Alt+K` toggles from any app; record your own.                                                                         |
+| Time      | 30m · 1h · 2h · 4h · 8h · until a time of day. The sun sets as the time runs out.                                           |
+| Schedule  | Awake during chosen hours on chosen days, resting outside them. Click the sun to skip a day.                                |
+| Safety    | Pauses below a battery level (20% by default) or whenever unplugged; resumes when plugged in.                               |
+| Screen    | Keep the display on, or let it dim while the machine keeps running.                                                         |
+| Tray      | Left click opens the window. Right click does everything else. Starts at sign-in, quietly. Follows a light or dark taskbar. |
+| Toasts    | Optional: when a timer ends, the battery pauses or resumes, or a schedule starts or ends.                                   |
+| Footprint | One native process of about 5 MB while in the tray. No polling. The UI exists only while it is open.                        |
+| Look      | Paper and Night, following Windows. A horizon, a sun, a serif, and nothing else.                                            |
 
 ## How it works
 
 ```mermaid
 flowchart LR
     You(("You")) -->|sun · tray · Space| UI["Svelte UI<br/>(WebView2, only while open)"]
+    You -->|Ctrl+Alt+K| Engine
     You -->|right click| Tray["Tray icon"]
     UI -->|invoke| Engine["Engine thread<br/>(Rust)"]
     Tray --> Engine
@@ -62,6 +66,8 @@ that are not labelled. The short version:
 | for a fixed time                | pick a stop on the rule under the status   |
 | until a time of day             | pick **Until…** and type a time            |
 | let it sleep again              | click the sun again                        |
+| keep it up during working hours | Settings → **Schedule**                    |
+| toggle from another app         | **Ctrl+Alt+K**                             |
 | get the window out of the way   | **Esc** or ×; the sun stays up in the tray |
 | do all of this without a window | right-click the sun in the tray            |
 | change defaults                 | gear, or **Ctrl+,**                        |
