@@ -19,7 +19,7 @@ use crate::core::settings::StartupPlan;
 use crate::core::{PlanRequest, Settings};
 use crate::engine::{Engine, EngineEvent, Platform, default_plan};
 use crate::persistence;
-use crate::platform::SystemClock;
+use crate::platform::{SystemClock, TaskbarTheme};
 
 /// Command line flag the autostart entry passes so we boot straight to the tray.
 pub const HIDDEN_FLAG: &str = "--hidden";
@@ -33,6 +33,8 @@ pub struct AppState {
     pub engine: Arc<Engine>,
     /// Where settings are persisted.
     pub settings_path: PathBuf,
+    /// Light or dark taskbar, for the tray icon set.
+    pub taskbar: Box<dyn TaskbarTheme>,
 }
 
 /// Builds and runs the application. Blocks until exit.
@@ -103,8 +105,10 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
     app.manage(AppState {
         engine: Arc::clone(&engine),
         settings_path,
+        taskbar: make_taskbar(),
     });
     tray::create(app)?;
+    watch_taskbar_theme(app, &engine);
     if let Err(err) = hotkey::apply(app, settings.hotkey.as_deref()) {
         log::warn!("hotkey not registered at launch: {err}");
     }
@@ -150,6 +154,48 @@ fn apply_startup_plan(engine: &Engine, settings: &Settings) {
     };
     engine.set_plan(request);
 }
+
+#[cfg(windows)]
+fn make_taskbar() -> Box<dyn TaskbarTheme> {
+    Box::new(crate::platform::windows::WindowsTaskbarTheme)
+}
+
+#[cfg(not(windows))]
+fn make_taskbar() -> Box<dyn TaskbarTheme> {
+    Box::new(crate::platform::DarkTaskbar)
+}
+
+/// Swaps the tray icon set when Windows switches between a light and a dark
+/// taskbar. The thread spends its life blocked in the kernel on a registry
+/// notification; it wakes only when the Personalize key changes.
+#[cfg(windows)]
+fn watch_taskbar_theme(app: &AppHandle, engine: &Arc<Engine>) {
+    use crate::platform::windows::wait_for_theme_change;
+
+    let app = app.clone();
+    let engine = Arc::clone(engine);
+    let spawned = std::thread::Builder::new()
+        .name("keepmeawake-theme".into())
+        .spawn(move || {
+            loop {
+                if let Err(err) = wait_for_theme_change() {
+                    log::warn!("stopped following the taskbar theme: {err}");
+                    return;
+                }
+                log::debug!(
+                    "personalisation changed; light taskbar: {}",
+                    crate::platform::windows::taskbar_is_light()
+                );
+                tray::refresh(&app, &engine.snapshot());
+            }
+        });
+    if let Err(err) = spawned {
+        log::warn!("could not watch the taskbar theme: {err}");
+    }
+}
+
+#[cfg(not(windows))]
+fn watch_taskbar_theme(_app: &AppHandle, _engine: &Arc<Engine>) {}
 
 #[cfg(windows)]
 fn make_platform() -> Platform {
