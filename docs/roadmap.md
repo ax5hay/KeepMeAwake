@@ -30,14 +30,19 @@ timeline
 | Settings persisted atomically, rotating log                          | persistence      |
 | Tips, stars, ripple, credit, late-night line                         | UI               |
 
+## Shipped in 0.2 (unreleased)
+
+| Feature                                                       | Spec                             | Layers                      |
+| ------------------------------------------------------------- | -------------------------------- | --------------------------- |
+| Schedule: awake during chosen hours on chosen days, skippable | [schedule.md](specs/schedule.md) | core, engine, app, tray, ui |
+
 ## Next: 0.2
 
-| Feature                                                       | Spec                                                             | Layers                      |
-| ------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------- |
-| Schedule: awake during chosen hours on chosen days, skippable | [schedule.md](specs/schedule.md)                                 | core, engine, app, tray, ui |
-| Notifications: toasts for timer end, battery, schedule        | [notifications.md](specs/notifications.md)                       | app, ui                     |
-| Global hotkey: `Ctrl+Alt+K`, recordable                       | [global-hotkey.md](specs/global-hotkey.md)                       | app, ui                     |
-| Tray icons that follow the taskbar theme                      | [tray-icons-light-taskbar.md](specs/tray-icons-light-taskbar.md) | platform, app, brand        |
+| Feature                                                | Spec                                                             | Layers               |
+| ------------------------------------------------------ | ---------------------------------------------------------------- | -------------------- |
+| Notifications: toasts for timer end, battery, schedule | [notifications.md](specs/notifications.md)                       | app, ui              |
+| Global hotkey: `Ctrl+Alt+K`, recordable                | [global-hotkey.md](specs/global-hotkey.md)                       | app, ui              |
+| Tray icons that follow the taskbar theme               | [tray-icons-light-taskbar.md](specs/tray-icons-light-taskbar.md) | platform, app, brand |
 
 ## Then: 0.3
 
