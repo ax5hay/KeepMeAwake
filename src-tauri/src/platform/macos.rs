@@ -9,9 +9,15 @@
 //! There is no taskbar theme to follow: the menu bar icon is a template image
 //! and macOS tints it for a light or dark menu bar.
 //!
+//! How long nobody has touched the Mac comes from CoreGraphics
+//! (`CGEventSourceSecondsSinceLastEventType`), which only reads the HID
+//! system's last event time and needs no permission.
+//!
 //! This and `windows.rs` are the only modules in the crate that contain
 //! `unsafe`. The invariants: an assertion id is only ever one IOKit handed
 //! back, and each is released exactly once (on `apply` or on drop).
+
+use std::time::Duration;
 
 use core_foundation::array::{CFArray, CFArrayRef};
 use core_foundation::base::{CFType, CFTypeRef, TCFType};
@@ -19,7 +25,7 @@ use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
 use core_foundation::number::CFNumber;
 use core_foundation::string::{CFString, CFStringRef};
 
-use super::{BatteryProbe, PlatformError, PowerGuard};
+use super::{BatteryProbe, IdleProbe, PlatformError, PowerGuard};
 use crate::core::{BatteryState, GuardState};
 
 /// Name macOS shows next to our process in `pmset -g assertions`.
@@ -51,6 +57,23 @@ unsafe extern "C" {
     fn IOPSCopyPowerSourcesInfo() -> CFTypeRef;
     fn IOPSCopyPowerSourcesList(blob: CFTypeRef) -> CFArrayRef;
     fn IOPSGetPowerSourceDescription(blob: CFTypeRef, source: CFTypeRef) -> CFDictionaryRef;
+}
+
+/// `CGEventSourceStateID`, an `int32_t`.
+type EventSourceState = i32;
+/// `CGEventType`, a `uint32_t`.
+type EventType = u32;
+/// `kCGEventSourceStateHIDSystemState`: input from the hardware itself.
+const HID_SYSTEM_STATE: EventSourceState = 1;
+/// `kCGAnyInputEventType`, `(CGEventType)(~0)`: any key, click, move or scroll.
+const ANY_INPUT_EVENT: EventType = u32::MAX;
+
+#[link(name = "CoreGraphics", kind = "framework")]
+unsafe extern "C" {
+    fn CGEventSourceSecondsSinceLastEventType(
+        state: EventSourceState,
+        event_type: EventType,
+    ) -> f64;
 }
 
 /// `kIOPSPowerSourceStateKey`: `"AC Power"`, `"Battery Power"` or `"Off Line"`.
@@ -205,6 +228,27 @@ impl BatteryProbe for MacBattery {
     }
 }
 
+/// Time since the last keyboard, mouse or trackpad input, from the HID
+/// system's event source. Never sends input; needs no permission.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct MacIdle;
+
+impl IdleProbe for MacIdle {
+    fn idle(&self) -> Option<Duration> {
+        // SAFETY: takes two plain integers and returns a double; no
+        // pointers, nothing to free.
+        let secs =
+            unsafe { CGEventSourceSecondsSinceLastEventType(HID_SYSTEM_STATE, ANY_INPUT_EVENT) };
+        idle_from_seconds(secs)
+    }
+}
+
+/// Pure, tested: the seconds CoreGraphics reports as a [`Duration`], or
+/// `None` for a reading that is negative, not a number or out of range.
+pub fn idle_from_seconds(secs: f64) -> Option<Duration> {
+    Duration::try_from_secs_f64(secs).ok()
+}
+
 /// Pure, tested: a power source's state string and capacities (as IOKit
 /// reports them) to a [`BatteryState`]. An unknown state reads as mains so
 /// a bad reading never pauses the sun.
@@ -301,6 +345,23 @@ mod tests {
             decode_power_source("Battery Power", Some(-1), Some(100)).percent,
             None
         );
+    }
+
+    #[test]
+    fn idle_seconds_become_a_duration_or_nothing() {
+        assert_eq!(idle_from_seconds(90.5), Some(Duration::from_millis(90_500)));
+        assert_eq!(idle_from_seconds(0.0), Some(Duration::ZERO));
+        assert_eq!(idle_from_seconds(-1.0), None);
+        assert_eq!(idle_from_seconds(f64::NAN), None);
+        assert_eq!(idle_from_seconds(f64::INFINITY), None);
+    }
+
+    /// Reads the real HID idle time. Only asserts that it answers with
+    /// something a running Mac could report (under a year).
+    #[test]
+    fn real_idle_reading_answers_and_is_sane() {
+        let idle = MacIdle.idle().expect("CoreGraphics answers");
+        assert!(idle < Duration::from_secs(365 * 24 * 3600));
     }
 
     /// A Mac without a battery (a Mac mini, say) reads as mains.

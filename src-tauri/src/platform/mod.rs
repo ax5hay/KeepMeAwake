@@ -1,10 +1,10 @@
 //! The narrow slice of the operating system the engine depends on.
 //!
 //! Everything is a trait so the engine can be tested with fakes; the real
-//! implementations live in `windows` (Win32) and `macos` (IOKit), each
-//! compiled only on its own OS.
+//! implementations live in `windows` (Win32) and `macos` (IOKit and
+//! CoreGraphics), each compiled only on its own OS.
 
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use thiserror::Error;
 
@@ -63,6 +63,26 @@ pub struct DarkTaskbar;
 impl TaskbarTheme for DarkTaskbar {
     fn is_light(&self) -> bool {
         false
+    }
+}
+
+/// How long since the last keyboard, mouse or trackpad input, to any
+/// application. Read-only: it only ever asks, and never sends input
+/// (ADR 0002).
+pub trait IdleProbe: Send {
+    /// Time since the last input, or `None` when the OS cannot say. The
+    /// engine never acts on `None`: unknown means someone may be there.
+    fn idle(&self) -> Option<Duration>;
+}
+
+/// For platforms that cannot report idle time: always unknown, so nothing
+/// that depends on it ever happens.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct NoIdle;
+
+impl IdleProbe for NoIdle {
+    fn idle(&self) -> Option<Duration> {
+        None
     }
 }
 
@@ -130,8 +150,25 @@ pub mod fakes {
     use std::time::{Duration, Instant};
 
     use super::{
-        BatteryProbe, BatteryState, Clock, GuardState, PlatformError, PowerGuard, TaskbarTheme,
+        BatteryProbe, BatteryState, Clock, GuardState, IdleProbe, PlatformError, PowerGuard,
+        TaskbarTheme,
     };
+
+    /// An idle reading the test sets; starts unknown.
+    #[derive(Debug, Clone, Default)]
+    pub struct FakeIdle(pub Arc<Mutex<Option<Duration>>>);
+
+    impl FakeIdle {
+        pub fn set(&self, idle: Option<Duration>) {
+            *self.0.lock().unwrap() = idle;
+        }
+    }
+
+    impl IdleProbe for FakeIdle {
+        fn idle(&self) -> Option<Duration> {
+            *self.0.lock().unwrap()
+        }
+    }
 
     /// A taskbar whose theme the test sets.
     #[derive(Debug, Clone, Default)]

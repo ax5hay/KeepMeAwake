@@ -9,9 +9,14 @@
 //! The taskbar theme is read from, and watched in, the registry, so the tray
 //! icons can follow a light or dark taskbar without polling.
 //!
-//! This is the only module in the crate that contains `unsafe`.
+//! How long nobody has touched the machine comes from `GetLastInputInfo`,
+//! which only reads the session's last input time.
+//!
+//! This and `macos.rs` are the only modules in the crate that contain
+//! `unsafe`.
 
 use std::iter::once;
+use std::time::Duration;
 
 use windows::Win32::Foundation::{CloseHandle, HANDLE, WIN32_ERROR};
 use windows::Win32::System::Power::{
@@ -22,13 +27,15 @@ use windows::Win32::System::Registry::{
     HKEY, HKEY_CURRENT_USER, KEY_NOTIFY, REG_NOTIFY_CHANGE_LAST_SET, RRF_RT_REG_DWORD, RegCloseKey,
     RegGetValueW, RegNotifyChangeKeyValue, RegOpenKeyExW,
 };
+use windows::Win32::System::SystemInformation::GetTickCount;
 use windows::Win32::System::SystemServices::POWER_REQUEST_CONTEXT_VERSION;
 use windows::Win32::System::Threading::{
     POWER_REQUEST_CONTEXT_SIMPLE_STRING, REASON_CONTEXT, REASON_CONTEXT_0,
 };
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
 use windows::core::{PCWSTR, PWSTR, w};
 
-use super::{BatteryProbe, PlatformError, PowerGuard, TaskbarTheme};
+use super::{BatteryProbe, IdleProbe, PlatformError, PowerGuard, TaskbarTheme};
 use crate::core::{BatteryState, GuardState};
 
 /// Text Windows shows next to our process in `powercfg /requests`.
@@ -218,6 +225,34 @@ impl TaskbarTheme for WindowsTaskbarTheme {
     }
 }
 
+/// Time since the last keyboard or mouse input in this session, from
+/// `GetLastInputInfo`. Never sends input; needs no permission.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct WindowsIdle;
+
+impl IdleProbe for WindowsIdle {
+    fn idle(&self) -> Option<Duration> {
+        let mut info = LASTINPUTINFO {
+            cbSize: u32::try_from(size_of::<LASTINPUTINFO>()).ok()?,
+            dwTime: 0,
+        };
+        // SAFETY: `info` is a writable LASTINPUTINFO whose `cbSize` is set
+        // to its own size, as the API requires.
+        if !unsafe { GetLastInputInfo(&raw mut info) }.as_bool() {
+            return None;
+        }
+        // SAFETY: takes no arguments and cannot fail.
+        let now = unsafe { GetTickCount() };
+        Some(idle_between(now, info.dwTime))
+    }
+}
+
+/// How long ago `last_input` was, both read from the 32-bit tick count.
+/// The count wraps every 49.7 days, so the subtraction wraps with it.
+pub fn idle_between(now_ticks: u32, last_input_ticks: u32) -> Duration {
+    Duration::from_millis(u64::from(now_ticks.wrapping_sub(last_input_ticks)))
+}
+
 fn win32_error(call: &'static str, code: WIN32_ERROR) -> PlatformError {
     PlatformError::Os {
         call,
@@ -337,6 +372,22 @@ mod tests {
     fn taskbar_theme_reads_without_error() {
         let light = taskbar_is_light();
         assert_eq!(WindowsTaskbarTheme.is_light(), light);
+    }
+
+    #[test]
+    fn idle_time_survives_the_tick_count_wrapping() {
+        assert_eq!(idle_between(5_000, 2_000), Duration::from_secs(3));
+        // Input just before the wrap, read just after it.
+        assert_eq!(idle_between(1_000, u32::MAX - 999), Duration::from_secs(2));
+        assert_eq!(idle_between(7, 7), Duration::ZERO);
+    }
+
+    /// Reads the real last-input time. Only asserts that it answers and is
+    /// no longer than the tick count can measure.
+    #[test]
+    fn real_idle_reading_answers_and_is_sane() {
+        let idle = WindowsIdle.idle().expect("GetLastInputInfo answers");
+        assert!(idle <= Duration::from_millis(u64::from(u32::MAX)));
     }
 
     #[test]
