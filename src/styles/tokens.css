@@ -40,6 +40,9 @@
   --ground-on: #e8dfca;
   --grain-blend: multiply;
   --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
   --shadow: 0 1px 2px rgb(28 27 24 / 0.08);
 
   --radius: 10px;
@@ -71,6 +74,9 @@
   --ground-on: #1b1e20;
   --grain-blend: screen;
   --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
 
   color-scheme: dark;
