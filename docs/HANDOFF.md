@@ -63,8 +63,8 @@ Then walk the by-hand acceptance in [`specs/macos.md`](specs/macos.md):
 
 ### On the Windows PC (Windows track)
 
-0. **History was rewritten on 2026-11-07** (this session's 26 commits were
-   re-authored to the ax5hay GitHub account; trees and messages unchanged).
+0. **History was rewritten on 2026-11-07**: every commit is now authored by
+   the ax5hay GitHub account (code unchanged), and `v0.2.0` moved with it.
    On a clone made before that: `git fetch && git reset --hard origin/main &&
 git fetch --tags --force`. Commit with the ax5hay GitHub noreply address as
    `user.email` (`git config --local`) so commits link to the account.
