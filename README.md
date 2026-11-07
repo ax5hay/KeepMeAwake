@@ -102,6 +102,8 @@ npm run build      # installers in src-tauri/target/release/bundle
 | [Releasing](docs/releasing.md)             | versions, changelog, the release workflow           |
 | [Resource budget](docs/resource-budget.md) | what "tiny" means and how it is kept                |
 | [Decisions](docs/adr/README.md)            | the five choices that shaped the project            |
+| [Specs](docs/specs/README.md)              | implementation specs for the next releases          |
+| [Handoff](docs/HANDOFF.md)                 | where the last session stopped and where to start   |
 | [Changelog](CHANGELOG.md)                  | what changed, by version                            |
 
 ## License
