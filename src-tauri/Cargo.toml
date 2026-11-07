@@ -43,6 +43,11 @@ windows = { version = "0.62", features = [
   "Win32_UI_Input_KeyboardAndMouse",
 ] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+# CFString/CFDictionary for the IOKit calls in platform/macos.rs; tauri
+# already pulls it in on macOS, so this adds no code to the build.
+core-foundation = "0.10"
+
 [dev-dependencies]
 tempfile = "3"
 
