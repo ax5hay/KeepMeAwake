@@ -222,14 +222,14 @@
   .constellation {
     fill: none;
     stroke: var(--sun);
-    stroke-width: 0.6;
+    stroke-width: 0.9;
     stroke-dasharray: 2 3;
     opacity: 0;
     transition: opacity var(--t-slow) var(--ease);
   }
 
   .constellation.shown {
-    opacity: 0.9;
+    opacity: 1;
   }
 
   .ground {
