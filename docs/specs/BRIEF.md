@@ -20,7 +20,7 @@ the contract. The specs in this folder are the work.
 | `npm run verify` is green before any claim of done                                | CI runs the same                           |
 | Small Conventional Commits, subject ≤ 72 chars, each one buildable                | `.githooks/commit-msg`                     |
 | `core` performs no I/O; dependencies point down only                              | review                                     |
-| `unsafe` only in `platform/windows.rs`, with a `SAFETY:` comment                  | clippy `undocumented_unsafe_blocks = deny` |
+| `unsafe` only in `platform/windows.rs` and `platform/macos.rs`, with `SAFETY:`    | clippy `undocumented_unsafe_blocks = deny` |
 | `src/lib/types.ts` mirrors `core` field for field, `snake_case`                   | serde tests on both sides                  |
 | New settings fields default; a change of meaning bumps `SETTINGS_VERSION`         | `persistence.rs`                           |
 | No timers, polling or animation loops without a note in `docs/resource-budget.md` | review                                     |
@@ -70,6 +70,7 @@ flowchart LR
 | ------- | ---------------------------------------------------------------- | ------------------ |
 | 0.2.0   | schedule, notifications, global-hotkey, tray-icons-light-taskbar | all four accepted  |
 | 0.3.0   | auto-update, session-history, winget-scoop                       | all three accepted |
+| track   | macos (built on the personal Mac, ships with the next release)   | accepted on a Mac  |
 
 Release steps are in `docs/releasing.md`.
 
