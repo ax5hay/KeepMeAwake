@@ -19,6 +19,8 @@ Versions: [SemVer](https://semver.org).
 - Global hotkey: `Ctrl+Alt+K` toggles from any app, window open or not.
   Record a different one or turn it off in Settings → Hotkey; a combination
   another app owns is refused and the old one kept.
+- Tray icons follow the taskbar: ink on a light taskbar, white on a dark
+  one, switching within a second when Windows changes mode.
 
 ### Fixed
 

@@ -101,7 +101,9 @@ The hint under the battery row shows the live reading ("Plugged in · 100%").
 | hover       | tooltip with the same status line as the menu                             |
 
 Icon states: sun above the line (awake), sun set (resting), bar across the sun
-(paused).
+(paused). The icons follow the taskbar theme: white on a dark taskbar, ink on a
+light one, switching within a second when Windows changes mode. Nothing to
+set.
 
 ## Settings
 
