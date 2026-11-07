@@ -68,7 +68,12 @@
       "minimumSystemVersion": "12.0",
       "signingIdentity": null,
       "entitlements": null,
-      "dmg": { "windowSize": { "width": 540, "height": 380 } }
+      "dmg": {
+        "background": "../design/dmg-background.png",
+        "windowSize": { "width": 540, "height": 380 },
+        "appPosition": { "x": 150, "y": 150 },
+        "applicationFolderPosition": { "x": 390, "y": 150 }
+      }
     }
   },
   "plugins": {}
