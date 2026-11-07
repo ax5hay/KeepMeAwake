@@ -46,6 +46,7 @@
     "shortDescription": "Keep your laptop awake and your presence active.",
     "longDescription": "KeepMeAwake keeps your Windows laptop from sleeping and, optionally, keeps chat apps like Slack and Teams from marking you away. It uses the Windows power request API instead of fake keystrokes, lives in the tray, and stays tiny.",
     "publisher": "Akshay Bajpai",
+    "homepage": "https://akshaybajpai.com",
     "copyright": "Copyright (c) 2026 Akshay Bajpai",
     "icon": [
       "icons/32x32.png",

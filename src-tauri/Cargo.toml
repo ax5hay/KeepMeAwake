@@ -2,9 +2,10 @@
 name = "keepmeawake"
 version = "0.1.0"
 description = "Keeps your Windows laptop awake and your presence active, without hacks."
-authors = ["Akshay Bajpai"]
+authors = ["Akshay Bajpai <hello@akshaybajpai.com>"]
 license = "MIT"
 repository = "https://github.com/BuiltByBajpai/KeepMeAwake"
+homepage = "https://akshaybajpai.com"
 edition = "2024"
 rust-version = "1.90"
 publish = false
