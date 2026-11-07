@@ -8,12 +8,43 @@ permissions:
   contents: write
 
 jobs:
+  draft:
+    name: Draft the release
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.draft.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract changelog section
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { on=1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > release-notes.md
+      # One job creates the draft so the two platform builds below upload to
+      # the same release instead of racing to create one each.
+      - name: Create the draft
+        id: draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --title "Keep me awake $GITHUB_REF_NAME" --notes-file release-notes.md
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+            --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id" | head -n1)
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
   installers:
-    name: Build installers and draft release (${{ matrix.os }})
+    name: Build installers (${{ matrix.os }})
+    needs: draft
     runs-on: ${{ matrix.os }}
     strategy:
-      # Both upload to the same draft release: .exe and .msi from Windows,
-      # .dmg and .app.tar.gz (Apple Silicon, unsigned) from macOS.
+      # .exe and .msi from Windows; .dmg and .app.tar.gz (Apple Silicon,
+      # signed ad hoc, not notarized) from macOS. One failing does not cancel
+      # the other.
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
     steps:
@@ -27,25 +58,10 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
-      - name: Extract changelog section
-        id: notes
-        shell: bash
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          awk -v v="$version" '
-            $0 ~ "^## \\[" v "\\]" { on=1; next }
-            on && /^## \[/ { exit }
-            on { print }
-          ' CHANGELOG.md > release-notes.md
-          echo "file=release-notes.md" >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Keep me awake ${{ github.ref_name }}
-          releaseBodyFile: ${{ steps.notes.outputs.file }}
-          releaseDraft: true
-          prerelease: false
+          releaseId: ${{ needs.draft.outputs.id }}
