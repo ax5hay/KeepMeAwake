@@ -22,7 +22,6 @@ export default defineConfig({
   build: {
     // WebView2 on Windows 10/11 is always Chromium-recent; ship modern JS, no polyfills.
     target: 'chrome120',
-    minify: 'esbuild',
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
     cssMinify: true,
     reportCompressedSize: false,
