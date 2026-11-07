@@ -26,12 +26,23 @@ version.
 - `src/lib/types.ts` mirrors `src-tauri/src/core` field for field, `snake_case`.
   Change both or neither.
 - UI copy that is more than a label lives in `src/lib/copy.ts`.
+- Copy that names the OS, the tray or a shortcut is written per platform
+  (`platformCopy(mac)`, `tips(mac)` in `copy.ts`, `isMac` from `platform.ts`);
+  tests forbid "tray"/"Windows" in Mac strings and "menu bar"/⌘ in Windows ones.
 
 ## Commands
 
 - `npm run verify` before claiming anything works: lint, svelte-check, vitest,
   clippy (pedantic, `-D warnings`), `cargo test`.
 - `npm run dev` runs the app. `npm run build` makes installers.
+- Neither machine can compile the other's build (Tauri's build script needs
+  that OS's SDK). CI runs on `windows-latest` and `macos-latest`: watch it
+  (`gh run watch`) after pushing platform code.
+- Release: bump, move Unreleased to the version in `CHANGELOG.md`, `git tag
+vX.Y.Z` and push the tag; `release.yml` drafts it. Check all four assets
+  are attached, then `gh release edit vX.Y.Z --draft=false [--prerelease]`.
+- Mac: Homebrew's rustup is keg-only; `/opt/homebrew/opt/rustup/bin` must be
+  on PATH or npm scripts and the git hooks cannot find cargo.
 
 ## Rules
 
@@ -50,3 +61,24 @@ version.
 - End every session by updating `docs/HANDOFF.md` (last updated, where to
   start, in progress) and pushing it.
 - Do not add input injection of any kind; see ADR 0002 and the roadmap.
+- Nothing personal in the repo beyond the author's name and website: no
+  machine models or specs, emails, places, employers. Commit as Akshay
+  Bajpai with the ax5hay GitHub noreply address (repo-local git config).
+- Commit subjects need a type: `feat(brand): …`, never `brand: …`.
+- A roadmap item gets a spec in `docs/specs/` (indexed in its README,
+  linked from the roadmap) before it is built.
+
+## Gotchas
+
+- Engine steps send their `Snapshot` first and other events after. To show
+  something did _not_ happen, use the tests' `settled()` (waits for the
+  snapshot, then `shutdown()` joins the worker), never `drain()`'s 50 ms
+  quiet. Positive checks use `events_until`.
+- Listeners that must hear the first step (startup plan, a window open at
+  launch) go in `Engine::start_with`, not `subscribe`.
+- The UI build targets Safari 15 (macOS 12): no `Array.prototype.at`,
+  `structuredClone` or other 15.4+ APIs; the target lowers syntax, not methods.
+- On macOS, tray-icon's `set_icon` drops the template flag; use
+  `set_icon_with_as_template`.
+- Clippy's `doc_markdown` rejects product names in docs; add them to
+  `src-tauri/clippy.toml` `doc-valid-idents`.
