@@ -52,6 +52,7 @@ engine produces. The full picture is in [docs/architecture.md](docs/architecture
 Grab the latest installer from the
 [releases page](https://github.com/ax5hay/KeepMeAwake/releases). It is
 per-user and needs no administrator rights. Windows 10 (1809+) or Windows 11.
+A macOS version is in progress; see the [roadmap](docs/roadmap.md).
 
 Or build it from source: see [Development](#development).
 
