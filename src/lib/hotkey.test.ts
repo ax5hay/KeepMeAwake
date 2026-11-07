@@ -87,6 +87,17 @@ describe('displayAccelerator', () => {
     expect(displayAccelerator('Ctrl+Alt+K', true)).toBe('⌃⌥K');
   });
 
+  it('works on Safari 15.0, which has no Array.prototype.at', () => {
+    const at = Object.getOwnPropertyDescriptor(Array.prototype, 'at');
+    // @ts-expect-error -- removing a built-in to stand in for an older WebKit
+    delete Array.prototype.at;
+    try {
+      expect(displayAccelerator('Cmd+Alt+K', true)).toBe('⌥⌘K');
+    } finally {
+      if (at) Object.defineProperty(Array.prototype, 'at', at);
+    }
+  });
+
   it('draws arrows and Return as macOS does, and leaves other keys alone', () => {
     expect(displayAccelerator('Cmd+Up', true)).toBe('⌘↑');
     expect(displayAccelerator('Ctrl+Enter', true)).toBe('⌃↩');
