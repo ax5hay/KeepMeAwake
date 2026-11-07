@@ -79,6 +79,9 @@ pub enum EngineEvent {
     },
 }
 
+/// How much "Give it another 30m" adds to a timed session.
+pub const EXTEND_BY: Duration = Duration::from_secs(30 * 60);
+
 /// Receives engine events. Called off the engine lock, so it may call back
 /// into the engine.
 pub type Listener = Box<dyn Fn(&EngineEvent) + Send + Sync>;

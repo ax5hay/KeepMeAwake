@@ -31,6 +31,12 @@ pub fn toggle_session(state: State<'_, AppState>) -> Snapshot {
     state.engine.toggle()
 }
 
+/// Give a timed session another 30 minutes. Does nothing otherwise.
+#[tauri::command]
+pub fn extend_session(state: State<'_, AppState>) -> Snapshot {
+    state.engine.extend(crate::engine::EXTEND_BY)
+}
+
 /// Rest for the remainder of the open schedule window.
 #[tauri::command]
 pub fn skip_schedule(state: State<'_, AppState>) -> Snapshot {

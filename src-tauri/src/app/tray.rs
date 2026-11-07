@@ -53,6 +53,10 @@ pub const DURATIONS: &[(u64, &str)] = &[
 const ID_STATUS: &str = "status";
 const ID_TOGGLE: &str = "toggle";
 const ID_SKIP: &str = "skip";
+const ID_EXTEND: &str = "extend";
+
+/// The tray item that pushes a timed session's end later.
+pub const EXTEND_LABEL: &str = "Give it another 30m";
 const ID_INDEFINITE: &str = "indefinite";
 const ID_OPEN: &str = "open";
 const ID_QUIT: &str = "quit";
@@ -121,6 +125,9 @@ fn on_menu(app: &AppHandle, id: &str) {
         ID_TOGGLE => {
             engine.toggle();
         }
+        ID_EXTEND => {
+            engine.extend(crate::engine::EXTEND_BY);
+        }
         ID_SKIP => {
             if engine.snapshot().schedule.skipped {
                 engine.unskip();
@@ -146,6 +153,9 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Res
     let toggle = MenuItem::with_id(app, ID_TOGGLE, toggle_label(snapshot), true, None::<&str>)?;
     let skip = skip_label(snapshot)
         .map(|label| MenuItem::with_id(app, ID_SKIP, label, true, None::<&str>))
+        .transpose()?;
+    let extend = extend_label(snapshot)
+        .map(|label| MenuItem::with_id(app, ID_EXTEND, label, true, None::<&str>))
         .transpose()?;
 
     let mut duration_items: Vec<MenuItem<R>> = Vec::with_capacity(DURATIONS.len());
@@ -177,6 +187,9 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Res
         PredefinedMenuItem::separator(app)?,
     ];
     let mut items: Vec<&dyn tauri::menu::IsMenuItem<R>> = vec![&status, &separators[0], &toggle];
+    if let Some(extend) = &extend {
+        items.push(extend);
+    }
     if let Some(skip) = &skip {
         items.push(skip);
     }
@@ -188,6 +201,16 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Res
         &quit,
     ]);
     Menu::with_items(app, &items)
+}
+
+/// The extend item, shown while a timed session is inside its sunset
+/// warning: the same moment the engine warned.
+fn extend_label(snapshot: &Snapshot) -> Option<&'static str> {
+    let warning = u64::from(snapshot.settings.sunset_warning_mins?) * 60;
+    let inside = snapshot.mode == Mode::Timed
+        && snapshot.remaining_secs? <= warning
+        && snapshot.plan_secs? > warning;
+    inside.then_some(EXTEND_LABEL)
 }
 
 /// The schedule item under the toggle, shown only while a window is open.
@@ -468,6 +491,23 @@ mod tests {
             "Windows"
         };
         assert_eq!(line, format!("Paused: {os} refused the request"));
+    }
+
+    #[test]
+    fn the_extend_item_shows_only_inside_the_warning() {
+        let mut timed = snap(Mode::Timed, Some(300), None);
+        timed.plan_secs = Some(600);
+        assert_eq!(extend_label(&timed), Some("Give it another 30m"));
+        timed.remaining_secs = Some(301);
+        assert_eq!(extend_label(&timed), None, "not yet");
+        timed.remaining_secs = Some(60);
+        timed.plan_secs = Some(120);
+        assert_eq!(extend_label(&timed), None, "a plan too short to warn");
+        let mut off = snap(Mode::Timed, Some(60), None);
+        off.plan_secs = Some(600);
+        off.settings.sunset_warning_mins = None;
+        assert_eq!(extend_label(&off), None, "warning off");
+        assert_eq!(extend_label(&snap(Mode::Indefinite, None, None)), None);
     }
 
     #[test]

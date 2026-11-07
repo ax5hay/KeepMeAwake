@@ -23,6 +23,8 @@ pub const RESUMED_TITLE: &str = "Back up";
 pub const RESUMED_BODY: &str = "Charger connected. The sun is up again.";
 /// Title when a schedule window opens.
 pub const SCHEDULE_STARTED_TITLE: &str = "On schedule";
+/// Title of the toast a few minutes before a timed session ends.
+pub const SUNSET_TITLE: &str = "The sun sets soon";
 /// Title when a schedule window closes.
 pub const SCHEDULE_ENDED_TITLE: &str = "Off schedule";
 
@@ -49,6 +51,22 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
                     "Resting now. {}, as asked.",
                     tray::format_duration(*plan_secs)
                 ),
+            )
+        }
+        // About the same timer, so it follows the timer switch.
+        EngineEvent::SunsetSoon { secs_left, .. }
+            if switches.timer && snapshot.mode == Mode::Timed =>
+        {
+            let mins = secs_left.div_ceil(60).max(1);
+            let unit = if mins == 1 { "minute" } else { "minutes" };
+            let place = if cfg!(target_os = "macos") {
+                "the menu bar"
+            } else {
+                "the tray"
+            };
+            toast(
+                SUNSET_TITLE,
+                format!("In {mins} {unit}. Give it another 30m from {place} or the window."),
             )
         }
         EngineEvent::Paused(PauseReason::LowBattery | PauseReason::OnBattery, battery)
@@ -182,6 +200,40 @@ mod tests {
             body(&short, &snapshot(Mode::Off, ALL)).map(|t| t.1),
             Some("Resting now. 30m, as asked.".to_owned())
         );
+    }
+
+    #[test]
+    fn sunset_toast_says_how_long_and_where_to_carry_on() {
+        let soon = EngineEvent::SunsetSoon {
+            ends_at_unix_ms: 0,
+            secs_left: 300,
+        };
+        let place = if cfg!(target_os = "macos") {
+            "the menu bar"
+        } else {
+            "the tray"
+        };
+        assert_eq!(
+            body(&soon, &snapshot(Mode::Timed, ALL)),
+            Some((
+                "The sun sets soon",
+                format!("In 5 minutes. Give it another 30m from {place} or the window.")
+            ))
+        );
+        let last = EngineEvent::SunsetSoon {
+            ends_at_unix_ms: 0,
+            secs_left: 41,
+        };
+        assert!(
+            body(&last, &snapshot(Mode::Timed, ALL))
+                .is_some_and(|t| t.1.starts_with("In 1 minute."))
+        );
+        assert_eq!(
+            body(&soon, &snapshot(Mode::Timed, NONE)),
+            None,
+            "timer switch"
+        );
+        assert_eq!(body(&soon, &snapshot(Mode::Off, ALL)), None, "already over");
     }
 
     #[test]
