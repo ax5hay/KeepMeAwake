@@ -5,6 +5,11 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-07
+
+The first published release, as a pre-release: Windows, and the first macOS
+build.
+
 ### Added
 
 - Schedule: one window of time on chosen days (overnight allowed) during
@@ -45,7 +50,9 @@ Versions: [SemVer](https://semver.org).
   unapplied until the next deadline (forever while resting), and quitting
   could hang waiting for the engine thread.
 
-## [0.1.0] - 2026-11-07
+## 0.1.0 - 2026-11-07
+
+Built, but never tagged or published.
 
 First release. A twenty-line Python script became a desktop app.
 
@@ -66,5 +73,5 @@ First release. A twenty-line Python script became a desktop app.
   late-night line.
 - Settings persisted atomically; rotating log file.
 
-[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.1.0
+[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.2.0
