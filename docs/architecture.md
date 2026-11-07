@@ -12,7 +12,7 @@ flowchart TB
         direction TB
         app["app/<br/>commands · tray · window"]
         engine["engine/<br/>worker thread · policy"]
-        core["core/<br/>Session · PlanRequest · Settings · Snapshot<br/><i>pure, no I/O</i>"]
+        core["core/<br/>Session · PlanRequest · Settings · Schedule · Snapshot<br/><i>pure, no I/O</i>"]
         platform["platform/<br/>PowerGuard · BatteryProbe · Clock"]
         win["platform/windows.rs<br/>PowerCreateRequest · PowerSetRequest<br/>GetSystemPowerStatus<br/><i>the only unsafe</i>"]
         persist["persistence.rs<br/>settings.json, atomic save"]
@@ -44,6 +44,7 @@ is the first thing to check in a review.
 | `PlanRequest` | the only mutation the UI can send: `off`, `indefinite`, `for {seconds}`, `until {unix_ms}`             |
 | `Session`     | off, indefinite, or timed with a deadline; remembers when it started and when the current plan was set |
 | `Settings`    | versioned, every field defaulted, `sanitized()` clamps ranges                                          |
+| `schedule`    | `current_window`, `next_window`, `next_boundary`: pure local-time arithmetic, generic over the zone    |
 | `Snapshot`    | everything the UI and tray render, in one message                                                      |
 
 `until` is resolved to `for` against the wall clock before it reaches the state
@@ -60,6 +61,27 @@ stateDiagram-v2
     Indefinite --> Off: off
     Timed --> Off: off
 ```
+
+The schedule sits beside the session rather than inside it. The engine
+derives a fourth mode, `Scheduled`, when no manual session is on and a window
+is open and not skipped. Precedence, highest first: manual session → skip →
+schedule → resting.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    Resting --> Scheduled: window opens
+    Scheduled --> Resting: window closes
+    Scheduled --> Skipped: sun clicked
+    Skipped --> Scheduled: sun clicked again
+    Skipped --> Resting: window closes
+    Scheduled --> Manual: a stop, Always, tray
+    Manual --> Scheduled: session ends inside the window
+    Manual --> Resting: session ends outside it
+```
+
+A skip is stored as the window's end in wall-clock milliseconds, so it lapses
+with the window even across sleep.
 
 ### platform
 
@@ -81,28 +103,39 @@ One thread, one loop, no polling while idle.
 ```mermaid
 flowchart TD
     wake(["wake: command, deadline or shutdown"]) --> tick["session.tick(now)<br/>timed session may expire"]
-    tick --> bat["battery.read()"]
+    tick --> sched["schedule: window open? skipped?<br/>emit ScheduleStarted / ScheduleEnded"]
+    sched --> bat["battery.read()"]
     bat --> decide["policy::decide(active, settings, battery)<br/>→ guards to hold, pause reason"]
     decide --> apply["guard.apply(desired)<br/>idempotent"]
     apply --> snap["build Snapshot"]
     snap --> emit["deliver events to listeners<br/><i>lock released</i>"]
     emit --> next{"next deadline?"}
-    next -->|"session end or<br/>battery poll in 30 s"| waitUntil["condvar.wait_until(deadline)"]
+    next -->|"session end, battery poll in 30 s<br/>or schedule boundary (≤ 5 min)"| waitUntil["condvar.wait_until(deadline)"]
     next -->|"none (resting)"| waitAny["condvar.wait()"]
     waitUntil --> wake
     waitAny --> wake
 ```
 
-Commands from the UI and tray mutate state under the lock, notify the condvar
-and return the fresh snapshot immediately, so callers never wait on the
-worker. The thread is named `keepmeawake-engine`.
+Commands from the UI and tray mutate state under the lock, mark it dirty,
+notify the condvar and return the fresh snapshot immediately, so callers never
+wait on the worker. The loop re-evaluates instead of waiting when a change
+landed while it was delivering events. The thread is named
+`keepmeawake-engine`.
+
+With a schedule on and no window open, the wait for the next window is capped
+at five minutes: Windows stops counting wait timeouts while the machine
+sleeps, and the cap bounds how late a window can be noticed after the lid
+opens.
 
 The policy, as a table:
 
-| Session | On mains           | On battery, above threshold | On battery, below threshold | "Pause whenever unplugged" |
-| ------- | ------------------ | --------------------------- | --------------------------- | -------------------------- |
-| off     | nothing            | nothing                     | nothing                     | nothing                    |
-| active  | system (+ display) | system (+ display)          | nothing · `LowBattery`      | nothing · `OnBattery`      |
+`active` is a manual session, or an open schedule window that was not skipped.
+
+| Session | Schedule               | On mains           | On battery, above threshold | On battery, below threshold | "Pause whenever unplugged" |
+| ------- | ---------------------- | ------------------ | --------------------------- | --------------------------- | -------------------------- |
+| off     | off, closed or skipped | nothing            | nothing                     | nothing                     | nothing                    |
+| off     | window open            | system (+ display) | system (+ display)          | nothing · `LowBattery`      | nothing · `OnBattery`      |
+| active  | any (the session wins) | system (+ display) | system (+ display)          | nothing · `LowBattery`      | nothing · `OnBattery`      |
 
 If the OS refuses the request the snapshot says `PowerRequestFailed` rather
 than pretending.
@@ -137,7 +170,9 @@ sequenceDiagram
 | ----------------- | ---------------------- | ------------------------------------------------------------- |
 | `get_snapshot`    |                        | `Snapshot` (also re-reads battery)                            |
 | `set_plan`        | `request: PlanRequest` | `Snapshot`                                                    |
-| `toggle_session`  |                        | `Snapshot`                                                    |
+| `toggle_session`  |                        | `Snapshot`; skips or resumes an open schedule window          |
+| `skip_schedule`   |                        | `Snapshot`                                                    |
+| `resume_schedule` |                        | `Snapshot`                                                    |
 | `update_settings` | `settings: Settings`   | `Snapshot`, or an error string if the file could not be saved |
 | `quit_app`        |                        |                                                               |
 
@@ -171,7 +206,7 @@ synchronous event handler can deadlock on Windows.
 - Four Win32 calls, all in one file.
 - No input is ever sent to other applications.
 - CSP is `default-src 'self'`; the capability file grants only window
-  dragging and visibility, autostart toggling, the five commands above, and
+  dragging and visibility, autostart toggling, the commands above, and
   opening two allow-listed `https` origins.
 - Dependencies are locked (`package-lock.json`, `Cargo.lock`) and bumped by
   Dependabot in grouped PRs.

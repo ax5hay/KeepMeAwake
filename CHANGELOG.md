@@ -5,6 +5,20 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+
+- Schedule: one window of time on chosen days (overnight allowed) during
+  which the laptop stays awake on its own. Click the sun to skip the rest of
+  a window and again to come back; a manual session always wins and is never
+  cut short by a window closing. Settings → Schedule, a tray item while a
+  window is open, and status lines that say when the sun rises again.
+
+### Fixed
+
+- A command that arrived while the engine was delivering events could sit
+  unapplied until the next deadline (forever while resting), and quitting
+  could hang waiting for the engine thread.
+
 ## [0.1.0] - 2026-11-07
 
 First release. A twenty-line Python script became a desktop app.
