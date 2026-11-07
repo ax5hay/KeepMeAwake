@@ -21,7 +21,9 @@
 
 <section class="status" aria-live="polite">
   <h1>{store.status.title}</h1>
-  <p>{store.status.detail}</p>
+  {#key store.whisper}
+    <p class:whisper={store.whisper !== null}>{store.whisper ?? store.status.detail}</p>
+  {/key}
 </section>
 
 <DurationRule />
@@ -65,6 +67,25 @@
     margin: 6px 0 0;
     color: var(--ink-2);
     font-variant-numeric: tabular-nums;
+    animation: settle var(--t-mid) var(--ease-out);
+  }
+
+  p.whisper {
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  @keyframes settle {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   .rows {
