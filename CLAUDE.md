@@ -11,7 +11,11 @@ version.
 - Tauri 2. Rust in `src-tauri/src` owns behaviour; Svelte 5 in `src` is a
   view over a `Snapshot`.
 - Layers: `app → engine → core`, `engine → platform`. `core` has no I/O.
-- The only `unsafe` is in `src-tauri/src/platform/windows.rs`.
+- The only `unsafe` is in `src-tauri/src/platform/windows.rs` and, once the
+  macOS track lands, `src-tauri/src/platform/macos.rs`. Nowhere else.
+- Two machines push to `main`: Windows work on the work laptop, macOS work on
+  the personal Mac (`docs/specs/macos.md`). Pull first; keep platform work
+  inside `platform/` and `cfg` blocks.
 - `src/lib/types.ts` mirrors `src-tauri/src/core` field for field, `snake_case`.
   Change both or neither.
 - UI copy that is more than a label lives in `src/lib/copy.ts`.

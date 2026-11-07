@@ -25,6 +25,45 @@ npm run dev     # first Rust build takes a few minutes
 
 Editor: VS Code with the extensions in `.vscode/extensions.json`.
 
+## Setup (macOS)
+
+```mermaid
+flowchart LR
+    xcode["Xcode Command Line Tools<br/>(clang, codesign)"] --> install["npm install<br/>(wires git hooks)"]
+    node["Node 24<br/>brew install node"] --> install
+    rust["Rust stable<br/>rustup default stable"] --> install
+    install --> dev["npm run dev"]
+```
+
+```sh
+xcode-select --install
+brew install node rustup && rustup-init -y && . "$HOME/.cargo/env"
+npm install
+npm run dev     # first Rust build takes a few minutes
+```
+
+Platform code lives in `src-tauri/src/platform/macos.rs` (see
+[`specs/macos.md`](specs/macos.md)). Everything else is shared, so a change to
+`core`, `engine` or the UI must still pass `npm run verify` on both machines.
+
+| Task                  | Windows                                                              | macOS                                                                                 |
+| --------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Prove the app holds   | `powercfg /requests` (elevated)                                      | `pmset -g assertions`                                                                 |
+| Kill a stray build    | `taskkill /IM keepmeawake.exe /F`                                    | `pkill -x KeepMeAwake`                                                                |
+| Screenshot the window | CDP: `Page.captureScreenshot`                                        | `screencapture -l$(osascript -e 'tell app "KeepMeAwake" to id of window 1') shot.png` |
+| Inspect the webview   | `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` | right-click → Inspect Element (debug builds)                                          |
+| Settings file         | `%APPDATA%\dev.bajpai.keepmeawake\`                                  | `~/Library/Application Support/dev.bajpai.keepmeawake/`                               |
+| Log                   | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\`                        | `~/Library/Logs/dev.bajpai.keepmeawake/`                                              |
+
+## Two machines, one `main`
+
+The Windows work happens on the work laptop, the macOS work on the personal
+Mac, both pushing small commits to `main`. Pull before you start; read and
+update [`HANDOFF.md`](HANDOFF.md) at both ends of a session. Shared files
+(`core`, `engine`, `copy.ts`, the docs) are where conflicts can appear, so
+keep platform work inside `platform/` and `cfg` blocks wherever it can live
+there.
+
 ## Daily commands
 
 | Command             | Does                                                                  |
