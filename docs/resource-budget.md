@@ -4,18 +4,25 @@
 
 ## Budget
 
-| Metric                         | Budget              | Measured (0.1, release)               | Why                                                            |
-| ------------------------------ | ------------------- | ------------------------------------- | -------------------------------------------------------------- |
-| Private memory, tray only      | ≤ 12 MB             | 5.3 MB                                | one native process, no WebView                                 |
-| Private memory, window open    | ≤ 90 MB             | 5.4 MB app + WebView2                 | WebView2 is the floor; the page is small                       |
-| CPU while resting              | 0 wake-ups          | 0                                     | the engine thread blocks on a condvar                          |
-| CPU while awake                | 1 wake-up / 30 s    | 1 / 30 s                              | battery poll only                                              |
-| CPU while resting, schedule on | ≤ 1 wake-up / 5 min | by design                             | the next window start, re-checked so sleep cannot make it late |
-| CPU, window open, idle         | ≤ 0.1%              | idle                                  | no animation loops; 1 Hz clock only in a timed session         |
-| Binary                         | ≤ 12 MB             | 3.8 MB exe · 1.5 MB NSIS · 2.1 MB MSI | `opt-level = "s"`, LTO, stripped                               |
-| UI bundle (JS + CSS, gzip)     | ≤ 60 KB             | 28 KB + 3.5 KB                        | Svelte compiles away; no framework runtime                     |
-| Fonts                          | ≤ 160 KB            | 149 KB                                | one family, two files, latin subset                            |
-| Cold open of the window        | ≤ 400 ms            | under 1 s                             | WebView2 spin-up + first paint                                 |
+| Metric                         | Budget              | Measured (0.2, release build)         | Why                                                                 |
+| ------------------------------ | ------------------- | ------------------------------------- | ------------------------------------------------------------------- |
+| Private memory, tray only      | ≤ 12 MB             | 5.7 MB (0.1: 5.3 MB)                  | one native process, no WebView                                      |
+| Private memory, window open    | ≤ 90 MB             | 5.4 MB app + WebView2                 | WebView2 is the floor; the page is small                            |
+| CPU while resting              | 0 wake-ups          | 0 ms CPU in 60 s                      | the engine and theme threads block in the kernel                    |
+| CPU while awake                | 1 wake-up / 30 s    | 1 / 30 s                              | battery poll only                                                   |
+| CPU while resting, schedule on | ≤ 1 wake-up / 5 min | by design                             | the next window start, re-checked so sleep cannot make it late      |
+| Threads at rest                | no polling threads  | 30 (Tauri, WebView2 loader, plugins)  | `keepmeawake-engine` and `keepmeawake-theme` both sleep until woken |
+| CPU, window open, idle         | ≤ 0.1%              | idle                                  | no animation loops; 1 Hz clock only in a timed session              |
+| Binary                         | ≤ 12 MB             | 4.2 MB exe · 1.5 MB NSIS · 2.1 MB MSI | `opt-level = "s"`, LTO, stripped                                    |
+| UI bundle (JS + CSS, gzip)     | ≤ 60 KB             | 30 KB + 3.7 KB (0.1: 28 KB + 3.5 KB)  | Svelte compiles away; no framework runtime                          |
+| Fonts                          | ≤ 160 KB            | 149 KB                                | one family, two files, latin subset                                 |
+| Cold open of the window        | ≤ 400 ms            | under 1 s                             | WebView2 spin-up + first paint                                      |
+
+0.2 adds `chrono` (schedule arithmetic), `tauri-plugin-notification` and
+`tauri-plugin-global-shortcut`: together +0.4 MB on the exe and nothing at
+idle. The taskbar watch is one thread blocked in `RegNotifyChangeKeyValue`
+(about 64 KB of stack, no CPU), and the tray carries three more 64 px PNGs
+(under 1 KB each).
 
 Measured on a Core Ultra 5 laptop, Windows 11, 2026-11-07. WebView2 processes are
 shared with other apps on the machine and cannot be attributed cleanly from Task

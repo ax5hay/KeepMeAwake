@@ -13,8 +13,8 @@ flowchart TB
         app["app/<br/>commands · tray · window"]
         engine["engine/<br/>worker thread · policy"]
         core["core/<br/>Session · PlanRequest · Settings · Schedule · Snapshot<br/><i>pure, no I/O</i>"]
-        platform["platform/<br/>PowerGuard · BatteryProbe · Clock"]
-        win["platform/windows.rs<br/>PowerCreateRequest · PowerSetRequest<br/>GetSystemPowerStatus<br/><i>the only unsafe</i>"]
+        platform["platform/<br/>PowerGuard · BatteryProbe · Clock · TaskbarTheme"]
+        win["platform/windows.rs<br/>PowerCreateRequest · PowerSetRequest<br/>GetSystemPowerStatus · registry theme<br/><i>the only unsafe</i>"]
         persist["persistence.rs<br/>settings.json, atomic save"]
         app --> engine --> core
         engine --> platform --> win
@@ -85,16 +85,22 @@ with the window even across sleep.
 
 ### platform
 
-Three traits so the engine never calls Win32 directly.
+Four traits so the engine and the tray never call Win32 directly.
 
 | Trait          | Windows implementation                             | Test double      |
 | -------------- | -------------------------------------------------- | ---------------- |
 | `PowerGuard`   | `PowerCreateRequest` + `PowerSetRequest` / `Clear` | `FakePowerGuard` |
 | `BatteryProbe` | `GetSystemPowerStatus`                             | `FakeBattery`    |
 | `Clock`        | `Instant::now`, `SystemTime`                       | `ManualClock`    |
+| `TaskbarTheme` | `RegGetValueW` on `SystemUsesLightTheme`           | `FakeTaskbar`    |
 
 Every `unsafe` block carries a `SAFETY:` comment; clippy's
 `undocumented_unsafe_blocks` is `deny`.
+
+`windows.rs` also exposes `wait_for_theme_change`, which blocks in
+`RegNotifyChangeKeyValue` on the Personalize key. A thread named
+`keepmeawake-theme` loops on it and refreshes the tray, so the icon set
+follows the taskbar with no polling.
 
 ### engine
 
@@ -207,7 +213,8 @@ synchronous event handler can deadlock on Windows.
   Windows notification centre; they are sent from Rust, so the webview has no
   notification permission.
 - One JSON file under `%APPDATA%`, one log under `%LOCALAPPDATA%`.
-- Four Win32 calls, all in one file.
+- A handful of Win32 calls (power requests, power status, two registry
+  reads and a registry change notification), all in one file.
 - No input is ever sent to other applications. The global hotkey is
   registered with `RegisterHotKey`, which only listens, and from Rust, so
   the webview has no shortcut permission.
