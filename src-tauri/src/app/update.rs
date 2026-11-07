@@ -7,6 +7,7 @@
 //! downloaded is verified against the public key in `tauri.conf.json`
 //! before it is run.
 
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -153,6 +154,49 @@ pub async fn check_now(app: &AppHandle) -> Option<UpdateInfo> {
             None
         }
     }
+}
+
+/// Downloads the newer release, has the plugin verify its signature,
+/// installs it and relaunches. The window hears `update-progress` each
+/// time the whole percentage moves. On Windows the installer takes over
+/// and the plugin exits the app; the engine is shut down first, so the
+/// power request is released and the stretch ends as `you`, not `sleep`.
+pub async fn install(app: AppHandle) -> Result<(), String> {
+    let engine = Arc::clone(&app.state::<AppState>().engine);
+    let updater = app
+        .updater_builder()
+        .on_before_exit(move || engine.shutdown())
+        .build()
+        .map_err(|err| format!("The updater is unavailable: {err}"))?;
+    let update = updater
+        .check()
+        .await
+        .map_err(|err| format!("Could not reach GitHub: {err}"))?
+        .ok_or_else(|| "Already up to date.".to_owned())?;
+    log::info!("installing {}", update.version);
+    let handle = app.clone();
+    let mut downloaded: u64 = 0;
+    let mut shown: Option<u8> = None;
+    update
+        .download_and_install(
+            |chunk, total| {
+                downloaded = downloaded.saturating_add(u64::try_from(chunk).unwrap_or(u64::MAX));
+                let progress = Progress { downloaded, total };
+                let now = percent(progress);
+                // Thousands of chunks; the window only needs each percent.
+                if now != shown || now.is_none() {
+                    shown = now;
+                    let _ = handle.emit(PROGRESS_EVENT, progress);
+                }
+            },
+            || log::info!("update downloaded and verified"),
+        )
+        .await
+        .map_err(|err| {
+            log::warn!("update not installed: {err}");
+            format!("The update could not be installed: {err}")
+        })?;
+    app.restart()
 }
 
 fn millis(d: Duration) -> u64 {

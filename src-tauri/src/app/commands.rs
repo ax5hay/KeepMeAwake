@@ -115,6 +115,14 @@ pub fn get_update(state: State<'_, AppState>) -> Option<UpdateInfo> {
     state.update.lock().clone()
 }
 
+/// Download, verify and install the newer release, then relaunch. Resolves
+/// only on failure, with a sentence for the window; on success the app is
+/// gone before it could.
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> Result<(), String> {
+    super::update::install(app).await
+}
+
 /// Exit the application completely (not just hide to tray).
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {

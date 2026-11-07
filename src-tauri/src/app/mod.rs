@@ -84,6 +84,7 @@ pub fn run() {
             commands::get_history,
             commands::clear_history,
             commands::get_update,
+            commands::install_update,
         ])
         .setup(|app| setup(app.handle()).map_err(Into::into))
         .build(tauri::generate_context!())
