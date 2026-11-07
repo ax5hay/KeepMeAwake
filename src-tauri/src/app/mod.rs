@@ -57,6 +57,8 @@ pub fn run() {
             commands::get_snapshot,
             commands::set_plan,
             commands::toggle_session,
+            commands::skip_schedule,
+            commands::resume_schedule,
             commands::update_settings,
             commands::quit_app,
         ])

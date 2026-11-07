@@ -30,6 +30,18 @@ pub fn toggle_session(state: State<'_, AppState>) -> Snapshot {
     state.engine.toggle()
 }
 
+/// Rest for the remainder of the open schedule window.
+#[tauri::command]
+pub fn skip_schedule(state: State<'_, AppState>) -> Snapshot {
+    state.engine.skip_today()
+}
+
+/// Undo a skip: the open schedule window holds the laptop awake again.
+#[tauri::command]
+pub fn resume_schedule(state: State<'_, AppState>) -> Snapshot {
+    state.engine.unskip()
+}
+
 /// Persist and apply new settings. Fails only if the file cannot be written;
 /// the engine still receives the new values in that case.
 #[tauri::command]
