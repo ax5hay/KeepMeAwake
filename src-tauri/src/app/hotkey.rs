@@ -14,10 +14,15 @@ use tauri_plugin_global_shortcut::{
 
 use super::AppState;
 
-/// The command error when Windows refuses the combination.
+/// The command error when the OS refuses the combination.
 pub const TAKEN: &str = "That combination is already taken.";
-/// The command error for a combination without Ctrl, Alt or Win.
-pub const NEEDS_MODIFIER: &str = "A hotkey needs at least one of Ctrl, Alt, Win.";
+/// The command error for a combination without Ctrl, Alt or Win (on a Mac,
+/// Command, Control or Option, named by the glyphs the window shows).
+pub const NEEDS_MODIFIER: &str = if cfg!(target_os = "macos") {
+    "A hotkey needs at least one of \u{2318}, \u{2303}, \u{2325}."
+} else {
+    "A hotkey needs at least one of Ctrl, Alt, Win."
+};
 
 /// The plugin, with a handler that toggles on key down.
 pub fn plugin<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
@@ -78,6 +83,24 @@ mod tests {
         let s = parse("Ctrl+Alt+K").unwrap();
         assert_eq!(s.key, Code::KeyK);
         assert_eq!(s.mods, Modifiers::CONTROL | Modifiers::ALT);
+    }
+
+    #[test]
+    fn parses_the_mac_default() {
+        let s = parse("Cmd+Alt+K").unwrap();
+        assert_eq!(s.key, Code::KeyK);
+        assert_eq!(s.mods, Modifiers::SUPER | Modifiers::ALT);
+        assert!(parse(crate::core::settings::DEFAULT_HOTKEY).is_ok());
+    }
+
+    #[test]
+    fn the_modifier_message_names_this_platforms_keys() {
+        if cfg!(target_os = "macos") {
+            assert!(NEEDS_MODIFIER.contains('\u{2318}'));
+            assert!(!NEEDS_MODIFIER.contains("Win"));
+        } else {
+            assert!(NEEDS_MODIFIER.contains("Ctrl, Alt, Win"));
+        }
     }
 
     #[test]
