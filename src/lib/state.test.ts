@@ -22,6 +22,7 @@ const base: Snapshot = {
     next_start_unix_ms: null,
   },
   guard_rests_at_unix_ms: null,
+  guard_watching: false,
   settings: {
     version: 1,
     keep_display_on: true,

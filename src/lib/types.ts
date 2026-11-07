@@ -81,6 +81,8 @@ export interface Snapshot {
   schedule: ScheduleState;
   /** While the overnight guard asks: when the session ends unless answered. */
   guard_rests_at_unix_ms: number | null;
+  /** The overnight guard watches this session: Always, guard on, not kept up. */
+  guard_watching: boolean;
   settings: Settings;
   app_version: string;
 }

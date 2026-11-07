@@ -520,6 +520,14 @@ struct Probes<'a> {
     idle: &'a dyn IdleProbe,
 }
 
+/// The guard is watching the current session: Always, the guard on, and
+/// nobody said Keep it up for this session.
+fn guard_watches(st: &State) -> bool {
+    st.session.mode() == Mode::Indefinite
+        && st.settings.overnight_guard_hours.is_some()
+        && st.guard_dismissed_for != st.session.started_at()
+}
+
 /// The overnight guard, for one step. While an Always session runs, the
 /// guard is on and nobody said Keep it up for this session, it reads how
 /// long since the last input: at the guard's time it asks (once), below it
@@ -533,12 +541,10 @@ fn overnight_guard(
     unix_now: u64,
     events: &mut Vec<EngineEvent>,
 ) -> Option<u64> {
-    let watching =
-        st.session.mode() == Mode::Indefinite && st.guard_dismissed_for != st.session.started_at();
     let limit = st
         .settings
         .overnight_guard_hours
-        .filter(|_| watching)
+        .filter(|_| guard_watches(st))
         .map(|hours| Duration::from_secs(u64::from(hours) * 3600));
     // Read only while it can matter. No reading means nobody can say, and
     // the guard never acts on that.
@@ -761,6 +767,7 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
         guard_rests_at_unix_ms: st
             .guard_rests_at
             .filter(|_| st.session.mode() == Mode::Indefinite),
+        guard_watching: guard_watches(st),
         settings: st.settings.clone(),
         app_version: shared.app_version.clone(),
     };
@@ -1331,7 +1338,10 @@ mod tests {
     fn keep_it_up_leaves_this_session_alone_but_not_the_next() {
         let r = rig(Settings::default());
         asked(&r);
-        assert_eq!(r.engine.keep_it_up().guard_rests_at_unix_ms, None);
+        assert!(r.engine.snapshot().guard_watching);
+        let kept = r.engine.keep_it_up();
+        assert_eq!(kept.guard_rests_at_unix_ms, None);
+        assert!(!kept.guard_watching, "the window stops promising the guard");
         r.clock.advance(Duration::from_secs(10 * 60));
         let (snap, _) = look(&r, 50);
         assert_eq!(snap.guard_rests_at_unix_ms, None);
@@ -1346,6 +1356,7 @@ mod tests {
         r.engine.set_plan(PlanRequest::Indefinite);
         let (snap, _) = look(&r, 52);
         assert!(snap.guard_rests_at_unix_ms.is_some(), "a new session asks");
+        assert!(snap.guard_watching);
     }
 
     #[test]
@@ -1379,6 +1390,7 @@ mod tests {
             .set_plan(PlanRequest::For { seconds: 8 * 3600 });
         let (mode, events) = untouched_past_a_grace(&timed);
         assert_eq!(mode, Mode::Timed, "a timer is never let go");
+        assert!(!timed.engine.snapshot().guard_watching);
         assert!(!events.iter().any(is_ask), "timed: {events:?}");
 
         let window = rig_at(with_schedule(), 2, 10, 0);

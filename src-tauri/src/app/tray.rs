@@ -405,6 +405,7 @@ mod tests {
             battery: BatteryState::default(),
             schedule: ScheduleState::default(),
             guard_rests_at_unix_ms: None,
+            guard_watching: false,
             settings: Settings::default(),
             app_version: String::new(),
         }

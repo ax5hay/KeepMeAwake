@@ -82,6 +82,9 @@ pub struct Snapshot {
     /// While the overnight guard is asking whether anyone is there: when the
     /// session will end unless someone answers, Unix ms. `None` otherwise.
     pub guard_rests_at_unix_ms: Option<u64>,
+    /// The overnight guard is watching this session: an Always session,
+    /// the guard on, and nobody said Keep it up for it.
+    pub guard_watching: bool,
     /// User preferences, so the UI has a single source of truth.
     pub settings: Settings,
     /// Application version, for the About section.
@@ -111,6 +114,7 @@ mod tests {
             battery: BatteryState::default(),
             schedule: ScheduleState::default(),
             guard_rests_at_unix_ms: None,
+            guard_watching: false,
             settings: Settings::default(),
             app_version: "0.0.0".into(),
         }
@@ -146,6 +150,7 @@ mod tests {
         assert!(json.get("started_at_unix_ms").is_some());
         assert_eq!(json["mode"], "off");
         assert!(json["guard_rests_at_unix_ms"].is_null());
+        assert_eq!(json["guard_watching"], false);
         assert_eq!(json["settings"]["overnight_guard_hours"], 6);
     }
 }
