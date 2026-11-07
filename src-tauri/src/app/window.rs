@@ -43,7 +43,9 @@ pub fn show_main(app: AppHandle) {
             log::error!("could not create main window: {err}");
         }
     });
-    // AppKit wants windows made on the main thread itself, so queue it there.
+    // AppKit wants windows made on the main thread itself. Tray and plugin
+    // callbacks already run there, in which case this runs at once; from
+    // any other thread it is sent over.
     #[cfg(target_os = "macos")]
     {
         let main = app.clone();
@@ -82,42 +84,61 @@ pub fn show_under_icon(app: AppHandle, icon: tauri::Rect) {
 }
 
 /// Moves `window` so it hangs centred below `icon`, inside the work area of
-/// the screen the icon is on.
+/// the screen the icon is on. Placement is worked out in points: macOS gives
+/// the icon in pixels at its own screen's scale, and a window on a screen of
+/// another scale would be misplaced by a pixel position.
 #[cfg(target_os = "macos")]
 fn place_under(window: &WebviewWindow, icon: tauri::Rect) {
-    use crate::core::placement::{Rect, Size, under_icon};
+    use crate::core::placement::{Rect, Screen, Size, drop_down};
 
-    let scale = window.scale_factor().unwrap_or(1.0);
-    let at = icon.position.to_physical::<f64>(scale);
-    let size = icon.size.to_physical::<f64>(scale);
-    let Ok(Some(monitor)) = window.monitor_from_point(at.x + size.width / 2.0, at.y) else {
-        log::debug!("no screen under the menu bar icon; leaving the window where it is");
-        return;
+    let window_scale = window.scale_factor().unwrap_or(1.0);
+    let at = icon.position.to_physical::<f64>(window_scale);
+    let size = icon.size.to_physical::<f64>(window_scale);
+    let icon = Rect {
+        x: pixel(at.x),
+        y: pixel(at.y),
+        width: u32::try_from(pixel(size.width)).unwrap_or(0),
+        height: u32::try_from(pixel(size.height)).unwrap_or(0),
     };
+    let screens: Vec<Screen> = window
+        .available_monitors()
+        .unwrap_or_default()
+        .iter()
+        .map(|monitor| {
+            let work = monitor.work_area();
+            Screen {
+                bounds: Rect {
+                    x: monitor.position().x,
+                    y: monitor.position().y,
+                    width: monitor.size().width,
+                    height: monitor.size().height,
+                },
+                work_area: Rect {
+                    x: work.position.x,
+                    y: work.position.y,
+                    width: work.size.width,
+                    height: work.size.height,
+                },
+                scale: monitor.scale_factor(),
+            }
+        })
+        .collect();
     let Ok(outer) = window.outer_size() else {
         return;
     };
-    let work = monitor.work_area();
-    let point = under_icon(
-        Rect {
-            x: pixel(at.x),
-            y: pixel(at.y),
-            width: u32::try_from(pixel(size.width)).unwrap_or(0),
-            height: u32::try_from(pixel(size.height)).unwrap_or(0),
-        },
-        Size {
-            width: outer.width,
-            height: outer.height,
-        },
-        Rect {
-            x: work.position.x,
-            y: work.position.y,
-            width: work.size.width,
-            height: work.size.height,
-        },
-    );
-    log::debug!("window under the menu bar icon at {point:?}");
-    if let Err(err) = window.set_position(tauri::PhysicalPosition::new(point.x, point.y)) {
+    let outer = outer.to_logical::<f64>(window_scale);
+    let points = Size {
+        width: u32::try_from(pixel(outer.width)).unwrap_or(0),
+        height: u32::try_from(pixel(outer.height)).unwrap_or(0),
+    };
+    let Some(point) = drop_down(icon, points, &screens) else {
+        log::debug!(
+            "no screen under the menu bar icon at {icon:?}; leaving the window where it is"
+        );
+        return;
+    };
+    log::debug!("window under the menu bar icon at {point:?} pt");
+    if let Err(err) = window.set_position(tauri::LogicalPosition::new(point.x, point.y)) {
         log::warn!("could not move the window under the menu bar icon: {err}");
     }
 }
