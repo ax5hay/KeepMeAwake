@@ -112,6 +112,8 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         EngineEvent::TimerEnded => log::info!("timed session ended"),
         EngineEvent::Paused(reason) => log::info!("session paused: {reason:?}"),
         EngineEvent::Resumed => log::info!("session resumed"),
+        EngineEvent::ScheduleStarted { .. } => log::info!("schedule window opened"),
+        EngineEvent::ScheduleEnded { .. } => log::info!("schedule window closed"),
     }));
 
     let launched_hidden = std::env::args().any(|a| a == HIDDEN_FLAG);

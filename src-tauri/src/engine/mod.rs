@@ -1,21 +1,23 @@
 //! The engine owns the session and is the only thing that touches the OS.
 //!
 //! It runs one background thread that sleeps on a condition variable until
-//! either a command arrives or a deadline (timer expiry, battery poll) passes.
-//! There is no periodic polling while idle, which is what lets the app sit in
-//! the tray at a rounding error of CPU.
+//! either a command arrives or a deadline (timer expiry, battery poll,
+//! schedule boundary) passes. There is no periodic polling while idle, which
+//! is what lets the app sit in the tray at a rounding error of CPU.
 
 pub mod policy;
 
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
+use chrono::{DateTime, Local, TimeZone};
 use parking_lot::{Condvar, Mutex, MutexGuard};
 
+use crate::core::schedule;
 use crate::core::{
-    BatteryState, GuardState, PauseReason, PlanRequest, ScheduleState, Session, SessionEvent,
-    Settings, Snapshot,
+    BatteryState, GuardState, Mode, PauseReason, PlanRequest, Schedule, ScheduleState, Session,
+    SessionEvent, Settings, Snapshot,
 };
 use crate::platform::{BatteryProbe, Clock, PowerGuard};
 
@@ -30,6 +32,16 @@ pub enum EngineEvent {
     Paused(PauseReason),
     /// A paused session is guarding again.
     Resumed,
+    /// A schedule window opened and is holding the laptop awake.
+    ScheduleStarted {
+        /// When the window closes, Unix ms.
+        ends_at_unix_ms: u64,
+    },
+    /// A schedule window that was holding the laptop awake closed.
+    ScheduleEnded {
+        /// When the next window opens, Unix ms.
+        next_start_unix_ms: Option<u64>,
+    },
 }
 
 /// Receives engine events. Called off the engine lock, so it may call back
@@ -52,6 +64,13 @@ struct State {
     battery: BatteryState,
     guards: GuardState,
     paused: Option<PauseReason>,
+    /// The open window was skipped until this moment (its end), Unix ms.
+    /// Wall clock rather than `Instant`, because windows are wall-clock times
+    /// and a monotonic instant drifts from them across sleep.
+    skip_until: Option<u64>,
+    /// The schedule at the last evaluation; used to report each window
+    /// opening and closing once.
+    phase: Phase,
     /// Something changed since the worker last evaluated. A notify that
     /// lands while the worker is delivering events (lock released, not yet
     /// waiting) would otherwise be lost until the next deadline.
@@ -81,6 +100,8 @@ impl Engine {
             battery,
             clock,
         } = platform;
+        // Launching inside a window is not the window opening: no event.
+        let view = ScheduleView::at(&settings.schedule, None, clock.unix_ms());
         let shared = Arc::new(Shared {
             state: Mutex::new(State {
                 session: Session::off(),
@@ -88,6 +109,8 @@ impl Engine {
                 battery: battery.read(),
                 guards: GuardState::default(),
                 paused: None,
+                skip_until: None,
+                phase: view.phase(),
                 dirty: false,
                 shutdown: false,
             }),
@@ -134,13 +157,42 @@ impl Engine {
         })
     }
 
-    /// Flips between off and the default "on" plan from settings.
+    /// What the sun does. A manual session turns off; otherwise an open
+    /// schedule window is skipped, a skipped one resumes, and outside any
+    /// window the default plan from settings starts.
     pub fn toggle(&self) -> Snapshot {
         let now = self.shared.clock.now();
+        let unix_now = self.shared.clock.unix_ms();
         self.mutate(|st| {
-            let on = default_plan(&st.settings);
-            st.session.toggle(on, now);
+            if st.session.is_active() {
+                st.session.apply(PlanRequest::Off, now);
+                return;
+            }
+            let view = ScheduleView::at(&st.settings.schedule, st.skip_until, unix_now);
+            match view.window {
+                Some((_, end)) if !view.skipped => st.skip_until = Some(end),
+                Some(_) => st.skip_until = None,
+                None => {
+                    st.session.apply(default_plan(&st.settings), now);
+                }
+            }
         })
+    }
+
+    /// Rests for the rest of the open schedule window. No-op outside one.
+    pub fn skip_today(&self) -> Snapshot {
+        let unix_now = self.shared.clock.unix_ms();
+        self.mutate(|st| {
+            let view = ScheduleView::at(&st.settings.schedule, st.skip_until, unix_now);
+            if let Some((_, end)) = view.window {
+                st.skip_until = Some(end);
+            }
+        })
+    }
+
+    /// Undoes [`Engine::skip_today`].
+    pub fn unskip(&self) -> Snapshot {
+        self.mutate(|st| st.skip_until = None)
     }
 
     /// Replaces settings (sanitized here) and re-evaluates the guards.
@@ -162,6 +214,14 @@ impl Engine {
         if let Some(handle) = self.worker.lock().take() {
             let _ = handle.join();
         }
+    }
+
+    /// When the worker would next wake on its own, computed the same way the
+    /// loop does.
+    #[cfg(test)]
+    fn next_wake(&self) -> Option<Instant> {
+        let st = self.shared.state.lock();
+        next_wake(&st, self.shared.clock.now(), self.shared.clock.unix_ms())
     }
 
     fn mutate(&self, f: impl FnOnce(&mut State)) -> Snapshot {
@@ -188,6 +248,80 @@ pub fn default_plan(settings: &Settings) -> PlanRequest {
     }
 }
 
+/// Where the schedule stood when the worker last looked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Phase {
+    /// No window open.
+    Closed,
+    /// A window is open and holding the laptop awake.
+    Holding,
+    /// A window is open but was skipped.
+    Skipped,
+}
+
+/// The schedule as seen at one moment, in Unix ms.
+#[derive(Debug, Clone, Copy, Default)]
+struct ScheduleView {
+    /// Start and end of the open window.
+    window: Option<(u64, u64)>,
+    /// Start of the first window after now.
+    next_start: Option<u64>,
+    /// The next moment any of this can change.
+    boundary: Option<u64>,
+    /// The open window was skipped.
+    skipped: bool,
+}
+
+impl ScheduleView {
+    fn at(schedule: &Schedule, skip_until: Option<u64>, unix_now: u64) -> Self {
+        let Some(now) = local_time(unix_now) else {
+            return Self::default();
+        };
+        let window =
+            schedule::current_window(schedule, &now).map(|w| (unix_ms(&w.start), unix_ms(&w.end)));
+        Self {
+            window,
+            next_start: schedule::next_window(schedule, &now).map(|w| unix_ms(&w.start)),
+            boundary: schedule::next_boundary(schedule, &now).map(|t| unix_ms(&t)),
+            skipped: window.is_some() && skip_until.is_some_and(|until| unix_now < until),
+        }
+    }
+
+    /// The schedule is what wants the laptop awake right now.
+    fn holds(&self) -> bool {
+        self.window.is_some() && !self.skipped
+    }
+
+    fn phase(&self) -> Phase {
+        match (self.window, self.skipped) {
+            (None, _) => Phase::Closed,
+            (Some(_), false) => Phase::Holding,
+            (Some(_), true) => Phase::Skipped,
+        }
+    }
+
+    fn state(&self, enabled: bool) -> ScheduleState {
+        ScheduleState {
+            enabled,
+            in_window: self.window.is_some(),
+            skipped: self.skipped,
+            window_start_unix_ms: self.window.map(|(start, _)| start),
+            window_end_unix_ms: self.window.map(|(_, end)| end),
+            next_start_unix_ms: self.next_start,
+        }
+    }
+}
+
+fn local_time(unix_ms: u64) -> Option<DateTime<Local>> {
+    Local
+        .timestamp_millis_opt(i64::try_from(unix_ms).ok()?)
+        .single()
+}
+
+fn unix_ms(at: &DateTime<Local>) -> u64 {
+    u64::try_from(at.timestamp_millis()).unwrap_or(0)
+}
+
 fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn BatteryProbe) {
     let mut st = shared.state.lock();
     loop {
@@ -199,8 +333,9 @@ fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn 
         }
         st.dirty = false;
         let now = shared.clock.now();
-        let events = step(&mut st, guard.as_mut(), battery, now, shared);
-        let deadline = policy::next_deadline(&st.session, now);
+        let unix_now = shared.clock.unix_ms();
+        let events = step(&mut st, guard.as_mut(), battery, now, unix_now, shared);
+        let deadline = next_wake(&st, now, unix_now);
 
         // Deliver events without holding the lock: listeners may call back.
         MutexGuard::unlocked(&mut st, || {
@@ -226,6 +361,15 @@ fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, battery: &dyn 
     }
 }
 
+/// The next moment the worker must wake on its own.
+fn next_wake(st: &State, now: Instant, unix_now: u64) -> Option<Instant> {
+    let view = ScheduleView::at(&st.settings.schedule, st.skip_until, unix_now);
+    let boundary = view
+        .boundary
+        .map(|at| now + Duration::from_millis(at.saturating_sub(unix_now)));
+    policy::next_deadline(&st.session, st.phase == Phase::Holding, boundary, now)
+}
+
 /// One evaluation of the state machine. Separated from the thread so it can be
 /// tested deterministically with fakes.
 fn step(
@@ -233,30 +377,46 @@ fn step(
     guard: &mut dyn PowerGuard,
     battery: &dyn BatteryProbe,
     now: Instant,
+    unix_now: u64,
     shared: &Shared,
 ) -> Vec<EngineEvent> {
     let mut events = Vec::new();
-    let was_active = st.session.is_active();
+    let was_active = st.session.is_active() || st.phase == Phase::Holding;
     if st.session.tick(now) == Some(SessionEvent::Expired) {
         events.push(EngineEvent::TimerEnded);
     }
-    st.battery = battery.read();
+    if st.skip_until.is_some_and(|until| unix_now >= until) {
+        st.skip_until = None;
+    }
 
-    let (desired, paused) = policy::decide(st.session.is_active(), &st.settings, st.battery);
+    let view = ScheduleView::at(&st.settings.schedule, st.skip_until, unix_now);
+    match (st.phase, view.phase(), view.window) {
+        (Phase::Closed, Phase::Holding, Some((_, end))) => {
+            events.push(EngineEvent::ScheduleStarted {
+                ends_at_unix_ms: end,
+            });
+        }
+        (Phase::Holding, Phase::Closed, _) => events.push(EngineEvent::ScheduleEnded {
+            next_start_unix_ms: view.next_start,
+        }),
+        _ => {}
+    }
+    st.phase = view.phase();
+    let active = st.session.is_active() || st.phase == Phase::Holding;
+
+    st.battery = battery.read();
+    let (desired, paused) = policy::decide(active, &st.settings, st.battery);
     let previously_paused = st.paused;
     match guard.apply(desired) {
         Ok(()) => st.paused = paused,
         Err(err) => {
             log::error!("power request failed: {err}");
-            st.paused = st
-                .session
-                .is_active()
-                .then_some(PauseReason::PowerRequestFailed);
+            st.paused = active.then_some(PauseReason::PowerRequestFailed);
         }
     }
     st.guards = guard.current();
 
-    if st.session.is_active() && was_active {
+    if active && was_active {
         match (previously_paused, st.paused) {
             (None, Some(reason)) => events.push(EngineEvent::Paused(reason)),
             (Some(_), None) => events.push(EngineEvent::Resumed),
@@ -277,7 +437,8 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
             unix_now.saturating_sub(millis(now - at))
         }
     };
-    Snapshot {
+    let view = ScheduleView::at(&st.settings.schedule, st.skip_until, unix_now);
+    let mut snapshot = Snapshot {
         mode: st.session.mode(),
         started_at_unix_ms: st.session.started_at().map(to_unix),
         ends_at_unix_ms: st.session.deadline().map(to_unix),
@@ -286,16 +447,23 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
         guards: st.guards,
         paused: st.paused,
         battery: st.battery,
-        schedule: ScheduleState {
-            enabled: st.settings.schedule.enabled,
-            ..ScheduleState::default()
-        },
+        schedule: view.state(st.settings.schedule.enabled),
         settings: st.settings.clone(),
         app_version: shared.app_version.clone(),
+    };
+    // With no manual session the window is the plan, so the sun's arc and the
+    // countdown work exactly as they do for a timed session.
+    if let (false, true, Some((start, end))) = (st.session.is_active(), view.holds(), view.window) {
+        snapshot.mode = Mode::Scheduled;
+        snapshot.started_at_unix_ms = Some(start);
+        snapshot.ends_at_unix_ms = Some(end);
+        snapshot.remaining_secs = Some(end.saturating_sub(unix_now).div_ceil(1000));
+        snapshot.plan_secs = Some(end.saturating_sub(start) / 1000);
     }
+    snapshot
 }
 
-fn millis(d: std::time::Duration) -> u64 {
+fn millis(d: Duration) -> u64 {
     u64::try_from(d.as_millis()).unwrap_or(u64::MAX)
 }
 
@@ -305,7 +473,6 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
-    use crate::core::Mode;
     use crate::platform::fakes::{FakeBattery, FakePowerGuard, ManualClock};
 
     struct Rig {
@@ -317,12 +484,15 @@ mod tests {
     }
 
     fn rig(settings: Settings) -> Rig {
+        rig_with_clock(settings, ManualClock::new())
+    }
+
+    fn rig_with_clock(settings: Settings, clock: ManualClock) -> Rig {
         let guard = FakePowerGuard::default();
         let battery = FakeBattery::new(BatteryState {
             on_ac: true,
             percent: Some(90),
         });
-        let clock = ManualClock::new();
         let engine = Engine::start(
             Platform {
                 guard: Box::new(guard.clone()),
@@ -531,6 +701,215 @@ mod tests {
         r.engine.shutdown();
         assert_eq!(r.guard.current(), GuardState::default());
         r.engine.shutdown();
+    }
+
+    /// Unix ms for a local wall time on Monday 2 March 2026 (`day` 2) or a
+    /// following day, in whatever zone the test machine uses.
+    fn local_ms(day: u32, h: u32, m: u32) -> u64 {
+        let t = Local
+            .with_ymd_and_hms(2026, 3, day, h, m, 0)
+            .single()
+            .unwrap();
+        u64::try_from(t.timestamp_millis()).unwrap()
+    }
+
+    /// Every day, 09:00 until 18:00.
+    fn with_schedule() -> Settings {
+        Settings {
+            schedule: Schedule {
+                enabled: true,
+                days: [true; 7],
+                start_minutes: 9 * 60,
+                end_minutes: 18 * 60,
+            },
+            ..Settings::default()
+        }
+    }
+
+    fn rig_at(settings: Settings, day: u32, h: u32, m: u32) -> Rig {
+        rig_with_clock(settings, ManualClock::at(local_ms(day, h, m)))
+    }
+
+    fn has_schedule_started(events: &[EngineEvent]) -> bool {
+        events
+            .iter()
+            .any(|e| matches!(e, EngineEvent::ScheduleStarted { .. }))
+    }
+
+    #[test]
+    fn window_opening_holds_and_closing_releases() {
+        let r = rig_at(with_schedule(), 2, 8, 59);
+        let snap = r.engine.snapshot();
+        assert_eq!(snap.mode, Mode::Off);
+        assert!(snap.schedule.enabled);
+        assert!(!snap.schedule.in_window);
+        assert_eq!(snap.schedule.next_start_unix_ms, Some(local_ms(2, 9, 0)));
+        drain(&r);
+        assert_eq!(r.guard.current(), GuardState::default());
+
+        r.clock.advance(Duration::from_secs(60));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g.system);
+        let snap = r.engine.snapshot();
+        assert_eq!(snap.mode, Mode::Scheduled);
+        assert!(snap.is_guarding());
+        assert_eq!(snap.started_at_unix_ms, Some(local_ms(2, 9, 0)));
+        assert_eq!(snap.ends_at_unix_ms, Some(local_ms(2, 18, 0)));
+        assert_eq!(snap.plan_secs, Some(9 * 3600));
+        assert_eq!(snap.remaining_secs, Some(9 * 3600));
+        assert!(drain(&r).contains(&EngineEvent::ScheduleStarted {
+            ends_at_unix_ms: local_ms(2, 18, 0)
+        }));
+
+        r.clock.advance(Duration::from_secs(9 * 3600));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        let snap = r.engine.snapshot();
+        assert_eq!(snap.mode, Mode::Off);
+        assert_eq!(snap.schedule.next_start_unix_ms, Some(local_ms(3, 9, 0)));
+        assert!(drain(&r).contains(&EngineEvent::ScheduleEnded {
+            next_start_unix_ms: Some(local_ms(3, 9, 0))
+        }));
+    }
+
+    #[test]
+    fn launching_inside_a_window_starts_awake_without_an_event() {
+        let r = rig_at(with_schedule(), 2, 10, 0);
+        wait_for_guard(&r, |g| g.system);
+        assert_eq!(r.engine.snapshot().mode, Mode::Scheduled);
+        assert!(!has_schedule_started(&drain(&r)));
+    }
+
+    #[test]
+    fn manual_session_outlasts_the_window() {
+        let r = rig_at(with_schedule(), 2, 17, 0);
+        wait_for_guard(&r, |g| g.system);
+        let snap = r.engine.set_plan(PlanRequest::For { seconds: 2 * 3600 });
+        assert_eq!(snap.mode, Mode::Timed);
+        r.clock.advance(Duration::from_secs(61 * 60));
+        r.engine.refresh();
+        let events = drain(&r);
+        assert!(!events.contains(&EngineEvent::TimerEnded), "{events:?}");
+        let snap = r.engine.snapshot();
+        assert_eq!(snap.mode, Mode::Timed);
+        assert!(!snap.schedule.in_window);
+        assert!(r.guard.current().system);
+        assert_eq!(r.guard.history().len(), 1, "never let go in between");
+    }
+
+    #[test]
+    fn manual_session_ending_inside_a_window_returns_to_the_schedule() {
+        let r = rig_at(with_schedule(), 2, 10, 0);
+        wait_for_guard(&r, |g| g.system);
+        r.engine.set_plan(PlanRequest::For { seconds: 60 });
+        r.clock.advance(Duration::from_secs(61));
+        r.engine.refresh();
+        let events = drain(&r);
+        assert!(events.contains(&EngineEvent::TimerEnded), "{events:?}");
+        assert_eq!(r.engine.snapshot().mode, Mode::Scheduled);
+        assert!(r.guard.current().system);
+        assert_eq!(r.guard.history().len(), 1, "never let go in between");
+    }
+
+    #[test]
+    fn toggling_skips_the_window_and_toggling_again_resumes() {
+        let r = rig_at(with_schedule(), 2, 10, 0);
+        wait_for_guard(&r, |g| g.system);
+
+        let snap = r.engine.toggle();
+        assert_eq!(snap.mode, Mode::Off);
+        assert!(snap.schedule.skipped);
+        assert!(snap.schedule.in_window);
+        wait_for_guard(&r, |g| g == GuardState::default());
+
+        let snap = r.engine.toggle();
+        assert_eq!(snap.mode, Mode::Scheduled);
+        assert!(!snap.schedule.skipped);
+        wait_for_guard(&r, |g| g.system);
+    }
+
+    #[test]
+    fn skip_and_unskip_commands() {
+        let r = rig_at(with_schedule(), 2, 10, 0);
+        wait_for_guard(&r, |g| g.system);
+        assert!(r.engine.skip_today().schedule.skipped);
+        wait_for_guard(&r, |g| g == GuardState::default());
+        assert_eq!(r.engine.unskip().mode, Mode::Scheduled);
+        wait_for_guard(&r, |g| g.system);
+    }
+
+    #[test]
+    fn skip_lasts_only_until_the_window_closes() {
+        let r = rig_at(with_schedule(), 2, 10, 0);
+        wait_for_guard(&r, |g| g.system);
+        r.engine.skip_today();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        r.clock.advance(Duration::from_secs(8 * 3600));
+        r.engine.refresh();
+        drain(&r);
+        assert!(!r.engine.snapshot().schedule.skipped);
+        // The next morning the schedule holds again.
+        r.clock.advance(Duration::from_secs(15 * 3600));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g.system);
+        assert_eq!(r.engine.snapshot().mode, Mode::Scheduled);
+    }
+
+    #[test]
+    fn skip_outside_a_window_does_nothing() {
+        let r = rig_at(with_schedule(), 2, 7, 0);
+        assert!(!r.engine.skip_today().schedule.skipped);
+        assert_eq!(r.engine.toggle().mode, Mode::Indefinite);
+    }
+
+    #[test]
+    fn worker_wakes_exactly_at_the_window_boundary() {
+        let r = rig_at(with_schedule(), 2, 8, 59);
+        assert_eq!(
+            r.engine.next_wake(),
+            Some(r.clock.now() + Duration::from_secs(60))
+        );
+        // Long before the window, sleep is capped by the re-check.
+        let early = rig_at(with_schedule(), 2, 6, 0);
+        assert_eq!(
+            early.engine.next_wake(),
+            Some(early.clock.now() + policy::SCHEDULE_RECHECK)
+        );
+        // Inside the window the battery poll comes first, until the end is
+        // closer than a poll.
+        let late = rig_at(with_schedule(), 2, 17, 59);
+        assert_eq!(
+            late.engine.next_wake(),
+            Some(late.clock.now() + policy::BATTERY_POLL)
+        );
+        late.clock.advance(Duration::from_secs(50));
+        assert_eq!(
+            late.engine.next_wake(),
+            Some(late.clock.now() + Duration::from_secs(10))
+        );
+    }
+
+    #[test]
+    fn schedule_off_never_wakes_the_worker() {
+        let r = rig(Settings::default());
+        assert_eq!(r.engine.next_wake(), None);
+    }
+
+    #[test]
+    fn battery_pauses_a_scheduled_window_too() {
+        let r = rig_at(with_schedule(), 2, 10, 0);
+        wait_for_guard(&r, |g| g.system);
+        drain(&r);
+        r.battery.set(BatteryState {
+            on_ac: false,
+            percent: Some(5),
+        });
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        let snap = r.engine.snapshot();
+        assert_eq!(snap.mode, Mode::Scheduled);
+        assert_eq!(snap.paused, Some(PauseReason::LowBattery));
+        assert!(drain(&r).contains(&EngineEvent::Paused(PauseReason::LowBattery)));
     }
 
     #[test]
