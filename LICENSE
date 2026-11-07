@@ -1,46 +1,49 @@
 Keep me awake License
 
-Copyright (c) 2026 Akshay Bajpai (https://akshaybajpai.com).
-All rights reserved.
+Keep me awake is mine: Akshay Bajpai (https://akshaybajpai.com) made it, and
+the code, the design, the name and the little sun all belong to me. The
+source is out in the open so you can see exactly what it does. That makes it
+readable, not open source.
 
-Keep me awake (the "Software"), its source code, its design, its name and its
-artwork belong to Akshay Bajpai. The source is published so that it can be
-read and checked; publishing it does not make it open source. You may use the
-Software only as this license allows. Anything it does not allow needs the
-author's written permission.
+What you're welcome to do
 
-You may:
+- Use the builds I publish, free, on your own machines, for yourself or your
+  own work.
+- Read the code, build it yourself, and tinker with your own copy.
+- Send me a fix or an idea. If you do, you're saying it's yours to give and
+  I'm free to use it however I like.
 
-1. Download the builds the author publishes and use them, free of charge, on
-   your own machines, for personal use or for your own work.
-2. Read the source code, and build it from source for your own use on your
-   own machines.
-3. Make changes to your own copy for your own use, and offer changes back to
-   the author as a pull request or patch.
+What needs a yes from me first
 
-You may not, without the author's written permission:
+- Copying, re-uploading, selling or bundling Keep me awake, changed or not.
+- Publishing your own version of it, or something built from it.
+- Using the name or the sun-on-the-horizon artwork for anything else.
 
-1. Copy, publish, distribute, sell, rent or sublicense the Software, in source
-   or built form, whether changed or not, including as part of another
-   product or package.
-2. Publish a modified version or a work derived from the Software.
-3. Use the name "Keep me awake", the sun-and-horizon artwork, or anything
-   confusingly similar, for another product.
+Ask through https://akshaybajpai.com. I'm reasonable.
 
-Contributions: if you send the author a change, you agree that he may use,
-change and publish it as part of the Software under any terms he chooses, and
-you confirm that you have the right to give it.
+Wherever the code is hosted (GitHub, say), that site's own terms may let its
+users view and fork the repository there. This license adds nothing to those
+terms beyond what is written above.
 
-Hosting: where the source is hosted on a public service (such as GitHub), the
-service's own terms may let its users view and fork the repository there.
-This license grants nothing beyond those terms and the rights above.
+The part where I'm careful
+
+Keep me awake asks your operating system not to sleep. That's all it does,
+but it means your machine stays on: the battery drains, things get warm, the
+screen may stay lit, and a laptop left awake is a laptop left unlocked for
+longer. Whether that's fine, at home or on a work machine with its own rules,
+is your call, not mine.
+
+So: you use Keep me awake at your own risk. It comes as is, with no promise
+that it works, keeps working, suits your purpose, or won't break something.
+I'm not responsible for anything that happens because you used it, or
+couldn't: lost work, drained batteries, missed meetings, damaged hardware,
+data loss, policy trouble, or anything else, however it comes about.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
-ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE AND NON-INFRINGEMENT. TO THE FULLEST EXTENT THE LAW ALLOWS, THE
+AUTHOR IS NOT LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
 
-For permission to do anything this license does not allow, contact the author
-through https://akshaybajpai.com.
+Keep me awake isn't made by, affiliated with or endorsed by Microsoft or
+Apple. Windows and macOS are their trademarks.
