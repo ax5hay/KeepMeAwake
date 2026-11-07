@@ -10,7 +10,7 @@
   import Segmented from './Segmented.svelte';
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
-  import { AUTHOR, PLATFORM_COPY, tipsWith } from '$lib/copy';
+  import { AUTHOR, OVERNIGHT_GUARD_HINT, PLATFORM_COPY, tipsWith } from '$lib/copy';
   import { displayAccelerator } from '$lib/hotkey';
   import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
   import { isMac } from '$lib/platform';
@@ -82,6 +82,13 @@
     { value: '10', label: '10m' },
   ];
 
+  const guardOptions: ReadonlyArray<{ value: 'off' | '4' | '6' | '8'; label: string }> = [
+    { value: 'off', label: 'Off' },
+    { value: '4', label: '4h' },
+    { value: '6', label: '6h' },
+    { value: '8', label: '8h' },
+  ];
+
   const themeOptions: ReadonlyArray<{ value: Theme; label: string }> = [
     { value: 'system', label: 'System' },
     { value: 'light', label: 'Paper' },
@@ -149,6 +156,17 @@
           label="Warn before sunset"
           onchange={(v) =>
             void store.updateSettings({ sunset_warning_mins: v === 'off' ? null : Number(v) })}
+        />
+      </Row>
+      <Row label="Overnight guard" hint={OVERNIGHT_GUARD_HINT}>
+        <Segmented
+          options={guardOptions}
+          value={settings.overnight_guard_hours === null
+            ? 'off'
+            : (String(settings.overnight_guard_hours) as '4' | '6' | '8')}
+          label="Overnight guard"
+          onchange={(v) =>
+            void store.updateSettings({ overnight_guard_hours: v === 'off' ? null : Number(v) })}
         />
       </Row>
       <Row label="Keep the screen on" hint="Off lets the display dim while the laptop stays awake.">

@@ -7,7 +7,10 @@ import {
   horizonTip,
   horizonTips,
   isLate,
+  KEEP_IT_UP,
   longStop,
+  nobodyHere,
+  OVERNIGHT_GUARD_HINT,
   platformCopy,
   starWhisper,
   sunsetIn,
@@ -116,6 +119,20 @@ describe('sunsetIn', () => {
     expect(sunsetIn(299)).toBe('The sun sets in 5 minutes.');
     expect(sunsetIn(60)).toBe('The sun sets in 1 minute.');
     expect(sunsetIn(59)).toBe('The sun sets in under a minute.');
+  });
+});
+
+describe('overnight guard copy', () => {
+  it('says how long nobody has been here and when the sun rests', () => {
+    expect(nobodyHere(6, '3:12 am')).toBe('Nobody here for 6 hours. Resting at 3:12 am.');
+    expect(nobodyHere(1, '3:12 am')).toBe('Nobody here for 1 hour. Resting at 3:12 am.');
+    expect(KEEP_IT_UP).toBe('Keep it up');
+  });
+
+  it('fits the status line with the link, and the hint on one line', () => {
+    expect(`${nobodyHere(24, '12:59 am')} ${KEEP_IT_UP}`.length).toBeLessThanOrEqual(64);
+    // As short as the sunset hint, which fits beside the same control.
+    expect(OVERNIGHT_GUARD_HINT.length).toBeLessThanOrEqual(28);
   });
 });
 

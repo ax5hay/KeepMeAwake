@@ -6,6 +6,7 @@ import {
   LATE_NIGHT,
   awakeAgain,
   isLate,
+  nobodyHere,
   onSchedule,
   platformCopy,
   skippedUntil,
@@ -123,6 +124,15 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
       return { title: 'Resting', detail: `${resting} ${awakeAgain(when)}` };
     }
     return { title: 'Resting', detail: resting };
+  }
+  // The guard's question outranks the rest: the session ends unless answered.
+  const rests = snapshot.guard_rests_at_unix_ms;
+  const hours = snapshot.settings.overnight_guard_hours;
+  if (rests !== null && hours !== null) {
+    return {
+      title: snapshot.paused ? 'Paused' : 'Awake',
+      detail: nobodyHere(hours, formatClock(rests, locale)),
+    };
   }
   if (snapshot.paused) {
     return { title: 'Paused', detail: `Holding off while ${pauseText(snapshot.paused)}.` };

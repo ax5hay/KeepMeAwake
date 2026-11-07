@@ -75,6 +75,16 @@ export class AppStore {
     return this.snapshot?.settings ?? null;
   }
 
+  /** The overnight guard is asking whether anyone is there. */
+  get guardAsking(): boolean {
+    return (this.snapshot?.guard_rests_at_unix_ms ?? null) !== null;
+  }
+
+  /** Answers the overnight guard: someone is here. */
+  async keepItUp(): Promise<void> {
+    await this.#call(() => this.#api.keepItUp());
+  }
+
   /** Gives a timed session another 30 minutes. */
   async extend(): Promise<void> {
     try {

@@ -91,6 +91,10 @@ function fakeApi(initial: Snapshot) {
     }),
     quit: vi.fn(async () => undefined),
     extendSession: vi.fn(async () => current),
+    keepItUp: vi.fn(async () => {
+      current = { ...current, guard_rests_at_unix_ms: null };
+      return current;
+    }),
     getHistory: vi.fn(async () => logged),
     clearHistory: vi.fn(async () => ({ version: 1, entries: [] })),
     onSnapshot: vi.fn(async (handler) => {
@@ -243,6 +247,23 @@ describe('AppStore', () => {
     await store.init();
     await store.extend();
     expect(api.extendSession).toHaveBeenCalledOnce();
+    store.dispose();
+  });
+
+  it('answers the overnight guard and stops asking', async () => {
+    const asking: Snapshot = {
+      ...base,
+      mode: 'indefinite',
+      guard_rests_at_unix_ms: Date.now() + 600_000,
+    };
+    const { api } = fakeApi(asking);
+    const store = new AppStore(api);
+    await store.init();
+    expect(store.guardAsking).toBe(true);
+    expect(store.status.detail).toMatch(/^Nobody here for 6 hours\./);
+    await store.keepItUp();
+    expect(api.keepItUp).toHaveBeenCalledOnce();
+    expect(store.guardAsking).toBe(false);
     store.dispose();
   });
 });

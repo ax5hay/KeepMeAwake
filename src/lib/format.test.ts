@@ -280,6 +280,27 @@ describe('pauseText', () => {
   });
 });
 
+describe('statusText while the overnight guard asks', () => {
+  const rests = new Date(2026, 0, 2, 3, 12).getTime();
+  const asking = { ...base, mode: 'indefinite' as const, guard_rests_at_unix_ms: rests };
+
+  it('asks in place of the usual line, awake or paused', () => {
+    expect(statusText(asking, rests - 600_000, 'en-US')).toEqual({
+      title: 'Awake',
+      detail: 'Nobody here for 6 hours. Resting at 3:12 am.',
+    });
+    expect(statusText({ ...asking, paused: 'low_battery' }, rests, 'en-US')).toEqual({
+      title: 'Paused',
+      detail: 'Nobody here for 6 hours. Resting at 3:12 am.',
+    });
+  });
+
+  it('goes back to the usual line once withdrawn', () => {
+    const withdrawn = { ...asking, guard_rests_at_unix_ms: null };
+    expect(statusText(withdrawn, rests, 'en-US').detail).toMatch(/^Until you say otherwise\./);
+  });
+});
+
 describe('sunsetSoon', () => {
   const ends = new Date(2026, 0, 1, 17, 30).getTime();
   const timed = { ...base, mode: 'timed' as const, ends_at_unix_ms: ends, plan_secs: 600 };

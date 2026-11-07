@@ -133,6 +133,20 @@ export const EXTEND_LABEL = 'Give it another 30m';
 /** Whispered after the extend link is clicked. */
 export const EXTENDED = 'Another 30 minutes.';
 
+/**
+ * The status line while the overnight guard asks whether anyone is there:
+ * `Nobody here for 6 hours. Resting at 3:12 am.`
+ */
+export function nobodyHere(hours: number, time: string): string {
+  return `Nobody here for ${hours} hour${hours === 1 ? '' : 's'}. Resting at ${time}.`;
+}
+
+/** The action under the status line, and the tray item, while the guard asks. */
+export const KEEP_IT_UP = 'Keep it up';
+
+/** Settings → Waking → Overnight guard. */
+export const OVERNIGHT_GUARD_HINT = 'Ends an untouched Always.';
+
 /** Settings → History before anything has been logged. */
 export const HISTORY_EMPTY = 'Nothing yet. The first sunset will be written here.';
 

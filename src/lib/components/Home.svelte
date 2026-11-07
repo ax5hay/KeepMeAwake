@@ -3,7 +3,7 @@
   import Row from './Row.svelte';
   import Scene from './Scene.svelte';
   import Switch from './Switch.svelte';
-  import { EXTEND_LABEL, EXTENDED } from '$lib/copy';
+  import { EXTEND_LABEL, EXTENDED, KEEP_IT_UP } from '$lib/copy';
   import { batteryText } from '$lib/format';
   import { store } from '$lib/state.svelte';
 
@@ -25,7 +25,11 @@
   {#key store.whisper}
     <p class:whisper={store.whisper !== null}>
       {store.whisper ?? store.status.detail}
-      {#if store.sunsetSoon && store.whisper === null}
+      {#if store.guardAsking && store.whisper === null}
+        <button type="button" class="extend" onclick={() => void store.keepItUp()}
+          >{KEEP_IT_UP}</button
+        >
+      {:else if store.sunsetSoon && store.whisper === null}
         <button
           type="button"
           class="extend"
