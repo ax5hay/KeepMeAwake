@@ -107,6 +107,11 @@ struct State {
     /// change between evaluations; this is what makes every stretch report
     /// exactly one start and one end.
     awake: bool,
+    /// When the current stretch was due to end on its own, Unix ms, as of
+    /// the last evaluation: a timer's deadline or a window's end. A stretch
+    /// that ran out while the machine slept is logged as ending then, not
+    /// when the worker next woke.
+    due_end_unix: Option<u64>,
     shutdown: bool,
 }
 
@@ -157,6 +162,7 @@ impl Engine {
                 phase: view.phase(),
                 dirty: false,
                 awake: false,
+                due_end_unix: None,
                 shutdown: false,
             }),
             wake: Condvar::new(),
@@ -445,6 +451,7 @@ fn step(
     shared: &Shared,
 ) -> Vec<EngineEvent> {
     let mut events = Vec::new();
+    let was_due = st.due_end_unix;
     let was_active = st.session.is_active() || st.phase == Phase::Holding;
     let plan_secs = st.session.plan_duration().map_or(0, |d| d.as_secs());
     let expired = st.session.tick(now) == Some(SessionEvent::Expired);
@@ -508,14 +515,27 @@ fn step(
             } else {
                 Ended::User
             };
+            // Ran out on its own: it ended when it was due, even if the
+            // machine slept through that and the worker is only now awake.
+            let at_unix_ms = match cause {
+                Ended::Timer | Ended::Schedule => was_due.map_or(unix_now, |due| due.min(unix_now)),
+                _ => unix_now,
+            };
             events.push(EngineEvent::SessionEnded {
                 ended: ended_by(previously_paused, cause),
-                at_unix_ms: unix_now,
+                at_unix_ms,
             });
         }
         _ => {}
     }
     st.awake = active;
+    st.due_end_unix = match st.session.deadline() {
+        Some(deadline) => {
+            Some(unix_now.saturating_add(millis(deadline.saturating_duration_since(now))))
+        }
+        None if st.phase == Phase::Holding => view.window.map(|(_, end)| end),
+        None => None,
+    };
     events.insert(0, EngineEvent::Snapshot(build_snapshot(st, shared)));
     events
 }
@@ -852,7 +872,8 @@ mod tests {
         wait_for_guard(&r, |g| g == GuardState::default());
         assert_eq!(
             sessions(&drain(&r)),
-            vec![started(Mode::Timed, t0), ended(Ended::Timer, t0 + 11_000)]
+            vec![started(Mode::Timed, t0), ended(Ended::Timer, t0 + 10_000)],
+            "it ended when due, though the worker only looked at 11 s"
         );
     }
 
@@ -872,6 +893,39 @@ mod tests {
                 started(Mode::Scheduled, local_ms(2, 9, 0)),
                 ended(Ended::Schedule, local_ms(2, 18, 0))
             ]
+        );
+    }
+
+    #[test]
+    fn a_window_that_closed_while_asleep_ends_when_the_window_did() {
+        let r = rig_at(with_schedule(), 2, 8, 59);
+        drain(&r);
+        r.clock.advance(Duration::from_secs(60));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g.system);
+        // The lid closed at noon and opened at 8 the next morning: the first
+        // step after that is long past the window's end.
+        r.clock.advance(Duration::from_secs(23 * 3600));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        assert_eq!(
+            sessions(&drain(&r)).last(),
+            Some(&ended(Ended::Schedule, local_ms(2, 18, 0)))
+        );
+    }
+
+    #[test]
+    fn a_timer_that_ran_out_while_asleep_ends_at_its_deadline() {
+        let r = rig(Settings::default());
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::For { seconds: 10 });
+        wait_for_guard(&r, |g| g.system);
+        r.clock.advance(Duration::from_secs(11 * 3600));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        assert_eq!(
+            sessions(&drain(&r)).last(),
+            Some(&ended(Ended::Timer, t0 + 10_000))
         );
     }
 
