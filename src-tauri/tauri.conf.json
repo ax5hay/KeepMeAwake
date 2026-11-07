@@ -44,7 +44,7 @@
     "targets": ["nsis", "msi", "app", "dmg"],
     "category": "Utility",
     "shortDescription": "Keep your laptop awake while you need it.",
-    "longDescription": "Keep me awake holds a Windows power request, the same mechanism a video player uses, instead of faking keystrokes. Timed sessions, a schedule, battery rules, a tray icon, and a window that gets out of the way. Nothing is typed and nothing moves.",
+    "longDescription": "Keep me awake holds a Windows power request or a macOS power assertion, the same mechanism a video player uses, instead of faking keystrokes. Timed sessions, a schedule, battery rules, a tray icon, and a window that gets out of the way. Nothing is typed and nothing moves.",
     "publisher": "Akshay Bajpai",
     "homepage": "https://akshaybajpai.com",
     "copyright": "Copyright (c) 2026 Akshay Bajpai",

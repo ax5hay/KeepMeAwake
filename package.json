@@ -2,7 +2,7 @@
   "name": "keepmeawake",
   "version": "0.1.0",
   "private": true,
-  "description": "Keeps your Windows laptop awake and your presence active, without hacks.",
+  "description": "Keeps your laptop awake while you need it, on Windows and macOS, without faking input.",
   "author": {
     "name": "Akshay Bajpai",
     "url": "https://akshaybajpai.com"

@@ -1,4 +1,4 @@
-//! KeepMeAwake: keeps a Windows laptop awake, politely.
+//! KeepMeAwake: keeps a Windows or macOS laptop awake, politely.
 //!
 //! The crate is split into layers so that every decision can be unit tested
 //! without touching the operating system:
@@ -6,8 +6,8 @@
 //! * [`core`] holds pure domain logic: the session state machine, settings and
 //!   the snapshot handed to the UI. No I/O.
 //! * [`platform`] defines the OS capabilities the engine needs (power requests,
-//!   battery state) as traits, with the real Win32 implementation behind
-//!   `cfg(windows)` and fakes for tests.
+//!   battery state) as traits, with the real Win32 and IOKit implementations
+//!   behind `cfg` and fakes for tests.
 //! * [`engine`] drives the state machine on a background thread. It is the only
 //!   component that owns timing, and it sleeps until the next deadline instead
 //!   of polling.
