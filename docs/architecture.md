@@ -143,11 +143,13 @@ than pretending.
 ### app
 
 `app/mod.rs` builds the Tauri app. Plugins in order: single-instance (must be
-first), autostart (passes `--hidden`), opener, notification, log. `setup` loads settings,
-starts the engine, creates the tray, subscribes a listener that refreshes the
-tray, emits `snapshot` to the window and hands the other events to
-`app/notify.rs` for toasts, and opens the window unless launched hidden. `RunEvent::ExitRequested` with no exit code (the last window closed)
-is vetoed so the app lives in the tray.
+first), autostart (passes `--hidden`), opener, notification, global-shortcut,
+log. `setup` loads settings, starts the engine, creates the tray, registers
+the hotkey (`app/hotkey.rs`), subscribes a listener that refreshes the tray,
+emits `snapshot` to the window and hands the other events to `app/notify.rs`
+for toasts, and opens the window unless launched hidden.
+`RunEvent::ExitRequested` with no exit code (the last window closed) is vetoed
+so the app lives in the tray.
 
 ## IPC
 
@@ -166,15 +168,15 @@ sequenceDiagram
     E-->>E: tray.refresh(snapshot)
 ```
 
-| Command           | Arguments              | Returns                                                       |
-| ----------------- | ---------------------- | ------------------------------------------------------------- |
-| `get_snapshot`    |                        | `Snapshot` (also re-reads battery)                            |
-| `set_plan`        | `request: PlanRequest` | `Snapshot`                                                    |
-| `toggle_session`  |                        | `Snapshot`; skips or resumes an open schedule window          |
-| `skip_schedule`   |                        | `Snapshot`                                                    |
-| `resume_schedule` |                        | `Snapshot`                                                    |
-| `update_settings` | `settings: Settings`   | `Snapshot`, or an error string if the file could not be saved |
-| `quit_app`        |                        |                                                               |
+| Command           | Arguments              | Returns                                                                                 |
+| ----------------- | ---------------------- | --------------------------------------------------------------------------------------- |
+| `get_snapshot`    |                        | `Snapshot` (also re-reads battery)                                                      |
+| `set_plan`        | `request: PlanRequest` | `Snapshot`                                                                              |
+| `toggle_session`  |                        | `Snapshot`; skips or resumes an open schedule window                                    |
+| `skip_schedule`   |                        | `Snapshot`                                                                              |
+| `resume_schedule` |                        | `Snapshot`                                                                              |
+| `update_settings` | `settings: Settings`   | `Snapshot`, or an error string if the file could not be saved or the hotkey was refused |
+| `quit_app`        |                        |                                                                                         |
 
 Field names are `snake_case` on both sides and cross the boundary untouched.
 `src/lib/types.ts` mirrors `core` one to one; a test on each side pins the
@@ -206,7 +208,9 @@ synchronous event handler can deadlock on Windows.
   notification permission.
 - One JSON file under `%APPDATA%`, one log under `%LOCALAPPDATA%`.
 - Four Win32 calls, all in one file.
-- No input is ever sent to other applications.
+- No input is ever sent to other applications. The global hotkey is
+  registered with `RegisterHotKey`, which only listens, and from Rust, so
+  the webview has no shortcut permission.
 - CSP is `default-src 'self'`; the capability file grants only window
   dragging and visibility, autostart toggling, the commands above, and
   opening two allow-listed `https` origins.
