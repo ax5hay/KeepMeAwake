@@ -7,6 +7,11 @@ Versions: [SemVer](https://semver.org).
 
 ### Added
 
+- Sunset warning: a few minutes before a timed session ends (5 by default;
+  Off, 2, 5 or 10 in Settings → Waking), the status line says so and offers
+  Give it another 30m, the tray or menu bar gains the same item, and a toast
+  says it while the window is closed. Only for timers longer than the
+  warning.
 - Session history: Settings → History lists the last 30 times the sun was
   up, newest first, with the span, the length and how each ended (you,
   timer, schedule, battery, or sleep when the machine slept or the app was

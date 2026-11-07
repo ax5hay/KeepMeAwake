@@ -47,7 +47,7 @@ Sanitized to 1–60. A new field with a default, so `SETTINGS_VERSION` stays.
 
 ### core
 
-- `Session::extend(by: Duration, now) -> bool`: moves a timed session's
+- `Session::extend(by: Duration) -> bool`: moves a timed session's
   deadline later, keeping when it was planned, so `plan_duration` grows and
   the arc stays continuous. No-op (returns `false`) when not timed.
 - `settings.rs`: the field, its default, the clamp.

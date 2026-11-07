@@ -18,6 +18,10 @@
 | Fonts                          | ≤ 160 KB            | 149 KB                                | 149 KB                                     | one family, two files, latin subset                              |
 | Cold open of the window        | ≤ 400 ms            | under 1 s                             | 0.86 s from a cold launch                  | webview spin-up + first paint                                    |
 
+The sunset warning adds one engine wake per timed session, at the warning
+moment, and nothing in the window: the status line uses the 1 Hz clock a
+timed session already runs.
+
 0.3's session history adds one small file write as each stretch starts and
 ends (`history.json`, at most 200 entries, a few tens of KB) and nothing at
 idle: it is written from the engine's existing events, and read only when

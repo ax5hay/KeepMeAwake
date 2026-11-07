@@ -153,7 +153,10 @@ than pretending.
 
 The engine also reports each stretch with the sun up exactly once:
 `SessionStarted { mode, paused, at_unix_ms }` when it rises and
-`SessionEnded { ended, at_unix_ms }` when it sets, including on quit. A
+`SessionEnded { ended, at_unix_ms }` when it sets, including on quit.
+`SunsetSoon { ends_at_unix_ms, secs_left }` comes once per deadline when a
+timed session reaches its warning (`policy::sunset_warning_at`); the worker
+wakes for it, and `Engine::extend` re-arms it by moving the deadline. A
 `State::awake` flag holds what was last reported, so a startup plan or a
 window already open at launch is reported too. `Ended` is `Timer`, `Schedule`
 or `User`, or `Battery` if the stretch was still paused for the battery as it
@@ -200,6 +203,7 @@ sequenceDiagram
 | `resume_schedule` |                        | `Snapshot`                                                                              |
 | `update_settings` | `settings: Settings`   | `Snapshot`, or an error string if the file could not be saved or the hotkey was refused |
 | `quit_app`        |                        |                                                                                         |
+| `extend_session`  |                        | `Snapshot`: a timed session's end moved 30 minutes later                                |
 | `get_history`     |                        | `History`: the session log, oldest entry first                                          |
 | `clear_history`   |                        | `History` (empty), also written to disk                                                 |
 

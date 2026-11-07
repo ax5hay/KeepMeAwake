@@ -40,12 +40,21 @@ in the morning the awake line adds a second sentence.
 | resting, schedule waiting | Resting | `Your laptop sleeps as usual. Awake again at 9:00 am.` |
 | always                    | Awake   | `Until you say otherwise.`                             |
 | timed                     | Awake   | `Until 5:30 pm · 1h 30m left`                          |
+| timed, sunset near        | Awake   | `The sun sets in 5 minutes.` **Give it another 30m**   |
 | schedule window           | Awake   | `Until 6:00 pm · on schedule`                          |
 | window skipped            | Resting | `Skipping today's schedule until 6:00 pm.`             |
 | paused                    | Paused  | `Holding off while battery is low.`                    |
 
 When the next window is further off than tomorrow the line names the day:
 `Awake again at 9:00 am on Monday.`
+
+**Sunset warning.** A few minutes before a timed session ends (5 by default,
+Settings → Waking → **Warn before sunset**: Off · 2m · 5m · 10m), the line
+turns to `The sun sets in 5 minutes.` and ends with a link, **Give it another
+30m**, which moves the end 30 minutes later; the warning comes again before
+the new end. The tray (the menu bar on a Mac) has the same item, and a toast
+says it if the window is closed. Only timed sessions, and only when the timer
+is longer than the warning: a 2-minute timer never warns.
 
 ### Schedule
 
@@ -104,6 +113,7 @@ the app has no Dock icon and no place in Cmd-Tab: it is a menu bar app.
 | click (left click on Windows) | open the window; on a Mac it drops down centred beneath the menu bar icon |
 | right click                   | status line · Keep awake / Let it sleep · Keep awake for ▸ · Open · Quit  |
 |                               | while a schedule window is open: Skip today's schedule / Back on schedule |
+|                               | near the end of a timer: Give it another 30m                              |
 | hover                         | tooltip with the same status line as the menu                             |
 
 Icon states: sun above the line (awake), sun set (resting), bar across the sun
@@ -120,6 +130,7 @@ dark menu bar itself. Nothing to set.
 |               | Open the window at launch  | only applies when you start it yourself                                   |
 |               | Begin as                   | Resting · Awake · Default length                                          |
 | Waking        | Default length             | what the sun, tray toggle and Space use. Always, or a stop                |
+|               | Warn before sunset         | Off · 2m · 5m · 10m before a timer ends; 5m by default                    |
 |               | Keep the screen on         | same switch as on the home pane                                           |
 | Schedule      | Keep a schedule            | awake during these hours, resting outside them. Off by default            |
 |               | Days                       | Monday first; weekdays by default                                         |
@@ -176,13 +187,14 @@ Quiet Windows toasts for the moments that matter while the window is closed,
 each behind its own switch in Settings → Notifications. Nothing is shown
 while the window is open and focused; the status line already says it.
 
-| Moment           | Title                    | Body                                      | Default |
-| ---------------- | ------------------------ | ----------------------------------------- | ------- |
-| timer ended      | `The sun has set`        | `Resting now. 2h 00m, as asked.`          | on      |
-| battery paused   | `Paused for the battery` | `Holding off at 18%. Plug in to resume.`  | off     |
-| battery resumed  | `Back up`                | `Charger connected. The sun is up again.` | off     |
-| schedule started | `On schedule`            | `Awake until 6:00 pm.`                    | off     |
-| schedule ended   | `Off schedule`           | `Resting until 9:00 am.`                  | off     |
+| Moment           | Title                    | Body                                                             | Default                   |
+| ---------------- | ------------------------ | ---------------------------------------------------------------- | ------------------------- |
+| timer ended      | `The sun has set`        | `Resting now. 2h 00m, as asked.`                                 | on                        |
+| sunset near      | `The sun sets soon`      | `In 5 minutes. Give it another 30m from the tray or the window.` | on, with the timer switch |
+| battery paused   | `Paused for the battery` | `Holding off at 18%. Plug in to resume.`                         | off                       |
+| battery resumed  | `Back up`                | `Charger connected. The sun is up again.`                        | off                       |
+| schedule started | `On schedule`            | `Awake until 6:00 pm.`                                           | off                       |
+| schedule ended   | `Off schedule`           | `Resting until 9:00 am.`                                         | off                       |
 
 A toast is skipped when it would no longer be true: no "Resting now" if a
 schedule window took over, no schedule toasts while your own session hides
