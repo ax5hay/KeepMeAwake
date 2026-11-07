@@ -248,9 +248,16 @@ impl IdleProbe for WindowsIdle {
 }
 
 /// How long ago `last_input` was, both read from the 32-bit tick count.
-/// The count wraps every 49.7 days, so the subtraction wraps with it.
+/// The count wraps every 49.7 days, so the subtraction wraps with it. An
+/// input stamped a moment after the tick count was read (the two reads are
+/// not atomic) would wrap to about 49 days; anything past half the range
+/// is that, not idleness, and reads as just now.
 pub fn idle_between(now_ticks: u32, last_input_ticks: u32) -> Duration {
-    Duration::from_millis(u64::from(now_ticks.wrapping_sub(last_input_ticks)))
+    let elapsed = now_ticks.wrapping_sub(last_input_ticks);
+    if elapsed > u32::MAX / 2 {
+        return Duration::ZERO;
+    }
+    Duration::from_millis(u64::from(elapsed))
 }
 
 fn win32_error(call: &'static str, code: WIN32_ERROR) -> PlatformError {
@@ -380,14 +387,17 @@ mod tests {
         // Input just before the wrap, read just after it.
         assert_eq!(idle_between(1_000, u32::MAX - 999), Duration::from_secs(2));
         assert_eq!(idle_between(7, 7), Duration::ZERO);
+        // Input stamped just after the tick count was read: just now, not
+        // 49.7 days.
+        assert_eq!(idle_between(1_000, 1_016), Duration::ZERO);
     }
 
-    /// Reads the real last-input time. Only asserts that it answers and is
-    /// no longer than the tick count can measure.
+    /// Reads the real last-input time. Asserts that it answers and is no
+    /// longer than half the tick count's range, the most it reports.
     #[test]
     fn real_idle_reading_answers_and_is_sane() {
         let idle = WindowsIdle.idle().expect("GetLastInputInfo answers");
-        assert!(idle <= Duration::from_millis(u64::from(u32::MAX)));
+        assert!(idle <= Duration::from_millis(u64::from(u32::MAX / 2)));
     }
 
     #[test]
