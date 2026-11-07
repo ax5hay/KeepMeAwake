@@ -3,6 +3,9 @@
 //! Left click opens the window. Right click shows a menu that mirrors the
 //! window's main actions so most days the window never needs to open.
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use chrono::{DateTime, Local, TimeZone};
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -29,6 +32,7 @@ pub const DURATIONS: &[(u64, &str)] = &[
 
 const ID_STATUS: &str = "status";
 const ID_TOGGLE: &str = "toggle";
+const ID_SKIP: &str = "skip";
 const ID_INDEFINITE: &str = "indefinite";
 const ID_OPEN: &str = "open";
 const ID_QUIT: &str = "quit";
@@ -82,6 +86,13 @@ fn on_menu(app: &AppHandle, id: &str) {
         ID_TOGGLE => {
             engine.toggle();
         }
+        ID_SKIP => {
+            if engine.snapshot().schedule.skipped {
+                engine.unskip();
+            } else {
+                engine.skip_today();
+            }
+        }
         ID_INDEFINITE => {
             engine.set_plan(PlanRequest::Indefinite);
         }
@@ -98,6 +109,9 @@ fn on_menu(app: &AppHandle, id: &str) {
 fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Result<Menu<R>> {
     let status = MenuItem::with_id(app, ID_STATUS, status_line(snapshot), false, None::<&str>)?;
     let toggle = MenuItem::with_id(app, ID_TOGGLE, toggle_label(snapshot), true, None::<&str>)?;
+    let skip = skip_label(snapshot)
+        .map(|label| MenuItem::with_id(app, ID_SKIP, label, true, None::<&str>))
+        .transpose()?;
 
     let mut duration_items: Vec<MenuItem<R>> = Vec::with_capacity(DURATIONS.len());
     for (seconds, label) in DURATIONS {
@@ -122,19 +136,33 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Res
     let open = MenuItem::with_id(app, ID_OPEN, "Open Keep me awake", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, ID_QUIT, "Quit", true, None::<&str>)?;
 
-    Menu::with_items(
-        app,
-        &[
-            &status,
-            &PredefinedMenuItem::separator(app)?,
-            &toggle,
-            &durations,
-            &PredefinedMenuItem::separator(app)?,
-            &open,
-            &PredefinedMenuItem::separator(app)?,
-            &quit,
-        ],
-    )
+    let separators = [
+        PredefinedMenuItem::separator(app)?,
+        PredefinedMenuItem::separator(app)?,
+        PredefinedMenuItem::separator(app)?,
+    ];
+    let mut items: Vec<&dyn tauri::menu::IsMenuItem<R>> = vec![&status, &separators[0], &toggle];
+    if let Some(skip) = &skip {
+        items.push(skip);
+    }
+    items.extend([
+        &durations as &dyn tauri::menu::IsMenuItem<R>,
+        &separators[1],
+        &open,
+        &separators[2],
+        &quit,
+    ]);
+    Menu::with_items(app, &items)
+}
+
+/// The schedule item under the toggle, shown only while a window is open.
+fn skip_label(snapshot: &Snapshot) -> Option<&'static str> {
+    let schedule = &snapshot.schedule;
+    match (schedule.enabled && schedule.in_window, schedule.skipped) {
+        (false, _) => None,
+        (true, false) => Some("Skip today's schedule"),
+        (true, true) => Some("Back on schedule"),
+    }
 }
 
 fn icon_for(snapshot: &Snapshot) -> tauri::Result<Image<'static>> {
@@ -161,11 +189,34 @@ pub fn tooltip(snapshot: &Snapshot) -> String {
 
 /// One line describing the current state, shared by tooltip and menu.
 pub fn status_line(snapshot: &Snapshot) -> String {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX));
+    status_line_at(snapshot, now)
+}
+
+/// [`status_line`] against an explicit wall clock, for tests.
+fn status_line_at(snapshot: &Snapshot, now_unix_ms: u64) -> String {
+    let schedule = &snapshot.schedule;
     match (snapshot.mode, snapshot.paused) {
-        (Mode::Off, _) => "Sleeping normally".to_owned(),
+        (Mode::Off, _) => match (schedule.skipped, schedule.window_end_unix_ms) {
+            (true, Some(end)) => {
+                format!("Skipping today's schedule until {}", when(end, now_unix_ms))
+            }
+            _ => match schedule.next_start_unix_ms.filter(|_| schedule.enabled) {
+                Some(next) => format!(
+                    "Sleeping normally \u{b7} awake again at {}",
+                    when(next, now_unix_ms)
+                ),
+                None => "Sleeping normally".to_owned(),
+            },
+        },
         (_, Some(reason)) => format!("Paused: {}", pause_text(reason)),
         (Mode::Indefinite, None) => "Awake indefinitely".to_owned(),
-        (Mode::Scheduled, None) => "Awake on schedule".to_owned(),
+        (Mode::Scheduled, None) => match snapshot.ends_at_unix_ms {
+            Some(end) => format!("Awake until {} \u{b7} on schedule", when(end, now_unix_ms)),
+            None => "Awake on schedule".to_owned(),
+        },
         (Mode::Timed, None) => match snapshot.remaining_secs {
             Some(secs) => format!("Awake, {} left", format_duration(secs)),
             None => "Awake".to_owned(),
@@ -188,6 +239,27 @@ fn pause_text(reason: crate::core::PauseReason) -> &'static str {
         OnBattery => "running on battery",
         PowerRequestFailed => "Windows refused the request",
     }
+}
+
+/// A wall-clock moment as `6:00 pm`, with the weekday added (`9:00 am on
+/// Monday`) when it is further away than tomorrow.
+fn when(at_unix_ms: u64, now_unix_ms: u64) -> String {
+    let (Some(at), Some(now)) = (local(at_unix_ms), local(now_unix_ms)) else {
+        return String::new();
+    };
+    let clock = at.format("%-I:%M %P").to_string();
+    let days_ahead = (at.date_naive() - now.date_naive()).num_days();
+    if days_ahead > 1 {
+        format!("{clock} on {}", at.format("%A"))
+    } else {
+        clock
+    }
+}
+
+fn local(unix_ms: u64) -> Option<DateTime<Local>> {
+    Local
+        .timestamp_millis_opt(i64::try_from(unix_ms).ok()?)
+        .single()
 }
 
 /// Compact human duration: `2h 05m`, `12m`, `45s`.
@@ -250,6 +322,79 @@ mod tests {
             status_line(&snap(Mode::Indefinite, None, Some(PauseReason::LowBattery))),
             "Paused: battery is low"
         );
+    }
+
+    fn local_ms(day: u32, h: u32, m: u32) -> u64 {
+        // March 2026: the 2nd is a Monday.
+        let t = Local
+            .with_ymd_and_hms(2026, 3, day, h, m, 0)
+            .single()
+            .unwrap();
+        u64::try_from(t.timestamp_millis()).unwrap()
+    }
+
+    fn scheduled(in_window: bool, skipped: bool) -> Snapshot {
+        let mut s = snap(Mode::Off, None, None);
+        s.schedule = ScheduleState {
+            enabled: true,
+            in_window,
+            skipped,
+            window_start_unix_ms: in_window.then(|| local_ms(2, 9, 0)),
+            window_end_unix_ms: in_window.then(|| local_ms(2, 18, 0)),
+            next_start_unix_ms: Some(local_ms(3, 9, 0)),
+        };
+        if in_window && !skipped {
+            s.mode = Mode::Scheduled;
+            s.ends_at_unix_ms = Some(local_ms(2, 18, 0));
+        }
+        s
+    }
+
+    #[test]
+    fn status_lines_cover_the_schedule() {
+        let noon = local_ms(2, 12, 0);
+        assert_eq!(
+            status_line_at(&scheduled(true, false), noon),
+            "Awake until 6:00 pm \u{b7} on schedule"
+        );
+        assert_eq!(
+            status_line_at(&scheduled(true, true), noon),
+            "Skipping today's schedule until 6:00 pm"
+        );
+        assert_eq!(
+            status_line_at(&scheduled(false, false), local_ms(2, 19, 0)),
+            "Sleeping normally \u{b7} awake again at 9:00 am"
+        );
+        let mut paused = scheduled(true, false);
+        paused.paused = Some(PauseReason::OnBattery);
+        assert_eq!(status_line_at(&paused, noon), "Paused: running on battery");
+    }
+
+    #[test]
+    fn far_off_times_name_the_day() {
+        // Friday evening, next window Monday morning.
+        assert_eq!(
+            when(local_ms(9, 9, 0), local_ms(6, 19, 0)),
+            "9:00 am on Monday"
+        );
+        assert_eq!(when(local_ms(3, 9, 0), local_ms(2, 19, 0)), "9:00 am");
+    }
+
+    #[test]
+    fn skip_item_only_while_a_window_is_open() {
+        assert_eq!(skip_label(&snap(Mode::Off, None, None)), None);
+        assert_eq!(skip_label(&scheduled(false, false)), None);
+        assert_eq!(
+            skip_label(&scheduled(true, false)),
+            Some("Skip today's schedule")
+        );
+        assert_eq!(skip_label(&scheduled(true, true)), Some("Back on schedule"));
+    }
+
+    #[test]
+    fn toggle_label_while_scheduled_lets_it_sleep() {
+        assert_eq!(toggle_label(&scheduled(true, false)), "Let it sleep");
+        assert_eq!(toggle_label(&scheduled(true, true)), "Keep awake");
     }
 
     #[test]
