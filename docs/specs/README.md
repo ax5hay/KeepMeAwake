@@ -16,7 +16,7 @@ flowchart LR
     end
     subgraph v04["0.4"]
         direction TB
-        sw["sunset-warning.md"]
+        sw["sunset-warning.md"] --> og["overnight-guard.md"]
     end
     subgraph mac["macOS track (on a Mac)"]
         direction TB
@@ -37,6 +37,7 @@ flowchart LR
 | [Session history](session-history.md)                        | 0.3     | core, engine, app, ui              | M    |
 | [Winget and Scoop](winget-scoop.md)                          | 0.3     | ci, docs                           | S    |
 | [Sunset warning](sunset-warning.md)                          | 0.4     | core, engine, app, tray, ui        | S    |
+| [Overnight guard](overnight-guard.md)                        | 0.4     | platform, core, engine, app, ui    | M    |
 | [macOS](macos.md)                                            | track   | build, platform, app, tray, ui, ci | L    |
 
 Each spec has the same sections: **Why**, **Experience** (exact copy and
