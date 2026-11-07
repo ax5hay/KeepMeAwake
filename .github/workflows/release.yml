@@ -9,8 +9,13 @@ permissions:
 
 jobs:
   installers:
-    name: Build installers and draft release
-    runs-on: windows-latest
+    name: Build installers and draft release (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Both upload to the same draft release: .exe and .msi from Windows,
+      # .dmg and .app.tar.gz (Apple Silicon, unsigned) from macOS.
+      matrix:
+        os: [windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
