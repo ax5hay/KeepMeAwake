@@ -1,6 +1,7 @@
 /**
  * Pure text helpers. No DOM, no Tauri, fully unit tested.
  */
+import { LATE_NIGHT, isLate } from './copy';
 import type { PauseReason, Snapshot } from './types';
 
 /** `1h 05m`, `12m`, `45s`. Mirrors the Rust tray formatter. */
@@ -69,14 +70,15 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
   if (snapshot.paused) {
     return { title: 'Paused', detail: `Holding off while ${pauseText(snapshot.paused)}.` };
   }
+  const late = isLate(new Date(nowMs).getHours()) ? ` ${LATE_NIGHT}` : '';
   if (snapshot.mode === 'indefinite') {
-    return { title: 'Awake', detail: 'Until you say otherwise.' };
+    return { title: 'Awake', detail: `Until you say otherwise.${late}` };
   }
   const left = remainingSecs(snapshot, nowMs) ?? 0;
   const ends = snapshot.ends_at_unix_ms ?? nowMs;
   return {
     title: 'Awake',
-    detail: `Until ${formatClock(ends, locale)} · ${formatDuration(left)} left`,
+    detail: `Until ${formatClock(ends, locale)} · ${formatDuration(left)} left${late}`,
   };
 }
 
