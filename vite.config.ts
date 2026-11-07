@@ -22,8 +22,9 @@ export default defineConfig({
   },
   envPrefix: ['VITE_', 'TAURI_ENV_*'],
   build: {
-    // WebView2 on Windows 10/11 is always Chromium-recent; ship modern JS, no polyfills.
-    target: 'chrome120',
+    // WebView2 is always Chromium-recent; WKWebView is the macOS Safari, 15 on
+    // macOS 12 (the bundle's minimum). Modern JS, no polyfills, for both.
+    target: ['chrome120', 'safari15'],
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
     cssMinify: true,
     reportCompressedSize: false,
