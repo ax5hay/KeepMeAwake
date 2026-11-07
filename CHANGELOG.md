@@ -5,6 +5,14 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-07
+
+Session history, the sunset warning, the overnight guard and auto-update,
+with a pass over every screen. A pre-release: built and checked on
+Windows; the Mac's by-hand acceptance is still open. Installers are not yet
+code-signed, so Windows SmartScreen and macOS Gatekeeper ask once (see the
+guide); updates carry their own signature.
+
 ### Changed
 
 - The settings button is a set of sliders rather than a gear, which read as
@@ -12,9 +20,28 @@ Versions: [SemVer](https://semver.org).
 
 ### Added
 
-- Home ends with a quiet line of doors, `Schedule · History · Ctrl+Alt+K`,
-  each opening Settings at that section, so the features that never
-  announce themselves can be found from the main window.
+- Auto-update: about half a minute after launch and then once a day, the
+  app asks GitHub for a newer full release (Settings → About → Check for
+  updates daily, on by default; the only request it makes). A newer one
+  shows on Home's line, in the tray and in About, with a whisper the first
+  time; Install and restart downloads it with a progress line, verifies its
+  signature, installs and relaunches. Pre-releases are never offered.
+- Home ends with a quiet line of doors, `Schedule · Overnight · History ·
+  Ctrl+Alt+K`, each opening Settings at that section, so the features that
+  never announce themselves can be found from the main window. A waiting
+  update leads the line.
+- The Always line says how it can end while the overnight guard watches:
+  "Until you say otherwise, or 6h untouched." Keep it up answers with a
+  whisper and the line drops the promise.
+
+### Fixed
+
+- Esc in the Until… field closed the window; it closes the field.
+- An error stayed on screen until a later action succeeded; it goes after
+  a few seconds or on a click.
+- Settings → History did not refresh while Settings stayed open.
+- A warning or guard set by hand outside the presets selected no segment.
+- "Give it another 30m" showed while paused for the battery.
 
 - Overnight guard: when an Always session has had no keyboard, mouse or
   trackpad input for 6 hours (Off, 4, 6 or 8 in Settings → Waking), the sun
@@ -103,5 +130,6 @@ First release. A twenty-line Python script became a desktop app.
   late-night line.
 - Settings persisted atomically; rotating log file.
 
-[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.3.0
 [0.2.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.2.0

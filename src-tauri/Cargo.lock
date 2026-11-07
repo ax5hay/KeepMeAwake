@@ -2093,7 +2093,7 @@ dependencies = [
 
 [[package]]
 name = "keepmeawake"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "chrono",
  "core-foundation 0.10.1",
