@@ -48,7 +48,7 @@ timeline
 | Session history with how each session ended | [session-history.md](specs/session-history.md) | core, engine, app, ui |
 | Winget and Scoop                            | [winget-scoop.md](specs/winget-scoop.md)       | ci, docs              |
 
-macOS shipped in 0.2.0 as a pre-release, built on the personal Mac. The
+macOS shipped in 0.2.0 as a pre-release, built on a Mac. The
 by-hand acceptance items that need a person at the Mac (menu bar click and
 legibility, ⌘W/⌘Q in the real app, toasts, launch at sign-in, unplugging) are
 listed in [`HANDOFF.md`](HANDOFF.md); it stays marked pending until they pass.

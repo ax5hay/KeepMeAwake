@@ -2,7 +2,7 @@
 
 Parallel track · Size L · Touches build, platform, app, tray, ui, ci, docs
 
-Built on Akshay's personal Mac, in parallel with the Windows 0.3 work. Both
+Built on a Mac, in parallel with the Windows 0.3 work. Both
 machines push to `main`; pull before you start, update
 [`HANDOFF.md`](../HANDOFF.md) when you stop.
 

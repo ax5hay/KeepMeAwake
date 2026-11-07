@@ -303,7 +303,7 @@ mod tests {
         );
     }
 
-    /// A Mac without a battery (this Mac mini, for one) reads as mains.
+    /// A Mac without a battery (a Mac mini, say) reads as mains.
     #[test]
     fn real_battery_probe_returns_something_sane() {
         let state = MacBattery.read();

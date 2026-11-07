@@ -13,8 +13,8 @@ version.
 - Layers: `app → engine → core`, `engine → platform`. `core` has no I/O.
 - The only `unsafe` is in `src-tauri/src/platform/windows.rs` and
   `src-tauri/src/platform/macos.rs`. Nowhere else.
-- Two machines push to `main`: Windows work on the work laptop, macOS work on
-  the personal Mac (`docs/specs/macos.md`). Pull first; keep platform work
+- Two machines push to `main`: Windows work on a Windows PC, macOS work on a
+  Mac (`docs/specs/macos.md`). Pull first; keep platform work
   inside `platform/` and `cfg` blocks.
 - `src/lib/types.ts` mirrors `src-tauri/src/core` field for field, `snake_case`.
   Change both or neither.

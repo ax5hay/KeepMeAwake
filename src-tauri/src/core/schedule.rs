@@ -113,90 +113,92 @@ mod tests {
         }
     }
 
-    /// India: no DST, an odd half-hour offset to catch UTC assumptions.
-    fn ist() -> FixedOffset {
+    /// UTC+05:30: no DST, an odd half-hour offset to catch UTC assumptions.
+    fn half_hour_zone() -> FixedOffset {
         FixedOffset::east_opt(5 * 3600 + 1800).unwrap()
     }
 
     /// 2026-03-02 is a Monday.
-    fn at_ist(day: u32, h: u32, m: u32) -> DateTime<FixedOffset> {
-        ist().with_ymd_and_hms(2026, 3, day, h, m, 0).unwrap()
+    fn local_at(day: u32, h: u32, m: u32) -> DateTime<FixedOffset> {
+        half_hour_zone()
+            .with_ymd_and_hms(2026, 3, day, h, m, 0)
+            .unwrap()
     }
 
     #[test]
     fn inside_a_window() {
-        let w = current_window(&office(), &at_ist(2, 12, 0)).unwrap();
-        assert_eq!(w.start, at_ist(2, 9, 0));
-        assert_eq!(w.end, at_ist(2, 18, 0));
+        let w = current_window(&office(), &local_at(2, 12, 0)).unwrap();
+        assert_eq!(w.start, local_at(2, 9, 0));
+        assert_eq!(w.end, local_at(2, 18, 0));
     }
 
     #[test]
     fn outside_a_window() {
-        assert_eq!(current_window(&office(), &at_ist(2, 8, 59)), None);
-        assert_eq!(current_window(&office(), &at_ist(2, 19, 0)), None);
+        assert_eq!(current_window(&office(), &local_at(2, 8, 59)), None);
+        assert_eq!(current_window(&office(), &local_at(2, 19, 0)), None);
     }
 
     #[test]
     fn start_is_inside_and_end_is_outside() {
-        assert!(current_window(&office(), &at_ist(2, 9, 0)).is_some());
-        assert_eq!(current_window(&office(), &at_ist(2, 18, 0)), None);
+        assert!(current_window(&office(), &local_at(2, 9, 0)).is_some());
+        assert_eq!(current_window(&office(), &local_at(2, 18, 0)), None);
     }
 
     #[test]
     fn disabled_schedule_has_no_windows() {
         let s = Schedule::default();
-        assert_eq!(current_window(&s, &at_ist(2, 12, 0)), None);
-        assert_eq!(next_window(&s, &at_ist(2, 12, 0)), None);
-        assert_eq!(next_boundary(&s, &at_ist(2, 12, 0)), None);
+        assert_eq!(current_window(&s, &local_at(2, 12, 0)), None);
+        assert_eq!(next_window(&s, &local_at(2, 12, 0)), None);
+        assert_eq!(next_boundary(&s, &local_at(2, 12, 0)), None);
     }
 
     #[test]
     fn weekday_off_has_no_window() {
         // 2026-03-07 is a Saturday.
-        assert_eq!(current_window(&office(), &at_ist(7, 12, 0)), None);
+        assert_eq!(current_window(&office(), &local_at(7, 12, 0)), None);
     }
 
     #[test]
     fn overnight_window_spans_midnight() {
         let s = overnight();
-        let late = current_window(&s, &at_ist(2, 23, 0)).unwrap();
-        assert_eq!(late.start, at_ist(2, 22, 0));
-        assert_eq!(late.end, at_ist(3, 6, 0));
-        let early = current_window(&s, &at_ist(3, 5, 59)).unwrap();
+        let late = current_window(&s, &local_at(2, 23, 0)).unwrap();
+        assert_eq!(late.start, local_at(2, 22, 0));
+        assert_eq!(late.end, local_at(3, 6, 0));
+        let early = current_window(&s, &local_at(3, 5, 59)).unwrap();
         assert_eq!(early, late);
-        assert_eq!(current_window(&s, &at_ist(3, 6, 0)), None);
-        assert_eq!(current_window(&s, &at_ist(2, 21, 59)), None);
+        assert_eq!(current_window(&s, &local_at(3, 6, 0)), None);
+        assert_eq!(current_window(&s, &local_at(2, 21, 59)), None);
     }
 
     #[test]
     fn overnight_window_belongs_to_the_day_it_starts() {
         let s = overnight();
         // Friday night runs into Saturday morning even though Saturday is off.
-        assert!(current_window(&s, &at_ist(7, 3, 0)).is_some());
+        assert!(current_window(&s, &local_at(7, 3, 0)).is_some());
         // Saturday night has no window, so early Sunday is resting.
-        assert_eq!(current_window(&s, &at_ist(8, 3, 0)), None);
+        assert_eq!(current_window(&s, &local_at(8, 3, 0)), None);
         // Sunday is off, but Monday's early hours belong to Sunday night.
-        assert_eq!(current_window(&s, &at_ist(9, 3, 0)), None);
+        assert_eq!(current_window(&s, &local_at(9, 3, 0)), None);
     }
 
     #[test]
     fn next_window_later_today() {
-        let w = next_window(&office(), &at_ist(2, 7, 0)).unwrap();
-        assert_eq!(w.start, at_ist(2, 9, 0));
+        let w = next_window(&office(), &local_at(2, 7, 0)).unwrap();
+        assert_eq!(w.start, local_at(2, 9, 0));
     }
 
     #[test]
     fn next_window_is_strictly_after_now() {
-        let w = next_window(&office(), &at_ist(2, 9, 0)).unwrap();
-        assert_eq!(w.start, at_ist(3, 9, 0));
+        let w = next_window(&office(), &local_at(2, 9, 0)).unwrap();
+        assert_eq!(w.start, local_at(3, 9, 0));
     }
 
     #[test]
     fn next_window_skips_the_weekend() {
         // Friday evening → Monday morning.
-        let w = next_window(&office(), &at_ist(6, 19, 0)).unwrap();
-        assert_eq!(w.start, at_ist(9, 9, 0));
-        assert_eq!(w.end, at_ist(9, 18, 0));
+        let w = next_window(&office(), &local_at(6, 19, 0)).unwrap();
+        assert_eq!(w.start, local_at(9, 9, 0));
+        assert_eq!(w.end, local_at(9, 18, 0));
     }
 
     #[test]
@@ -205,15 +207,24 @@ mod tests {
             days: [false; 7],
             ..office()
         };
-        assert_eq!(next_window(&s, &at_ist(2, 7, 0)), None);
+        assert_eq!(next_window(&s, &local_at(2, 7, 0)), None);
     }
 
     #[test]
     fn next_boundary_is_the_end_inside_and_the_start_outside() {
         let s = office();
-        assert_eq!(next_boundary(&s, &at_ist(2, 12, 0)), Some(at_ist(2, 18, 0)));
-        assert_eq!(next_boundary(&s, &at_ist(2, 18, 0)), Some(at_ist(3, 9, 0)));
-        assert_eq!(next_boundary(&s, &at_ist(2, 8, 0)), Some(at_ist(2, 9, 0)));
+        assert_eq!(
+            next_boundary(&s, &local_at(2, 12, 0)),
+            Some(local_at(2, 18, 0))
+        );
+        assert_eq!(
+            next_boundary(&s, &local_at(2, 18, 0)),
+            Some(local_at(3, 9, 0))
+        );
+        assert_eq!(
+            next_boundary(&s, &local_at(2, 8, 0)),
+            Some(local_at(2, 9, 0))
+        );
     }
 
     /// A zone shaped like Europe/London in 2026: GMT, then BST from

@@ -3,7 +3,7 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-07 (IST) · by Claude Opus 5.5 (macOS track, review fixes, 0.2.0 pre-release)
+**Last updated:** 2026-11-07 · by Claude Opus 5.5 (macOS track, review fixes, 0.2.0 pre-release)
 **Release:** [v0.2.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.2.0), pre-release.
 **Repo state:** `main` is green on both CI runners (`npm run verify` on the Mac: vitest 75,
 cargo test 120; Windows runs its own platform tests in place of the Mac ones). **v0.2.0 is
@@ -16,8 +16,8 @@ not MIT (see `LICENSE`).
 ```mermaid
 flowchart LR
     main["main (ax5hay/KeepMeAwake, public)"]
-    win["Work laptop · Windows<br/>0.3: auto-update → history → winget"]
-    mac["Personal Mac · macOS<br/>built; hand acceptance left"]
+    win["Windows PC<br/>0.3: auto-update → history → winget"]
+    mac["Mac<br/>built; hand acceptance left"]
     win -->|small commits| main
     mac -->|small commits| main
     main -->|pull first| win
@@ -32,7 +32,7 @@ can collide, so commit it small and push it soon.
 
 ### On the Mac (macOS track)
 
-Setup is done on the Mac mini (rustup via Homebrew, librsvg). Two things
+Setup is done on the Mac (rustup via Homebrew, librsvg). Two things
 the next session needs that this one did not have:
 
 1. `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"` in `~/.zshrc` (Homebrew's
@@ -61,14 +61,13 @@ Then walk the by-hand acceptance in [`specs/macos.md`](specs/macos.md):
 | Resource numbers recorded                                        | done; menu bar footprint 16–17 MB is over the 12 MB budget |
 | CI matrix green on both runners                                  | done                                                       |
 
-### On the work laptop (Windows track)
+### On the Windows PC (Windows track)
 
 0. **History was rewritten on 2026-11-07** (this session's 26 commits were
-   re-authored from a stray identity to ax5hay; trees and
-   messages unchanged). Before anything else, on any clone made earlier:
-   `git fetch && git reset --hard origin/main && git fetch --tags --force`.
-   Commit as `Akshay Bajpai <71986942+ax5hay@users.noreply.github.com>`
-   (`git config --local user.email …`) so GitHub links commits to ax5hay.
+   re-authored to the ax5hay GitHub account; trees and messages unchanged).
+   On a clone made before that: `git fetch && git reset --hard origin/main &&
+git fetch --tags --force`. Commit with the ax5hay GitHub noreply address as
+   `user.email` (`git config --local`) so commits link to the account.
 1. Install the v0.2.0 pre-release from the releases page and check it
    once on Windows (toasts name the app when installed, per the old open
    question). When both platforms are happy, untick **pre-release** on GitHub.

@@ -75,8 +75,8 @@ swift -e 'import CoreGraphics; let l = CGWindowListCopyWindowInfo(.optionOnScree
 
 ## Two machines, one `main`
 
-The Windows work happens on the work laptop, the macOS work on the personal
-Mac, both pushing small commits to `main`. Pull before you start; read and
+The Windows work happens on a Windows PC, the macOS work on a Mac, both
+pushing small commits to `main`. Pull before you start; read and
 update [`HANDOFF.md`](HANDOFF.md) at both ends of a session. Shared files
 (`core`, `engine`, `copy.ts`, the docs) are where conflicts can appear, so
 keep platform work inside `platform/` and `cfg` blocks wherever it can live

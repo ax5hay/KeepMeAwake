@@ -2,7 +2,7 @@
 name = "keepmeawake"
 version = "0.2.0"
 description = "Keeps your laptop awake while you need it, on Windows and macOS, without faking input."
-authors = ["Akshay Bajpai <hello@akshaybajpai.com>"]
+authors = ["Akshay Bajpai"]
 license-file = "../LICENSE"
 repository = "https://github.com/ax5hay/KeepMeAwake"
 homepage = "https://akshaybajpai.com"

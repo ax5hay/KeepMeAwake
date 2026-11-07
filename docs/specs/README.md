@@ -14,7 +14,7 @@ flowchart LR
         direction TB
         u["auto-update.md"] --> hi["session-history.md"] --> w["winget-scoop.md"]
     end
-    subgraph mac["macOS track (personal Mac)"]
+    subgraph mac["macOS track (on a Mac)"]
         direction TB
         m["macos.md"]
     end

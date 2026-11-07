@@ -70,7 +70,7 @@ flowchart LR
 | ------- | ---------------------------------------------------------------- | ------------------ |
 | 0.2.0   | schedule, notifications, global-hotkey, tray-icons-light-taskbar | all four accepted  |
 | 0.3.0   | auto-update, session-history, winget-scoop                       | all three accepted |
-| track   | macos (built on the personal Mac, ships with the next release)   | accepted on a Mac  |
+| track   | macos (built on a Mac, ships with the next release)              | accepted on a Mac  |
 
 Release steps are in `docs/releasing.md`.
 

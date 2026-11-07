@@ -37,8 +37,8 @@ menu-bar-only footprint is over the 12 MB budget either way: AppKit itself is
 most of it. Whether the budget gets a macOS line of its own is an open
 question.
 
-Windows measured on a Core Ultra 5 laptop, Windows 11, 2026-11-07. macOS
-measured on a Mac mini (M4), macOS 27, 2026-11-07. WebView2 processes are
+Windows measured on a Windows 11 laptop, 2026-11-07. macOS measured on an
+Apple Silicon Mac, macOS 27, 2026-11-07. WebView2 processes are
 shared with other apps on the machine and cannot be attributed cleanly from Task
 Manager; the app process itself stays at ~5 MB whether the window is open or not.
 
