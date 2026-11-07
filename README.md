@@ -1,5 +1,11 @@
 # Keep me awake
 
+[![CI](https://github.com/ax5hay/KeepMeAwake/actions/workflows/ci.yml/badge.svg)](https://github.com/ax5hay/KeepMeAwake/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/ax5hay/KeepMeAwake?include_prereleases&label=release)](https://github.com/ax5hay/KeepMeAwake/releases)
+![Windows 10 and 11](https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0078D4)
+![macOS 12+](https://img.shields.io/badge/macOS-12%2B-1C1B18)
+[![License: own](https://img.shields.io/badge/license-own%2C%20see%20LICENSE-DCA544)](LICENSE)
+
 A small Windows and macOS app that keeps my laptop from sleeping while I need
 it up, and gets out of the way the rest of the time. By [Akshay Bajpai](https://akshaybajpai.com).
 
@@ -121,6 +127,8 @@ npm run build      # installers (or .app and .dmg) in src-tauri/target/release/b
 | [Specs](docs/specs/README.md)              | implementation specs for the next releases          |
 | [Handoff](docs/HANDOFF.md)                 | where the last session stopped and where to start   |
 | [Changelog](CHANGELOG.md)                  | what changed, by version                            |
+| [Contributing](CONTRIBUTING.md)            | issues, pull requests, and what a change agrees to  |
+| [Security](SECURITY.md)                    | how to report a problem privately                   |
 
 ## License
 
