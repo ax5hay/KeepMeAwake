@@ -15,7 +15,8 @@
 
   const snapshot = $derived(store.snapshot);
   const activeStop = $derived.by<string | null>(() => {
-    if (!snapshot || snapshot.mode === 'off') return null;
+    // While the schedule holds the sun no stop is active; picking one overrides it.
+    if (!snapshot || snapshot.mode === 'off' || snapshot.mode === 'scheduled') return null;
     if (snapshot.mode === 'indefinite') return 'inf';
     const match = STOPS.find((s) => s === snapshot.plan_secs);
     return match ? String(match) : 'until';

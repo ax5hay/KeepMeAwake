@@ -25,6 +25,7 @@ export const HORIZON_TIPS: readonly string[] = [
   'Ctrl+, opens settings. Esc brings you back here.',
   'Windows lists this under powercfg /requests, by name.',
   'The sun has nothing to do with daylight. It is how awake your laptop is.',
+  'A schedule keeps the sun up for you. Settings → Schedule.',
 ];
 
 /** Tip `n` (0-based), wrapping. */
@@ -64,6 +65,29 @@ export function isLate(hour: number): boolean {
 
 /** Appended to the awake detail line late at night. */
 export const LATE_NIGHT = 'It is late. The sun will hold the line.';
+
+/** Status detail while a schedule window holds the sun up. */
+export function onSchedule(time: string): string {
+  return `Until ${time} · on schedule`;
+}
+
+/** Appended to the resting line while a schedule waits for its next window. */
+export function awakeAgain(when: string): string {
+  return `Awake again at ${when}.`;
+}
+
+/** Status detail while today's window is skipped. */
+export function skipping(time: string): string {
+  return `Skipping today's schedule until ${time}.`;
+}
+
+/** Whispered when the sun skips the rest of a window. */
+export function skippedUntil(time: string): string {
+  return `Skipped until ${time}.`;
+}
+
+/** Whispered when a skipped window is resumed. */
+export const BACK_ON_SCHEDULE = 'Back on schedule.';
 
 /** Long form of a duration stop for tooltips: "30 minutes", "2 hours". */
 export function longStop(secs: number): string {

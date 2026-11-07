@@ -5,6 +5,7 @@ import {
   formatClock,
   formatDuration,
   formatStop,
+  formatWhen,
   minutesToTime,
   nextOccurrence,
   progress,
@@ -12,6 +13,7 @@ import {
   statusText,
   suggestedUntil,
   timeToMinutes,
+  toggleWhisper,
 } from './format';
 import type { Snapshot } from './types';
 
@@ -122,6 +124,93 @@ describe('statusText', () => {
     expect(statusText(timed, ends - 90 * 60 * 1000, 'en-US').detail).toBe(
       'Until 5:30 pm · 1h 30m left',
     );
+  });
+});
+
+describe('statusText with a schedule', () => {
+  const start = new Date(2026, 0, 1, 9, 0).getTime();
+  const end = new Date(2026, 0, 1, 18, 0).getTime();
+  const open = {
+    ...base.schedule,
+    enabled: true,
+    in_window: true,
+    window_start_unix_ms: start,
+    window_end_unix_ms: end,
+    next_start_unix_ms: new Date(2026, 0, 2, 9, 0).getTime(),
+  };
+  const noon = new Date(2026, 0, 1, 12, 0).getTime();
+
+  it('names the window while scheduled', () => {
+    const s = { ...base, mode: 'scheduled' as const, ends_at_unix_ms: end, schedule: open };
+    expect(statusText(s, noon, 'en-US')).toEqual({
+      title: 'Awake',
+      detail: 'Until 6:00 pm · on schedule',
+    });
+  });
+
+  it('says until when a skip lasts', () => {
+    const s = { ...base, schedule: { ...open, skipped: true } };
+    expect(statusText(s, noon, 'en-US')).toEqual({
+      title: 'Resting',
+      detail: "Skipping today's schedule until 6:00 pm.",
+    });
+  });
+
+  it('says when the sun rises again outside a window', () => {
+    const s = {
+      ...base,
+      schedule: { ...open, in_window: false, window_start_unix_ms: null, window_end_unix_ms: null },
+    };
+    const evening = new Date(2026, 0, 1, 19, 0).getTime();
+    expect(statusText(s, evening, 'en-US').detail).toBe(
+      'Your laptop sleeps as usual. Awake again at 9:00 am.',
+    );
+  });
+
+  it('pauses still win over the schedule', () => {
+    const s = {
+      ...base,
+      mode: 'scheduled' as const,
+      paused: 'on_battery' as const,
+      schedule: open,
+    };
+    expect(statusText(s, noon, 'en-US').title).toBe('Paused');
+  });
+});
+
+describe('formatWhen', () => {
+  // 2 January 2026 is a Friday.
+  const fridayEvening = new Date(2026, 0, 2, 19, 0).getTime();
+
+  it('is just the clock for today and tomorrow', () => {
+    expect(formatWhen(new Date(2026, 0, 2, 21, 0).getTime(), fridayEvening, 'en-US')).toBe(
+      '9:00 pm',
+    );
+    expect(formatWhen(new Date(2026, 0, 3, 9, 0).getTime(), fridayEvening, 'en-US')).toBe(
+      '9:00 am',
+    );
+  });
+
+  it('names the day when it is further off', () => {
+    expect(formatWhen(new Date(2026, 0, 5, 9, 0).getTime(), fridayEvening, 'en-US')).toBe(
+      '9:00 am on Monday',
+    );
+  });
+});
+
+describe('toggleWhisper', () => {
+  const end = new Date(2026, 0, 1, 18, 0).getTime();
+  const open = { ...base.schedule, enabled: true, in_window: true, window_end_unix_ms: end };
+  const scheduled = { ...base, mode: 'scheduled' as const, schedule: open };
+  const skipped = { ...base, schedule: { ...open, skipped: true } };
+
+  it('names the skip and the return', () => {
+    expect(toggleWhisper(scheduled, skipped, 'en-US')).toBe('Skipped until 6:00 pm.');
+    expect(toggleWhisper(skipped, scheduled, 'en-US')).toBe('Back on schedule.');
+  });
+
+  it('stays quiet for plain sessions', () => {
+    expect(toggleWhisper(base, { ...base, mode: 'indefinite' }, 'en-US')).toBeNull();
   });
 });
 

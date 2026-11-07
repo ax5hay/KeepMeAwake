@@ -1,7 +1,15 @@
 /**
  * Pure text helpers. No DOM, no Tauri, fully unit tested.
  */
-import { LATE_NIGHT, isLate } from './copy';
+import {
+  BACK_ON_SCHEDULE,
+  LATE_NIGHT,
+  awakeAgain,
+  isLate,
+  onSchedule,
+  skippedUntil,
+  skipping,
+} from './copy';
 import type { PauseReason, Snapshot } from './types';
 
 /** `1h 05m`, `12m`, `45s`. Mirrors the Rust tray formatter. */
@@ -27,6 +35,21 @@ export function formatClock(unixMs: number, locale?: string): string {
   return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' })
     .format(new Date(unixMs))
     .toLowerCase();
+}
+
+/**
+ * A moment as `9:00 am`, or `9:00 am on Monday` when it is further off than
+ * tomorrow, so a Friday evening does not read as "tomorrow morning".
+ */
+export function formatWhen(unixMs: number, nowMs: number, locale?: string): string {
+  const clock = formatClock(unixMs, locale);
+  const day = (ms: number) => {
+    const d = new Date(ms);
+    return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000;
+  };
+  if (day(unixMs) - day(nowMs) <= 1) return clock;
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(new Date(unixMs));
+  return `${clock} on ${weekday}`;
 }
 
 /** Seconds left, rounded up, never negative. */
@@ -65,7 +88,19 @@ export interface StatusText {
 /** The two lines under the scene. */
 export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): StatusText {
   if (snapshot.mode === 'off') {
-    return { title: 'Resting', detail: 'Your laptop sleeps as usual.' };
+    const { schedule } = snapshot;
+    if (schedule.skipped && schedule.window_end_unix_ms !== null) {
+      return {
+        title: 'Resting',
+        detail: skipping(formatClock(schedule.window_end_unix_ms, locale)),
+      };
+    }
+    const resting = 'Your laptop sleeps as usual.';
+    if (schedule.enabled && schedule.next_start_unix_ms !== null) {
+      const when = formatWhen(schedule.next_start_unix_ms, nowMs, locale);
+      return { title: 'Resting', detail: `${resting} ${awakeAgain(when)}` };
+    }
+    return { title: 'Resting', detail: resting };
   }
   if (snapshot.paused) {
     return { title: 'Paused', detail: `Holding off while ${pauseText(snapshot.paused)}.` };
@@ -74,12 +109,28 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
   if (snapshot.mode === 'indefinite') {
     return { title: 'Awake', detail: `Until you say otherwise.${late}` };
   }
-  const left = remainingSecs(snapshot, nowMs) ?? 0;
   const ends = snapshot.ends_at_unix_ms ?? nowMs;
+  if (snapshot.mode === 'scheduled') {
+    return { title: 'Awake', detail: `${onSchedule(formatClock(ends, locale))}${late}` };
+  }
+  const left = remainingSecs(snapshot, nowMs) ?? 0;
   return {
     title: 'Awake',
     detail: `Until ${formatClock(ends, locale)} · ${formatDuration(left)} left${late}`,
   };
+}
+
+/**
+ * What to whisper after the sun was clicked, when the click skipped or
+ * resumed the schedule rather than starting or stopping a session.
+ */
+export function toggleWhisper(before: Snapshot, after: Snapshot, locale?: string): string | null {
+  const end = after.schedule.window_end_unix_ms;
+  if (!before.schedule.skipped && after.schedule.skipped && end !== null) {
+    return skippedUntil(formatClock(end, locale));
+  }
+  if (before.schedule.skipped && after.mode === 'scheduled') return BACK_ON_SCHEDULE;
+  return null;
 }
 
 /** Battery line for the low-battery row. */

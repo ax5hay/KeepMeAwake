@@ -65,6 +65,8 @@ function fakeApi(initial: Snapshot) {
       current = { ...current, mode: current.mode === 'off' ? 'indefinite' : 'off' };
       return current;
     }),
+    skipSchedule: vi.fn(async () => current),
+    resumeSchedule: vi.fn(async () => current),
     updateSettings: vi.fn(async (settings) => {
       current = { ...current, settings };
       return current;
@@ -135,6 +137,57 @@ describe('AppStore', () => {
     await store.updateSettings({ keep_display_on: false });
     expect(api.updateSettings).toHaveBeenCalledWith({ ...base.settings, keep_display_on: false });
     expect(store.settings?.keep_display_on).toBe(false);
+    store.dispose();
+  });
+
+  it('whispers when the sun skips or resumes the schedule', async () => {
+    const end = new Date(2026, 0, 1, 18, 0).getTime();
+    const window = {
+      ...base.schedule,
+      enabled: true,
+      in_window: true,
+      window_start_unix_ms: new Date(2026, 0, 1, 9, 0).getTime(),
+      window_end_unix_ms: end,
+    };
+    const scheduled: Snapshot = {
+      ...base,
+      mode: 'scheduled',
+      ends_at_unix_ms: end,
+      schedule: window,
+    };
+    const skipped: Snapshot = { ...base, schedule: { ...window, skipped: true } };
+    const { api } = fakeApi(scheduled);
+    let next = skipped;
+    api.toggle = vi.fn(async () => {
+      const out = next;
+      next = next === skipped ? scheduled : skipped;
+      return out;
+    });
+    const store = new AppStore(api);
+    await store.init();
+    expect(store.status.detail).toMatch(/^Until 6:00\s?pm · on schedule$/i);
+    await store.toggle();
+    expect(store.whisper).toMatch(/^Skipped until 6:00\s?pm\.$/i);
+    expect(store.status.detail).toMatch(/^Skipping today's schedule until 6:00\s?pm\.$/i);
+    await store.toggle();
+    expect(store.whisper).toBe('Back on schedule.');
+    store.dispose();
+  });
+
+  it('ticks while a schedule window is on screen', async () => {
+    const end = Date.now() + 3600_000;
+    const { api } = fakeApi({
+      ...base,
+      mode: 'scheduled',
+      ends_at_unix_ms: end,
+      plan_secs: 7200,
+      schedule: { ...base.schedule, enabled: true, in_window: true, window_end_unix_ms: end },
+    });
+    const store = new AppStore(api);
+    await store.init();
+    expect(store.progress).toBeCloseTo(0.5);
+    vi.advanceTimersByTime(36 * 60_000);
+    expect(store.progress).toBeCloseTo(0.8);
     store.dispose();
   });
 

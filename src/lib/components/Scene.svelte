@@ -14,9 +14,16 @@
   const mode = $derived(store.snapshot?.mode ?? 'off');
   const paused = $derived(store.snapshot?.paused !== null && store.snapshot !== null);
   const sun = $derived(sunPosition(mode, store.progress));
-  const timed = $derived(mode === 'timed');
+  // A schedule window is drawn exactly like a timed session: the sun sets
+  // when the window closes.
+  const timed = $derived(mode === 'timed' || mode === 'scheduled');
   const awake = $derived(mode !== 'off' && !paused);
-  const label = $derived(mode === 'off' ? 'Keep awake' : 'Let it sleep');
+  const skipped = $derived(store.snapshot?.schedule.skipped ?? false);
+  const label = $derived.by(() => {
+    if (mode === 'scheduled') return "Skip today's schedule";
+    if (mode === 'off') return skipped ? 'Back on schedule' : 'Keep awake';
+    return 'Let it sleep';
+  });
 
   const { width, height, horizonY, sunRadius } = SCENE;
 
@@ -166,7 +173,8 @@
   }
 
   .scene[data-mode='indefinite'] .sky,
-  .scene[data-mode='timed'] .sky {
+  .scene[data-mode='timed'] .sky,
+  .scene[data-mode='scheduled'] .sky {
     fill: var(--sky-on);
   }
 
@@ -183,7 +191,8 @@
   }
 
   .scene[data-mode='indefinite'] .afterglow,
-  .scene[data-mode='timed'] .afterglow {
+  .scene[data-mode='timed'] .afterglow,
+  .scene[data-mode='scheduled'] .afterglow {
     opacity: var(--afterglow-on);
   }
 
@@ -238,7 +247,8 @@
   }
 
   .scene[data-mode='indefinite'] .ground,
-  .scene[data-mode='timed'] .ground {
+  .scene[data-mode='timed'] .ground,
+  .scene[data-mode='scheduled'] .ground {
     fill: var(--ground-on);
   }
 

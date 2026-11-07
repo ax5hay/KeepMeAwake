@@ -13,6 +13,8 @@ export const api = {
   getSnapshot: () => invoke<Snapshot>('get_snapshot'),
   setPlan: (request: PlanRequest) => invoke<Snapshot>('set_plan', { request }),
   toggle: () => invoke<Snapshot>('toggle_session'),
+  skipSchedule: () => invoke<Snapshot>('skip_schedule'),
+  resumeSchedule: () => invoke<Snapshot>('resume_schedule'),
   updateSettings: (settings: Settings) => invoke<Snapshot>('update_settings', { settings }),
   quit: () => invoke('quit_app'),
   onSnapshot: (handler: (snapshot: Snapshot) => void): Promise<UnlistenFn> =>
