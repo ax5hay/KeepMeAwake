@@ -70,7 +70,7 @@ settings), beside Home and Settings. Top to bottom:
 | Part      | Shows                                                                                                                                                    |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The day   | eyebrow `Today · Tue 10 Nov`; the figure in Fraunces, `4h 29m` (or the word `Leave`, `Rest`, `Nothing`, `Ahead`); one line of detail                     |
-| Detail    | `First light 11:39 am · last 2:17 am · 2h 47m over`, then `Night 2:17 am – 11:12 am · 8h 55m` when there was one                                         |
+| Detail    | `Started 11:39 am · ended 2:17 am · 2h 47m extra`, then `Night 2:17 am – 11:12 am · 8h 55m` when there was one                                           |
 | The strip | the day as a small horizon, turn to turn: a band of sky over the working hours, ink where you were here, the night dotted under the line, the sun at now |
 | The week  | seven smaller strips, Monday first, each with its total; click one to read that day                                                                      |
 | The month | a calendar: a bar under each worked day (longer for longer days), a ring for leave, the sun on today; arrows step months                                 |
@@ -93,7 +93,7 @@ What a day reads as:
 | anything else with nothing in it                      | `Nothing` (today shows `0m`)                                                        |
 
 On the first open after a night, Home whispers it once:
-`A quiet night: 2:17 am to 11:12 am.`
+`Away overnight: 2:17 am to 11:12 am.`
 
 With the almanac off, the pane says so and offers the switch.
 
@@ -113,13 +113,13 @@ time a day reaches the length of its working hours, Home whispers once:
 
 ### Putting a day right
 
-| Link                  | Does                                                                        |
-| --------------------- | --------------------------------------------------------------------------- |
-| **Mark as leave**     | `marks[day] = leave`                                                        |
-| **Not a leave**       | `marks[day] = clear` on an empty past working day, else the mark is removed |
-| **Correct the hours** | opens From / Until; **Save** sets `fixes[day]` to that one stretch          |
-| **Nobody here**       | `fixes[day]` of no length: nobody was at the machine                        |
-| **Use what was read** | removes `fixes[day]`                                                        |
+| Link              | Does                                                                        |
+| ----------------- | --------------------------------------------------------------------------- |
+| **Mark as leave** | `marks[day] = leave`                                                        |
+| **Not a leave**   | `marks[day] = clear` on an empty past working day, else the mark is removed |
+| **Edit hours**    | opens From / Until; **Save** sets `fixes[day]` to that one stretch          |
+| **Nobody here**   | `fixes[day]` of no length: nobody was at the machine                        |
+| **Undo my edit**  | removes `fixes[day]`                                                        |
 
 `Almanac::fixes: BTreeMap<String, Span>`, `Almanac::fix(day, Option<Span>)`
 (refuses a non-date, a stretch that ends before it starts, or one over 36
@@ -129,15 +129,15 @@ read inside that day is cut out and the stretch put in, so hours, first and
 last touch, time over and the night all follow. A day set by hand reads
 `Set by you: 3:00 pm – 12:30 am`.
 
-### Set with me
+### Sleep when I'm away
 
 `almanac.rest_after_mins: Option<u16>`, default `None`; Settings → Almanac →
-**Set with me**: Off · 30m · 1h · 2h. While it is on, the almanac is on and
+**Sleep when I'm away**: Off · 30m · 1h · 2h. While it is on, the almanac is on and
 it is night by the almanac's hours (`AlmanacSettings::is_resting`), the
 overnight guard's wait for an Always session is those minutes instead of
 its hours. The question, the ten minutes, **Keep it up** and the `idle`
 ending are the guard's own; the status line and toast say
-`Quiet for the night. Setting at 3:12 am.` A session that set this way rises
+`Away for the night. Sleeping at 3:12 am.` A session that set this way rises
 again at the next touch (`State::rise`, looked for every 30 s; a touch is
 the idle time shrinking against the monotonic clock). A command that starts
 or ends a session cancels it, and so does a day with nobody back.
@@ -150,7 +150,7 @@ Settings → new section **Almanac**, after **Schedule**.
 
 | Field                          | Type        | Default       | UI                                                                                             |
 | ------------------------------ | ----------- | ------------- | ---------------------------------------------------------------------------------------------- |
-| `almanac.enabled`              | `bool`      | `true`        | **Keep an almanac**: `Days, hours and nights, from your input.`                                |
+| `almanac.enabled`              | `bool`      | `true`        | **Track my days**: `Your hours, leave and nights.`                                             |
 | `almanac.work_days`            | `[bool; 7]` | Monday–Friday | **Working days**: the schedule's day pills                                                     |
 | `almanac.start_minutes`        | `u16`       | `540`         | **Working hours**, two time fields: `Past midnight is fine. Time outside them counts as over.` |
 | `almanac.end_minutes`          | `u16`       | `1080`        |                                                                                                |

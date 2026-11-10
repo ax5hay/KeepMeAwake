@@ -142,7 +142,7 @@ the same switch as everywhere else. The states differ in words, not colour:
 
 | State       | The frame shows                                                              |
 | ----------- | ---------------------------------------------------------------------------- |
-| locked      | a lock in the chip; `Locked: no API key yet.` and a link to add one          |
+| locked      | a lock in the chip; `Locked: needs an API key.` and a link to add one        |
 | off         | `Claude is switched off.` and a link that is the master switch               |
 | feature off | that feature's line on what it would do                                      |
 | on          | the feature, and under it in small type what asking sends                    |
@@ -173,6 +173,14 @@ Short, lower-case where Windows is, no exclamation marks. States are named for
 what the laptop is doing ("Resting", "Awake"), not what the app is doing. Hints
 explain consequences, never restate the label. All copy that is more than a
 label lives in `src/lib/copy.ts` and is tested for length and tone.
+
+The scene has a voice (the sun sets, a whisper, the night is yours) and
+keeps it: that is the picture. Anything a person has to act on or
+understand says what it means in plain words first: a label names the
+thing it switches, a line of detail gives the fact, a hint gives the
+consequence. `Started 9:02 am · ended 6:40 pm`, not first light; `Sleep
+when I'm away`, not set with me. If a line needs the metaphor explained to
+be understood, it is the wrong line.
 
 ## Hidden things
 

@@ -18,8 +18,8 @@ against GitHub Releases keeps every install current without a store.
   the next window open says `A new version is up: 0.3.1.`
 - Clicking the link downloads with a thin progress line under the About
   heading (`Downloading… 42%`), installs, and relaunches.
-- Settings → About gains a switch **Check for updates daily** with hint
-  `Once a day, from GitHub. Nothing else leaves this machine.` Default on.
+- Settings → About gains a switch **Check for updates automatically** with hint
+  `Once a day and when you open this window, from GitHub.` Default on.
 
 ## Settings
 

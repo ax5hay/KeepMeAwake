@@ -8,9 +8,9 @@ Versions: [SemVer](https://semver.org).
 ### Added
 
 - Claude, as a choice, and a cheap one. Four features, shown where they
-  are used: in the Almanac, **The day, in a line**, **This week, in words**
-  and **Ask the almanac** (a question about the month in view); on Home
-  with Until…, **Tell the sun** (say the plan, `two hours` or `until half
+  are used: in the Almanac, **Summarise this day**, **Summarise this week**
+  and **Ask about this month** (a question about the month in view); on Home
+  with Until…, **Plan in words** (say the plan, `two hours` or `until half
   six`; it shows what it understood and starts only when you say). Three
   locks, each visible: with no API key the features are shown locked, with
   a way to add one; with a key they say Claude is switched off, with the
@@ -25,8 +25,11 @@ Versions: [SemVer](https://semver.org).
   costs nothing the second time.
 - Hide AI (Settings → Claude, off by default): takes every AI feature out
   of sight and leaves one button, Enable AI.
-- Check now, in Settings → About: ask for a newer release without waiting
-  for the daily check.
+- Check for updates, a button in Settings → About: look for a newer
+  release now. The app also looks whenever the window is opened, if it has
+  not in the last hour, so a new release shows the next time you look
+  rather than a day later. An update that is found stays shown as
+  available until you install it; checking never installs anything.
 - Break reminder (Settings → Almanac, off unless you ask): a toast after
   1 hour, 90 minutes or 2 hours at the machine without five minutes away.
 - Copy month as CSV, at the foot of the Almanac: a row a day, for a
@@ -37,7 +40,14 @@ Versions: [SemVer](https://semver.org).
 The Almanac: your days at this machine, the hours you worked, your leave
 and your nights, with today on Home. Built and checked on Windows; the Mac
 has compiled and tested it on CI but nobody has lived with it there yet,
-and Set with me (off unless you ask) has not yet had a real night.
+and Sleep when I'm away (off unless you ask) has not yet had a real night.
+
+### Changed
+
+- The almanac and Claude are worded plainly: Started and ended rather than
+  first light, Away overnight rather than a quiet night, Track my days,
+  Morning summary, Sleep when I'm away, Plan in words, Summarise this day
+  and week, Edit hours. The scene and its whispers keep their voice.
 
 ### Fixed
 
@@ -58,7 +68,7 @@ and Set with me (off unless you ask) has not yet had a real night.
   hours, ink where you were here, the night dotted under the line, the sun
   at now), with the week as seven strips and the month as a calendar.
   **Mark as leave** on any day, past or to come.
-- Settings → Almanac: Keep an almanac (on by default), Working days,
+- Settings → Almanac: Track my days (on by default), Working days,
   Working hours (past midnight is fine: a day turns over opposite the
   middle of them, so late work stays on the day it began) and Empty working
   days are leave.
@@ -66,15 +76,15 @@ and Set with me (off unless you ask) has not yet had a real night.
   the status word today's hours. Both open the Almanac. The first time a
   day reaches the length of your working hours, Home whispers it once.
 - Any day can be put right by hand: **Mark as leave** or **Not a leave**,
-  and **Correct the hours** to set it to one stretch, to say nobody was
+  and **Edit hours** to set it to one stretch, to say nobody was
   here, or to go back to what was read. A day set by hand says so, and
   nothing that was read is thrown away.
-- Set with me (Settings → Almanac, off unless asked for): an Always session
+- Sleep when I'm away (Settings → Almanac, off unless asked for): an Always session
   sets once the keys have been quiet at night for 30 minutes, 1 hour or 2,
   asking first as the overnight guard does, and rises again at your next
   touch.
 - Every automatic thing in the almanac has a switch, including the morning
-  whisper (Whisper the night).
+  whisper (Morning summary).
 - It reads only how long since the last input, once a minute, the same
   read-only call the overnight guard makes. Nothing is typed, and
   `almanac.json` never leaves the machine. With the switch off the app

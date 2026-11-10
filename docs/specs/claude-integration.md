@@ -35,7 +35,7 @@ stateDiagram-v2
 | The feature | on      | a switch beside the feature's name, where the feature is      |
 
 A feature is never hidden. Without a key it is shown locked, with a lock and
-`Locked: no API key yet.` **Add a key**. With a key and Claude off it says
+`Locked: needs an API key.` **Add a key**. With a key and Claude off it says
 `Claude is switched off.` **Switch it on**. With its own switch off it says
 what it would do. Only with all three open does it show something to click,
 and beside that, what clicking sends.
@@ -51,14 +51,14 @@ used. Under it each feature (`ClaudeFeature`) has its name, its own switch
 and a line on what it does, so what Claude could do is seen before any of it
 is switched on.
 
-| Feature                 | Where                             | Asks with      | Sends                                           | Gives back                                     |
-| ----------------------- | --------------------------------- | -------------- | ----------------------------------------------- | ---------------------------------------------- |
-| **The day, in a line**  | Almanac, under the month          | Read this day  | the one day being read                          | one sentence                                   |
-| **This week, in words** | Almanac, under the month          | Read this week | the week being read, one line a day             | two or three sentences                         |
-| **Ask the almanac**     | Almanac, under the month          | Ask            | your question and the month in view             | one or two sentences                           |
-| **Tell the sun**        | Home, under the rule, with Until… | Ask            | the sentence typed, and the local date and time | `Awake for 2 hours`, with **Start** and **No** |
+| Feature                  | Where                             | Asks with      | Sends                                           | Gives back                                     |
+| ------------------------ | --------------------------------- | -------------- | ----------------------------------------------- | ---------------------------------------------- |
+| **Summarise this day**   | Almanac, under the month          | Summarise day  | the one day being read                          | one sentence                                   |
+| **Summarise this week**  | Almanac, under the month          | Summarise week | the week being read, one line a day             | two or three sentences                         |
+| **Ask about this month** | Almanac, under the month          | Ask            | your question and the month in view             | one or two sentences                           |
+| **Plan in words**        | Home, under the rule, with Until… | Ask            | the sentence typed, and the local date and time | `Awake for 2 hours`, with **Start** and **No** |
 
-Tell the sun never starts anything on its own: it shows what it understood
+Plan in words never starts anything on its own: it shows what it understood
 and waits. While a plan is being typed, Home's two rows and its doors step
 aside to give it room.
 
@@ -98,10 +98,10 @@ Settings → new section **Claude**, after **Almanac**.
 | Field                | Type   | Default | UI                                                                                    |
 | -------------------- | ------ | ------- | ------------------------------------------------------------------------------------- |
 | `ai.enabled`         | `bool` | `false` | **Use Claude**: `Off, nothing is ever sent to Anthropic.`                             |
-| `ai.week_in_words`   | `bool` | `true`  | **This week, in words** (also beside the feature)                                     |
-| `ai.tell_the_sun`    | `bool` | `true`  | **Tell the sun** (also beside the feature)                                            |
-| `ai.day_in_a_line`   | `bool` | `true`  | **The day, in a line** (also beside the feature)                                      |
-| `ai.ask_the_almanac` | `bool` | `true`  | **Ask the almanac** (also beside the feature)                                         |
+| `ai.week_in_words`   | `bool` | `true`  | **Summarise this week** (also beside the feature)                                     |
+| `ai.tell_the_sun`    | `bool` | `true`  | **Plan in words** (also beside the feature)                                           |
+| `ai.day_in_a_line`   | `bool` | `true`  | **Summarise this day** (also beside the feature)                                      |
+| `ai.ask_the_almanac` | `bool` | `true`  | **Ask about this month** (also beside the feature)                                    |
 | `ai.hidden`          | `bool` | `false` | **Hide AI**: `Takes every AI feature out of sight. One button here brings them back.` |
 | (not a setting)      |        |         | **API key**: a password field and Save; then `A key is saved.` Remove                 |
 
@@ -184,7 +184,7 @@ The exe's growth is to be measured at the next release build.
 
 - [ ] No key: both features show locked, with the lock and Add a key.
 - [ ] Add a key: both say Claude is switched off, with Switch it on.
-- [ ] Switch it on: Read this week returns two or three sentences; Tell the
+- [ ] Switch it on: Summarise week returns two or three sentences; Tell the
       sun understands `two hours` and `until half six`, and starts only on
       Start.
 - [ ] A wrong key says `Anthropic did not accept that API key.`

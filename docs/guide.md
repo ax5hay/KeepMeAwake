@@ -48,8 +48,8 @@ in the morning the awake line adds a second sentence.
 | schedule window           | Awake   | `Until 6:00 pm · on schedule`                                 |
 | window skipped            | Resting | `Skipping today's schedule until 6:00 pm.`                    |
 | paused                    | Paused  | `Holding off while battery is low.`                           |
-| always, quiet at night    | Awake   | `Quiet for the night. Setting at 3:12 am.` **Keep it up**     |
-| set with the night        | Resting | `Set with the night. Up again at your first touch.`           |
+| always, quiet at night    | Awake   | `Away for the night. Sleeping at 3:12 am.` **Keep it up**     |
+| set with the night        | Resting | `Asleep for the night. Always resumes when you return.`       |
 
 When the next window is further off than tomorrow the line names the day:
 `Awake again at 9:00 am on Monday.`
@@ -155,7 +155,7 @@ is sent anywhere, and it works the same with the sun up or down.
 | Part      | Shows                                                                                                   |
 | --------- | ------------------------------------------------------------------------------------------------------- |
 | The day   | `4h 29m`, or a word: `Leave`, `Rest`, `Nothing`, `Ahead`                                                |
-| Detail    | `First light 11:39 am · last 2:17 am · 2h 47m over`; then `Night 2:17 am – 11:12 am · 8h 55m`           |
+| Detail    | `Started 11:39 am · ended 2:17 am · 2h 47m extra`; then `Night 2:17 am – 11:12 am · 8h 55m`             |
 | The strip | the day as a small horizon; see below                                                                   |
 | The week  | seven smaller strips, Monday first, with each day's total; click one to read it                         |
 | The month | a calendar: a bar under a day worked (longer for a longer day), a ring for leave, the sun on today      |
@@ -177,7 +177,7 @@ one day and the first touch of the next, so nothing is asked and nothing is
 guessed as it happens. That is why it is found with the sun on **Always**
 (the laptop never slept, but the keys did go quiet) exactly as it is with
 the laptop asleep. On the first open after a night, Home whispers it once:
-`A quiet night: 2:17 am to 11:12 am.`
+`Away overnight: 2:17 am to 11:12 am.`
 
 | A quiet is a night when                           | So                                          |
 | ------------------------------------------------- | ------------------------------------------- |
@@ -208,9 +208,9 @@ was not work. Everything can be set by hand, on any day, past or to come:
 | --------------------------- | -------------------------------------------------------------------------- |
 | **Mark as leave**           | the day is leave, whatever was typed on it                                 |
 | **Not a leave**             | the day is not leave, though it is an empty working day                    |
-| **Correct the hours**       | two time fields, From and Until; **Save** sets the day to that one stretch |
+| **Edit hours**              | two time fields, From and Until; **Save** sets the day to that one stretch |
 | **Nobody here**             | in the editor: nobody was at the machine that day                          |
-| **Use what was read**       | in the editor, on a day set by hand: back to what the keys said            |
+| **Undo my edit**            | in the editor, on a day set by hand: back to what the keys said            |
 
 A day set by hand says so (`Set by you: 3:00 pm – 12:30 am`), and its night
 follows it. Nothing that was read is thrown away: a correction stands in
@@ -218,16 +218,16 @@ front of it and can be taken off again.
 
 ![Almanac → correcting a day, Paper](assets/almanac-correct-light.png) ![Almanac → correcting a day, Night](assets/almanac-correct-dark.png)
 
-**Set with me** (Settings → Almanac; off unless you ask): lets an **Always**
+**Sleep when I'm away** (Settings → Almanac; off unless you ask): lets an **Always**
 session follow your night. Once the keys have been quiet for the time you
 choose, inside your resting hours, the sun asks as the overnight guard asks
-(`Quiet for the night. Setting at 3:12 am.`, with **Keep it up**), and ten
+(`Away for the night. Sleeping at 3:12 am.`, with **Keep it up**), and ten
 minutes later it sets, so the laptop can sleep. At your next touch it rises
 again, back on Always, without being asked. Turning the sun on or off by
 hand cancels that, and so does a day with nobody back.
 
 Every automatic thing here has a switch: keeping the almanac at all, an
-empty working day reading as leave, the morning whisper, and Set with me.
+empty working day reading as leave, the morning whisper, and Sleep when I'm away.
 
 **Copy month as CSV**, at the foot, puts the open month on the clipboard, a
 row a day: date, what the day read as, minutes worked and over, first and
@@ -245,21 +245,21 @@ Off until you turn it on, locked until you give it a key, and built to cost
 next to nothing. Four things in the app are easier said than set, and Claude
 does those four, only when asked:
 
-| Feature                 | Where                             | You click      | It sends                               | You get                                       |
-| ----------------------- | --------------------------------- | -------------- | -------------------------------------- | --------------------------------------------- |
-| **The day, in a line**  | Almanac, under the month          | Read this day  | the one day being read                 | one sentence on it                            |
-| **This week, in words** | Almanac, under the month          | Read this week | that week, one line a day              | two or three sentences                        |
-| **Ask the almanac**     | Almanac, under the month          | Ask            | your question and the month in view    | an answer in a sentence or two                |
-| **Tell the sun**        | Home, with **Until…** on the rule | Ask            | the sentence you typed, and local time | `Awake for 2 hours`, then **Start** or **No** |
+| Feature                  | Where                             | You click      | It sends                               | You get                                       |
+| ------------------------ | --------------------------------- | -------------- | -------------------------------------- | --------------------------------------------- |
+| **Summarise this day**   | Almanac, under the month          | Summarise day  | the one day being read                 | one sentence on it                            |
+| **Summarise this week**  | Almanac, under the month          | Summarise week | that week, one line a day              | two or three sentences                        |
+| **Ask about this month** | Almanac, under the month          | Ask            | your question and the month in view    | an answer in a sentence or two                |
+| **Plan in words**        | Home, with **Until…** on the rule | Ask            | the sentence you typed, and local time | `Awake for 2 hours`, then **Start** or **No** |
 
 They are always there, under a small `CLAUDE` chip that says where things
 stand, and each has its own switch beside its name:
 
-| The chip says                     | Means                                    | To change it                          |
-| --------------------------------- | ---------------------------------------- | ------------------------------------- |
-| a lock, `Locked: no API key yet.` | no key has been added                    | **Add a key** opens Settings → Claude |
-| `Claude is switched off.`         | there is a key; the master switch is off | **Switch it on**, right there         |
-| nothing more                      | ready; each feature shows what it sends  | a feature's own switch turns it off   |
+| The chip says                       | Means                                    | To change it                          |
+| ----------------------------------- | ---------------------------------------- | ------------------------------------- |
+| a lock, `Locked: needs an API key.` | no key has been added                    | **Add a key** opens Settings → Claude |
+| `Claude is switched off.`           | there is a key; the master switch is off | **Switch it on**, right there         |
+| nothing more                        | ready; each feature shows what it sends  | a feature's own switch turns it off   |
 
 ![Claude locked, Paper](assets/claude-locked-light.png) ![Claude on, Night](assets/claude-week-dark.png)
 
@@ -281,7 +281,7 @@ settings file, and never shown again, only **Remove it**.
 sight, on Home and in the Almanac. What is left is one row in Settings →
 Claude with one button, **Enable AI**. It is off by default.
 
-![Tell the sun, Paper](assets/claude-tell-light.png) ![Settings → Claude, Paper](assets/claude-settings-light.png)
+![Plan in words, Paper](assets/claude-tell-light.png) ![Settings → Claude, Paper](assets/claude-settings-light.png)
 
 ![AI hidden, Paper](assets/claude-hidden-light.png)
 
@@ -321,45 +321,45 @@ dark menu bar itself. Nothing to set.
 
 ## Settings
 
-| Section       | Setting                      | Notes                                                                               |
-| ------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
-| Startup       | Launch at sign-in            | registers under the current user; starts hidden                                     |
-|               | Open the window at launch    | only applies when you start it yourself                                             |
-|               | Begin as                     | Resting · Awake · Default length                                                    |
-| Waking        | Default length               | what the sun, tray toggle and Space use. Always, or a stop                          |
-|               | Warn before sunset           | Off · 2m · 5m · 10m before a timer ends; 5m by default                              |
-|               | Overnight guard              | Off · 4h · 6h · 8h without input before Always asks, then rests; 6h                 |
-|               | Keep the screen on           | same switch as on the home pane                                                     |
-| Schedule      | Keep a schedule              | awake during these hours, resting outside them. Off by default                      |
-|               | Days                         | Monday first; weekdays by default                                                   |
-|               | From / Until                 | 9:00 am until 6:00 pm by default; overnight is fine; the same time twice is all day |
-| Almanac       | Keep an almanac              | days, hours and nights, from your input. On by default; see Almanac above           |
-|               | Working days                 | Monday first; weekdays by default                                                   |
-|               | Working hours                | 9:00 am until 6:00 pm by default; past midnight is fine                             |
-|               | Empty working days are leave | on by default; off on a machine you rarely use                                      |
-|               | Whisper the night            | the morning's whisper; on by default                                                |
-|               | Break reminder               | Off · 1h · 90m · 2h at the machine without five minutes away; off by default        |
-|               | Set with me                  | Off · 30m · 1h · 2h of quiet at night before Always sets; off by default            |
-| Claude        | Use Claude                   | the master switch; off by default, and locked without a key                         |
-|               | API key                      | your own; kept in the OS credential store, never shown again                        |
-|               | This week, in words          | its own switch, also beside the feature in the Almanac                              |
-|               | Tell the sun                 | its own switch, also beside the feature on Home                                     |
-|               | The day, in a line           | its own switch, also beside the feature in the Almanac                              |
-|               | Ask the almanac              | its own switch, also beside the feature in the Almanac                              |
-|               | Hide AI                      | off by default; on, only an Enable AI button is left                                |
-| Battery       | Pause below                  | Off, or 10–50%                                                                      |
-|               | Pause whenever unplugged     | strictest: on battery means resting                                                 |
-| Window        | Closing keeps it running     | off quits on close                                                                  |
-|               | Free memory when closed      | destroys the UI on close (default); off hides it for an instant reopen              |
-|               | Appearance                   | System · Paper · Night                                                              |
-| Notifications | When a timer ends            | a toast when a timed session sets on its own. On by default                         |
-|               | Battery pauses and resumes   | when the battery rule pauses the sun, and when the charger brings it back           |
-|               | Schedule starts and ends     | when a schedule window opens or closes                                              |
-| Hotkey        | Hotkey                       | `Ctrl+Alt+K` by default. Change records a new one; Off removes it                   |
-| History       |                              | the last 30 times the sun was up; see below                                         |
-| Tips          |                              | the keyboard and tray table                                                         |
-| About         | Check for updates daily      | once a day, from GitHub; on by default. See Updates below                           |
-|               |                              | version, how it works, author, Source, Quit                                         |
+| Section       | Setting                         | Notes                                                                               |
+| ------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
+| Startup       | Launch at sign-in               | registers under the current user; starts hidden                                     |
+|               | Open the window at launch       | only applies when you start it yourself                                             |
+|               | Begin as                        | Resting · Awake · Default length                                                    |
+| Waking        | Default length                  | what the sun, tray toggle and Space use. Always, or a stop                          |
+|               | Warn before sunset              | Off · 2m · 5m · 10m before a timer ends; 5m by default                              |
+|               | Overnight guard                 | Off · 4h · 6h · 8h without input before Always asks, then rests; 6h                 |
+|               | Keep the screen on              | same switch as on the home pane                                                     |
+| Schedule      | Keep a schedule                 | awake during these hours, resting outside them. Off by default                      |
+|               | Days                            | Monday first; weekdays by default                                                   |
+|               | From / Until                    | 9:00 am until 6:00 pm by default; overnight is fine; the same time twice is all day |
+| Almanac       | Track my days                   | days, hours and nights, from your input. On by default; see Almanac above           |
+|               | Working days                    | Monday first; weekdays by default                                                   |
+|               | Working hours                   | 9:00 am until 6:00 pm by default; past midnight is fine                             |
+|               | Empty working days are leave    | on by default; off on a machine you rarely use                                      |
+|               | Morning summary                 | the morning's whisper; on by default                                                |
+|               | Break reminder                  | Off · 1h · 90m · 2h at the machine without five minutes away; off by default        |
+|               | Sleep when I'm away             | Off · 30m · 1h · 2h of quiet at night before Always sets; off by default            |
+| Claude        | Use Claude                      | the master switch; off by default, and locked without a key                         |
+|               | API key                         | your own; kept in the OS credential store, never shown again                        |
+|               | Summarise this week             | its own switch, also beside the feature in the Almanac                              |
+|               | Plan in words                   | its own switch, also beside the feature on Home                                     |
+|               | Summarise this day              | its own switch, also beside the feature in the Almanac                              |
+|               | Ask about this month            | its own switch, also beside the feature in the Almanac                              |
+|               | Hide AI                         | off by default; on, only an Enable AI button is left                                |
+| Battery       | Pause below                     | Off, or 10–50%                                                                      |
+|               | Pause whenever unplugged        | strictest: on battery means resting                                                 |
+| Window        | Closing keeps it running        | off quits on close                                                                  |
+|               | Free memory when closed         | destroys the UI on close (default); off hides it for an instant reopen              |
+|               | Appearance                      | System · Paper · Night                                                              |
+| Notifications | When a timer ends               | a toast when a timed session sets on its own. On by default                         |
+|               | Battery pauses and resumes      | when the battery rule pauses the sun, and when the charger brings it back           |
+|               | Schedule starts and ends        | when a schedule window opens or closes                                              |
+| Hotkey        | Hotkey                          | `Ctrl+Alt+K` by default. Change records a new one; Off removes it                   |
+| History       |                                 | the last 30 times the sun was up; see below                                         |
+| Tips          |                                 | the keyboard and tray table                                                         |
+| About         | Check for updates automatically | once a day, from GitHub; on by default. See Updates below                           |
+|               |                                 | version, how it works, author, Source, Quit                                         |
 
 ![Settings → Waking, Paper](assets/overnight-settings-light.png) ![Settings → Waking, Night](assets/overnight-settings-dark.png)
 
@@ -407,17 +407,17 @@ Quiet Windows toasts for the moments that matter while the window is closed,
 each behind its own switch in Settings → Notifications. Nothing is shown
 while the window is open and focused; the status line already says it.
 
-| Moment           | Title                    | Body                                                                   | Default                   |
-| ---------------- | ------------------------ | ---------------------------------------------------------------------- | ------------------------- |
-| timer ended      | `The sun has set`        | `Resting now. 2h 00m, as asked.`                                       | on                        |
-| sunset near      | `The sun sets soon`      | `In 5 minutes. Give it another 30m from the tray or the window.`       | on, with the timer switch |
-| nobody around    | `Nobody around`          | `No input for 6 hours. Resting at 3:12 am unless you're back.`         | on, with the guard        |
-| a long stretch   | `Time for a break`       | `90 minutes without one. The sun will keep.`                           | off; Settings → Almanac   |
-| quiet at night   | `Quiet for the night`    | `Setting at 3:12 am unless you're back. Up again at your first touch.` | with Set with me          |
-| battery paused   | `Paused for the battery` | `Holding off at 18%. Plug in to resume.`                               | off                       |
-| battery resumed  | `Back up`                | `Charger connected. The sun is up again.`                              | off                       |
-| schedule started | `On schedule`            | `Awake until 6:00 pm.`                                                 | off                       |
-| schedule ended   | `Off schedule`           | `Resting until 9:00 am.`                                               | off                       |
+| Moment           | Title                    | Body                                                                                   | Default                   |
+| ---------------- | ------------------------ | -------------------------------------------------------------------------------------- | ------------------------- |
+| timer ended      | `The sun has set`        | `Resting now. 2h 00m, as asked.`                                                       | on                        |
+| sunset near      | `The sun sets soon`      | `In 5 minutes. Give it another 30m from the tray or the window.`                       | on, with the timer switch |
+| nobody around    | `Nobody around`          | `No input for 6 hours. Resting at 3:12 am unless you're back.`                         | on, with the guard        |
+| a long stretch   | `Time for a break`       | `90 minutes without a break.`                                                          | off; Settings → Almanac   |
+| quiet at night   | `Away for the night`     | `The laptop will sleep at 3:12 am unless you're back. Always resumes when you return.` | with Sleep when I'm away  |
+| battery paused   | `Paused for the battery` | `Holding off at 18%. Plug in to resume.`                                               | off                       |
+| battery resumed  | `Back up`                | `Charger connected. The sun is up again.`                                              | off                       |
+| schedule started | `On schedule`            | `Awake until 6:00 pm.`                                                                 | off                       |
+| schedule ended   | `Off schedule`           | `Resting until 9:00 am.`                                                               | off                       |
 
 A toast is skipped when it would no longer be true: no "Resting now" if a
 schedule window took over, no schedule toasts while your own session hides
@@ -445,16 +445,25 @@ applications.
 
 ## Updates
 
-About half a minute after launch, and then once a day, the app asks GitHub
-whether a newer release exists (Settings → About → **Check for updates
-daily**, on by default). It is the only request the app makes; with the
-switch off it makes none. Nothing is installed without a click.
+The app looks for a newer release on GitHub about half a minute after
+launch, then once a day, and whenever you open the window if it has not
+looked in the last hour (Settings → About → **Check for updates
+automatically**, on by default; off, it never looks on its own).
+**Check for updates** in Settings → About looks right now, whatever the
+switch says, and answers `You're up to date.` when there is nothing newer.
+
+A release cannot announce itself to the app the instant it is published:
+that would need a server pushing to it, and the app has none. Looking when
+the window opens is what makes a new release show up the next time you
+look. Checking never installs anything: an update that is found stays
+shown as available, in all the places below, until you choose to install
+it.
 
 | When                         | Where                                                                      |
 | ---------------------------- | -------------------------------------------------------------------------- |
 | a newer release is found     | Home's line leads with `Update 0.3.1`; the tray adds `Update ready: 0.3.1` |
 | the next time a window opens | once per version, a whisper: `A new version is up: 0.3.1.`                 |
-| Settings → About             | `0.3.1 is available · Install and restart`                                 |
+| Settings → About             | `Update available: 0.3.1 · Install and restart`                            |
 | you click it                 | `Downloading… 42%` over a hairline, then it installs and opens the new one |
 
 Every update is signed; one whose signature does not match the key built

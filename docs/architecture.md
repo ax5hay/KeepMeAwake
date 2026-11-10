@@ -170,7 +170,7 @@ window already open at launch is reported too. `Ended` is `Idle` when the
 guard let it go, else `Timer`, `Schedule` or `User`, or `Battery` if the
 stretch was still paused for the battery as it ended.
 
-With the almanac's **Set with me** on, the same guard asks much sooner while
+With the almanac's **Sleep when I'm away** on, the same guard asks much sooner while
 it is night by the almanac's hours (`AlmanacSettings::is_resting`, the ten
 hours around the turn of the day): after the chosen minutes of quiet rather
 than the guard's hours. A session let go that way is remembered
@@ -198,7 +198,7 @@ so the app lives in the tray.
 `app/almanac.rs` keeps the almanac beside the engine, not in it: who is at
 the machine is not a power decision, and has to be noted with the sun up or
 down alike. A thread, `keepmeawake-almanac`, reads the idle time once a
-minute while **Keep an almanac** is on and blocks with no timeout while it
+minute while **Track my days** is on and blocks with no timeout while it
 is off. Each reading goes to `core::almanac::Almanac::note`, which grows the
 newest span or opens a new one after ten quiet minutes. The almanac is saved
 as a span opens, two minutes after the keys go quiet, every quarter hour
@@ -236,7 +236,7 @@ sequenceDiagram
     participant A as app/ai.rs
     participant K as OS credential store
     participant C as Anthropic
-    U->>UI: click "Read this week"
+    U->>UI: click "Summarise week"
     UI->>A: invoke ai_read_week {digest}
     A->>K: the key, if there is one
     A->>A: Use Claude on? this feature on?
@@ -350,7 +350,7 @@ where it last was.
 - Runs as the signed-in user, never elevated.
 - One outbound request a day, from Rust: HTTPS to GitHub Releases for
   `latest.json`, and the download when you click Install. Off with
-  **Check for updates daily**, and then there is no network access at all.
+  **Check for updates automatically**, and then there is no network access at all.
   Updates are verified against the public key built into the app before
   they run; the webview has no updater or process permission. Fonts and
   assets are bundled. Toasts go to the local notification centre; they are

@@ -3,9 +3,9 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: v0.4.0 released; Claude, Check now, break reminder and CSV built, unreleased)
+**Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: v0.4.0 released; Claude, Check for updates, break reminder and CSV built, unreleased)
 **Release:** [v0.4.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.4.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
-**Repo state:** `main` is green (`npm run verify` on Windows: vitest 187, cargo test 239;
+**Repo state:** `main` is green (`npm run verify` on Windows: vitest 187, cargo test 240;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
 the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
@@ -171,25 +171,39 @@ on Windows is listed under **Where to start**.
 
 ## Done this cycle
 
-| Date       | What                                                                                                 | By               |
-| ---------- | ---------------------------------------------------------------------------------------------------- | ---------------- |
-| 2026-11-07 | 0.1.0 built end to end; docs, CI, specs for 0.2 and 0.3; roadmap to 0.5                              | Claude Fable 5.1 |
-| 2026-11-07 | 0.2 built: schedule, notifications, global hotkey, taskbar-aware tray icons; engine wake-up fix      | Claude Opus 5.5  |
-| 2026-11-07 | Repo moved to `ax5hay` and made public; every link updated; bundle metadata made honest              | Claude Fable 5.1 |
-| 2026-11-07 | macOS scoped: `specs/macos.md`, Mac setup in `development.md`, two-track handoff                     | Claude Fable 5.1 |
-| 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release    | Claude Opus 5.5  |
-| 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep          | Claude Opus 5.5  |
-| 2026-11-07 | Sunset warning: spec, built (6 commits) on the Mac, reviewed; two-machine rule written into the docs | Claude Opus 5.5  |
-| 2026-11-07 | Overnight guard specced; Mac session wrapped up, Windows start list rewritten                        | Claude Opus 5.5  |
-| 2026-11-07 | Windows PC set up; the Mac's macOS, history and sunset work checked on Windows; History screenshots  | Claude Opus 5.5  |
-| 2026-11-07 | Overnight guard built on Windows (6 commits + 2 review fixes), CI green on both runners              | Claude Opus 5.5  |
-| 2026-11-07 | Settings button as sliders (a gear read as a sun); Home's doors into Settings; Home shots recaptured | Claude Opus 5.5  |
-| 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)          | Claude Opus 5.5  |
-| 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                       | Claude Opus 5.5  |
-| 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                 | Claude Opus 5.5  |
-| 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards    | Claude Fable 5.2 |
-| 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Set with me (4 commits)           | Claude Fable 5.2 |
-| 2026-11-10 | v0.4.0 released (full, latest). Claude behind three locks; Check now; break reminder; month as CSV   | Claude Fable 5.2 |
+| Date       | What                                                                                                       | By               |
+| ---------- | ---------------------------------------------------------------------------------------------------------- | ---------------- |
+| 2026-11-07 | 0.1.0 built end to end; docs, CI, specs for 0.2 and 0.3; roadmap to 0.5                                    | Claude Fable 5.1 |
+| 2026-11-07 | 0.2 built: schedule, notifications, global hotkey, taskbar-aware tray icons; engine wake-up fix            | Claude Opus 5.5  |
+| 2026-11-07 | Repo moved to `ax5hay` and made public; every link updated; bundle metadata made honest                    | Claude Fable 5.1 |
+| 2026-11-07 | macOS scoped: `specs/macos.md`, Mac setup in `development.md`, two-track handoff                           | Claude Fable 5.1 |
+| 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release          | Claude Opus 5.5  |
+| 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep                | Claude Opus 5.5  |
+| 2026-11-07 | Sunset warning: spec, built (6 commits) on the Mac, reviewed; two-machine rule written into the docs       | Claude Opus 5.5  |
+| 2026-11-07 | Overnight guard specced; Mac session wrapped up, Windows start list rewritten                              | Claude Opus 5.5  |
+| 2026-11-07 | Windows PC set up; the Mac's macOS, history and sunset work checked on Windows; History screenshots        | Claude Opus 5.5  |
+| 2026-11-07 | Overnight guard built on Windows (6 commits + 2 review fixes), CI green on both runners                    | Claude Opus 5.5  |
+| 2026-11-07 | Settings button as sliders (a gear read as a sun); Home's doors into Settings; Home shots recaptured       | Claude Opus 5.5  |
+| 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)                | Claude Opus 5.5  |
+| 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                             | Claude Opus 5.5  |
+| 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                       | Claude Opus 5.5  |
+| 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards          | Claude Fable 5.2 |
+| 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Sleep when I'm away (4 commits)         | Claude Fable 5.2 |
+| 2026-11-10 | v0.4.0 released (full, latest). Claude behind three locks; Check for updates; break reminder; month as CSV | Claude Fable 5.2 |
+
+## Updates and wording, third round
+
+- **Check for updates** is a button in Settings → About, and the app also
+  checks when the window opens if the last check is an hour old
+  (`update::check_on_open`, one check at a time). There is no push: a
+  release cannot announce itself without a server. Tested: `due_on_open`;
+  the button answered "nothing newer" in the real app before this round.
+  **By hand:** open the window an hour after a check with a newer release
+  out, and see it offered.
+- The almanac's and Claude's wording was made plain throughout (see the
+  changelog and `design.md` → Copy). The names in code and settings are
+  unchanged (`rest_after_mins`, `tell_the_sun`, `whisper_night`): only what
+  is shown changed. Older specs still use the first names in places.
 
 ## Claude: acceptance and decisions
 
@@ -219,7 +233,7 @@ cap in `core/ai.rs`: they are tight on purpose.
 
 Second round, the same day: every request moved to the smallest model with
 thinking off and capped answers; two more features (**The day, in a
-line**, **Ask the almanac**); features grouped under one chip
+line**, **Ask about this month**); features grouped under one chip
 (`ClaudeGroup`, `ClaudeFeature`); answers remembered for the session by
 what was asked; and **Hide AI**, off by default. All tested and seen in the
 harness in both themes; none of it yet in the real window.
@@ -229,14 +243,14 @@ without a key, and a feature is shown in every state rather than hidden;
 the model is fixed (`claude-haiku-5-5`, the cheapest) and not a setting; requests go from
 Rust, so the webview's CSP and permissions are unchanged and the key never
 reaches it; the same HTTPS client as the updater; `keyring` is the one new
-crate; Tell the sun never starts a plan without Start; while a plan is
+crate; Plan in words never starts a plan without Start; while a plan is
 typed, Home's rows and doors step aside.
 
 For the Mac: `npm run verify`; the key goes into the Keychain (expect one
 permission prompt the first time); the chip, lock and switch in SF Pro at
 340 px.
 
-Also built this round, unreleased: **Check now** in Settings → About (done
+Also built this round, unreleased: **Check for updates** in Settings → About (done
 in the real app: answers "nothing newer" on 0.4.0), a **break reminder**
 (keeper tested; the toast **by hand**), and **Copy month as CSV** (tested;
 the clipboard **by hand** in the real window).
@@ -245,15 +259,15 @@ the clipboard **by hand** in the real window).
 
 Second round, the same day (asked for once the first build was seen):
 
-| What                                                             | Status                                                                                                              |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Schedule with From = Until stuck off                             | fixed: equal times are the whole day and the switch is never touched; core tested; **by hand** in Settings          |
-| Today on Home: the strip under the scene, the figure by the word | seen in the harness, Paper and Night, 380 × 600 and 340 × 520 (strip hidden); seen once in the real window, Night   |
-| Correct the hours, Nobody here, Use what was read                | core, keeper and UI logic tested; clicked through in the harness; `fix_day` answered and refused in the real window |
-| Set with me: asks at night after 30m, sets, rises at a touch     | engine tested with fakes (six tests, including a wake in the night); **by hand**, needs a real night                |
-| Whisper the night has a switch; a full day is whispered once     | store tested                                                                                                        |
+| What                                                                 | Status                                                                                                              |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Schedule with From = Until stuck off                                 | fixed: equal times are the whole day and the switch is never touched; core tested; **by hand** in Settings          |
+| Today on Home: the strip under the scene, the figure by the word     | seen in the harness, Paper and Night, 380 × 600 and 340 × 520 (strip hidden); seen once in the real window, Night   |
+| Edit hours, Nobody here, Undo my edit                                | core, keeper and UI logic tested; clicked through in the harness; `fix_day` answered and refused in the real window |
+| Sleep when I'm away: asks at night after 30m, sets, rises at a touch | engine tested with fakes (six tests, including a wake in the night); **by hand**, needs a real night                |
+| Morning summary has a switch; a full day is whispered once           | store tested                                                                                                        |
 
-Set with me is **off by default** and is the one part of this that changes
+Sleep when I'm away is **off by default** and is the one part of this that changes
 what the sun does; it deserves a real night on each machine before 0.4.0.
 It reuses the overnight guard (question, ten minutes, Keep it up, `idle` in
 history), so a session it ends is logged as `idle`, not as something of its
@@ -430,14 +444,14 @@ one line; the whisper is once per version, remembered in localStorage.
 - Claude's answers are capped hard (120, 300 and 200 tokens). If a real
   answer ever comes back cut off, which cap to raise, and by how much?
 - 0.4.0 went out the same day the almanac was built, before a real night
-  with Set with me or a check on the Mac. Anything found goes in 0.4.1.
+  with Sleep when I'm away or a check on the Mac. Anything found goes in 0.4.1.
 
 - The almanac is **on by default**, which gives every install its first
   wake-up at rest (one idle reading a minute). On, or off until someone
   opens the pane and says yes?
 - Leave is counted, not budgeted: no allowance, no balance, no half days.
   Wanted?
-- Set with me is off by default and offers 30m, 1h and 2h. Right values,
+- Sleep when I'm away is off by default and offers 30m, 1h and 2h. Right values,
   and should it ever be on for a new install?
 - The day's total in the tray menu (`4h 29m today`) needs the day-bucketing
   in Rust as well. Wanted?
@@ -458,7 +472,7 @@ one line; the whisper is once per version, remembered in localStorage.
   Social preview (the API cannot).
 - The new `LICENSE` is a plain-words personal license, not legal advice; if
   the project ever earns money, have a lawyer read it.
-- Confirm the default for **Check for updates daily** (auto-update spec says on).
+- Confirm the default for **Check for updates automatically** (auto-update spec says on).
 
 ## How to update this page
 
