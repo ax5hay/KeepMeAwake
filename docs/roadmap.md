@@ -11,7 +11,7 @@ timeline
     0.1 : Power requests : Timed sessions : Battery rules : Tray : Paper & Night : Hidden things
     0.2 : Schedule : Notifications : Global hotkey : Light-taskbar tray icons : macOS
     0.3 : Auto-update : Session history : Winget & Scoop
-    0.4 : Sunset warning : After the sun sets : Overnight guard : Sleep detection
+    0.4 : Sunset warning : After the sun sets : Overnight guard : Sleep detection : Almanac
     0.5 : Presenting & docked awareness : Watch a process : Sky log
     Later : Dawn theme & chime : CLI : Profiles : Export : Localisation
 ```
@@ -52,9 +52,10 @@ timeline
 
 ## Next
 
-| Feature          | Spec                                     | Layers   |
-| ---------------- | ---------------------------------------- | -------- |
-| Winget and Scoop | [winget-scoop.md](specs/winget-scoop.md) | ci, docs |
+| Feature                                                                                 | Spec                                     | Layers        |
+| --------------------------------------------------------------------------------------- | ---------------------------------------- | ------------- |
+| Winget and Scoop                                                                        | [winget-scoop.md](specs/winget-scoop.md) | ci, docs      |
+| Almanac: days and hours worked, leave, and the night read from the last and first touch | [almanac.md](specs/almanac.md)           | core, app, ui |
 
 macOS shipped in 0.2.0 as a pre-release, built on a Mac. The
 by-hand acceptance items that need a person at the Mac (menu bar click and
