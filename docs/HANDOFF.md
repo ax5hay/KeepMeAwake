@@ -5,7 +5,7 @@ short; link out for detail.
 
 **Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: v0.4.0 released; Claude, Check now, break reminder and CSV built, unreleased)
 **Release:** [v0.4.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.4.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
-**Repo state:** `main` is green (`npm run verify` on Windows: vitest 181, cargo test 236;
+**Repo state:** `main` is green (`npm run verify` on Windows: vitest 187, cargo test 239;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
 the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
@@ -208,15 +208,25 @@ name as a `CLAUDE.md` instructions file, and it was read as one.)
 | The key is in the OS credential store, not in `settings.json` | done on Windows: stored, read back as `has_key`, removed; not in the settings file                                       |
 
 The one thing nobody has seen is a real answer. The request follows the
-documented shape (`claude-opus-5-5`, `anthropic-version: 2026-10-21`, low
-effort, `fallbacks: "default"` with its beta header, a JSON schema for the
-plan), and the wrong-key round trip proves the endpoint, the TLS and the
-error path; the first run with a real key is the test of the rest. If the
-plan request is rejected, look first at the schema and the beta header.
+documented shape (`claude-haiku-5-5`, `anthropic-version: 2026-10-21`,
+`thinking: {"type": "disabled"}`, `effort: low`, a small `max_tokens`, a
+JSON schema for the plan), and the wrong-key round trip (made before the
+move to Haiku, which changed only the body) proves the endpoint, the TLS
+and the error path; the first run with a real key is the test of the rest.
+If a request is rejected, look first at `thinking` with `effort`, then at
+the plan's schema. If an answer comes back cut short, raise that request's
+cap in `core/ai.rs`: they are tight on purpose.
+
+Second round, the same day: every request moved to the smallest model with
+thinking off and capped answers; two more features (**The day, in a
+line**, **Ask the almanac**); features grouped under one chip
+(`ClaudeGroup`, `ClaudeFeature`); answers remembered for the session by
+what was asked; and **Hide AI**, off by default. All tested and seen in the
+harness in both themes; none of it yet in the real window.
 
 Decisions, each in its commit body: Claude is off by default and locked
 without a key, and a feature is shown in every state rather than hidden;
-the model is fixed (`claude-opus-5-5`) and not a setting; requests go from
+the model is fixed (`claude-haiku-5-5`, the cheapest) and not a setting; requests go from
 Rust, so the webview's CSP and permissions are unchanged and the key never
 reaches it; the same HTTPS client as the updater; `keyring` is the one new
 crate; Tell the sun never starts a plan without Start; while a plan is
@@ -417,8 +427,8 @@ one line; the whisper is once per version, remembered in localStorage.
 
 ## Open questions for Akshay
 
-- Claude's model is fixed at `claude-opus-5-5`. A setting for a cheaper
-  one, or leave it?
+- Claude's answers are capped hard (120, 300 and 200 tokens). If a real
+  answer ever comes back cut off, which cap to raise, and by how much?
 - 0.4.0 went out the same day the almanac was built, before a real night
   with Set with me or a check on the Mac. Anything found goes in 0.4.1.
 

@@ -134,21 +134,25 @@ is a chart with axes; the only labels are four hours under the day's strip.
 
 ### Claude
 
-A feature that depends on a choice shows the choice. Every Claude feature
-sits in one frame: a small outlined `CLAUDE` chip in the eyebrow's voice,
-the feature's name, and its own switch at the right, the same switch as
-everywhere else. The states differ in words, not in colour:
+A feature that depends on a choice shows the choice. Claude's features sit
+together in one frame: a small outlined `CLAUDE` chip in the eyebrow's
+voice, which says once whether they can be used, and under it each feature
+as a row: its name, a line on what it does, and its own switch at the right,
+the same switch as everywhere else. The states differ in words, not colour:
 
-| State       | The frame shows                                                     |
-| ----------- | ------------------------------------------------------------------- |
-| locked      | a lock in the chip; `Locked: no API key yet.` and a link to add one |
-| off         | `Claude is switched off.` and a link that is the master switch      |
-| feature off | one line on what it would do                                        |
-| on          | the feature, and under it in small type what asking sends           |
+| State       | The frame shows                                                              |
+| ----------- | ---------------------------------------------------------------------------- |
+| locked      | a lock in the chip; `Locked: no API key yet.` and a link to add one          |
+| off         | `Claude is switched off.` and a link that is the master switch               |
+| feature off | that feature's line on what it would do                                      |
+| on          | the feature, and under it in small type what asking sends                    |
+| hidden      | nothing at all, anywhere; one row in Settings with one button brings it back |
 
-What Claude says back is set in italic Fraunces, like a whisper: it is the
-app speaking a sentence, not a control. There is no sparkle, no gradient
-and no second accent; the sun stays the only colour.
+Locked and off, every feature is still named, so what Claude could do is
+seen before it is switched on. What Claude says back is set in italic
+Fraunces, like a whisper: it is the app speaking a sentence, not a control.
+There is no sparkle, no gradient and no second accent; the sun stays the
+only colour.
 
 Spacing is a 4 px grid with 24 px side margins. Hairlines are 1 px at 14% ink.
 Radii: 6 px for controls, 10 px for surfaces.

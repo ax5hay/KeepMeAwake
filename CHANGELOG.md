@@ -7,17 +7,24 @@ Versions: [SemVer](https://semver.org).
 
 ### Added
 
-- Claude, as a choice. Two features, each shown where it is used and never
-  hidden: **This week, in words** in the Almanac (two or three sentences on
-  the week being read) and **Tell the sun** on Home with Until… (say the
-  plan, `two hours` or `until half six`; it shows what it understood and
-  starts only when you say). Three locks, each visible: with no API key a
-  feature is shown locked, with a way to add one; with a key it says
-  Claude is switched off, with the master switch right there (Settings →
-  Claude → Use Claude, off until you turn it on); and each feature has its
-  own switch beside its name. Nothing is sent without a click that says
-  what it sends. The key is your own, kept in Windows Credential Manager or
-  the macOS Keychain, never in a file and never shown again.
+- Claude, as a choice, and a cheap one. Four features, shown where they
+  are used: in the Almanac, **The day, in a line**, **This week, in words**
+  and **Ask the almanac** (a question about the month in view); on Home
+  with Until…, **Tell the sun** (say the plan, `two hours` or `until half
+  six`; it shows what it understood and starts only when you say). Three
+  locks, each visible: with no API key the features are shown locked, with
+  a way to add one; with a key they say Claude is switched off, with the
+  master switch right there (Settings → Claude → Use Claude, off until you
+  turn it on); and each feature has its own switch beside its name.
+  Nothing is sent without a click that says what it sends. The key is your
+  own, kept in Windows Credential Manager or the macOS Keychain, never in a
+  file and never shown again.
+- Every request goes to Claude Haiku, the smallest model, with thinking
+  off and a hard cap on the answer; the largest costs about a thirtieth of
+  a cent at today's list price, and the same question twice in a session
+  costs nothing the second time.
+- Hide AI (Settings → Claude, off by default): takes every AI feature out
+  of sight and leaves one button, Enable AI.
 - Check now, in Settings → About: ask for a newer release without waiting
   for the daily check.
 - Break reminder (Settings → Almanac, off unless you ask): a toast after

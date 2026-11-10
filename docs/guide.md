@@ -241,35 +241,49 @@ laptop for more than ten minutes reads as a break.
 
 ## Claude
 
-Off until you turn it on, and locked until you give it a key. Two things in
-the app are easier said than set, and Claude does those two, only when
-asked:
+Off until you turn it on, locked until you give it a key, and built to cost
+next to nothing. Four things in the app are easier said than set, and Claude
+does those four, only when asked:
 
-| Feature                 | Where                             | You click      | It sends                                        | You get                                          |
-| ----------------------- | --------------------------------- | -------------- | ----------------------------------------------- | ------------------------------------------------ |
-| **This week, in words** | Almanac, under the week           | Read this week | that week, one line a day, as the pane shows it | two or three sentences on what the week was like |
-| **Tell the sun**        | Home, with **Until…** on the rule | Ask            | the sentence you typed, and the local time      | `Awake for 2 hours`, then **Start** or **No**    |
+| Feature                 | Where                             | You click      | It sends                               | You get                                       |
+| ----------------------- | --------------------------------- | -------------- | -------------------------------------- | --------------------------------------------- |
+| **The day, in a line**  | Almanac, under the month          | Read this day  | the one day being read                 | one sentence on it                            |
+| **This week, in words** | Almanac, under the month          | Read this week | that week, one line a day              | two or three sentences                        |
+| **Ask the almanac**     | Almanac, under the month          | Ask            | your question and the month in view    | an answer in a sentence or two                |
+| **Tell the sun**        | Home, with **Until…** on the rule | Ask            | the sentence you typed, and local time | `Awake for 2 hours`, then **Start** or **No** |
 
-Each feature is always there, and says where it stands:
+They are always there, under a small `CLAUDE` chip that says where things
+stand, and each has its own switch beside its name:
 
-| It says                            | Means                                          | To change it                          |
-| ---------------------------------- | ---------------------------------------------- | ------------------------------------- |
-| a lock, `Locked: no API key yet.`  | no key has been added                          | **Add a key** opens Settings → Claude |
-| `Claude is switched off.`          | there is a key; the master switch is off       | **Switch it on**, right there         |
-| what the feature would do          | Claude is on; this feature's own switch is off | the switch beside its name            |
-| the feature, and what asking sends | ready                                          |                                       |
+| The chip says                     | Means                                    | To change it                          |
+| --------------------------------- | ---------------------------------------- | ------------------------------------- |
+| a lock, `Locked: no API key yet.` | no key has been added                    | **Add a key** opens Settings → Claude |
+| `Claude is switched off.`         | there is a key; the master switch is off | **Switch it on**, right there         |
+| nothing more                      | ready; each feature shows what it sends  | a feature's own switch turns it off   |
 
-![Claude locked, Paper](assets/claude-locked-light.png) ![This week, in words, Night](assets/claude-week-dark.png)
+![Claude locked, Paper](assets/claude-locked-light.png) ![Claude on, Night](assets/claude-week-dark.png)
+
+**What it costs.** Every request goes to Claude Haiku, the smallest and
+cheapest model, with thinking switched off, and is capped: a line, or a few
+sentences, never more. The largest thing the app can ask, a question about a
+whole month, comes to about a thirtieth of a cent at the list price when
+this was written; a day in a line is a tenth of that. Asking the same thing
+twice in a session is answered from memory and costs nothing. Nothing is
+ever asked on the app's own initiative.
 
 Settings → **Claude** has the master switch (**Use Claude**), the key, and
-both feature switches again. The key is your own, from
+every feature's switch again. The key is your own, from
 `console.anthropic.com`, and asking is billed to it. It is typed once and
 kept in Windows Credential Manager or the macOS Keychain: not in the
-settings file, and never shown again, only **Remove it**. Nothing is ever
-sent on the app's own initiative, and with **Use Claude** off nothing is
-sent at all.
+settings file, and never shown again, only **Remove it**.
+
+**Hide AI**, at the foot of that section, takes every one of these out of
+sight, on Home and in the Almanac. What is left is one row in Settings →
+Claude with one button, **Enable AI**. It is off by default.
 
 ![Tell the sun, Paper](assets/claude-tell-light.png) ![Settings → Claude, Paper](assets/claude-settings-light.png)
+
+![AI hidden, Paper](assets/claude-hidden-light.png)
 
 ## Keyboard
 
@@ -330,6 +344,9 @@ dark menu bar itself. Nothing to set.
 |               | API key                      | your own; kept in the OS credential store, never shown again                        |
 |               | This week, in words          | its own switch, also beside the feature in the Almanac                              |
 |               | Tell the sun                 | its own switch, also beside the feature on Home                                     |
+|               | The day, in a line           | its own switch, also beside the feature in the Almanac                              |
+|               | Ask the almanac              | its own switch, also beside the feature in the Almanac                              |
+|               | Hide AI                      | off by default; on, only an Enable AI button is left                                |
 | Battery       | Pause below                  | Off, or 10–50%                                                                      |
 |               | Pause whenever unplugged     | strictest: on battery means resting                                                 |
 | Window        | Closing keeps it running     | off quits on close                                                                  |

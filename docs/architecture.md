@@ -220,7 +220,8 @@ opposite the middle of the working hours, time over, nights as the quiet
 between two spans, leave. Nothing about a night is decided as it happens.
 
 `app/ai.rs` is Claude, and it is inert unless asked. `core::ai` builds the
-two request bodies and reads the answers with no network; `Claude::unlock`
+four request bodies (all to the smallest model, thinking off, the answer
+capped) and reads the answers with no network; `Claude::unlock`
 gives up the key only when one is stored, **Use Claude** is on and the
 feature's own switch is on; `Claude::ask` makes one POST to
 `api.anthropic.com/v1/messages` over the HTTPS client the updater already
@@ -301,6 +302,8 @@ sequenceDiagram
 | `ai_status`        |                          | `{ has_key }`: whether a key is stored; the key never comes back                        |
 | `set_ai_key`       | `key \| null`            | `{ has_key }`                                                                           |
 | `ai_read_week`     | `digest`                 | the week in words, or an error sentence                                                 |
+| `ai_read_day`      | `digest`                 | a day in a line, or an error sentence                                                   |
+| `ai_ask`           | `question`, `digest`     | an answer from the days given, or an error sentence                                     |
 | `ai_plan`          | `sentence`, `now`        | `Understood`: what plan the sentence means; nothing is started                          |
 | `check_for_update` |                          | `UpdateInfo \| null`: asks now, as the daily check does                                 |
 | `get_update`       |                          | `UpdateInfo \| null`: a newer release the daily check found                             |
