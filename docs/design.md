@@ -132,6 +132,24 @@ The strips are positioned boxes, not an SVG: they stretch with the pane, and
 boxes stretch without bending their dots or their sun. Nothing in the pane
 is a chart with axes; the only labels are four hours under the day's strip.
 
+### Claude
+
+A feature that depends on a choice shows the choice. Every Claude feature
+sits in one frame: a small outlined `CLAUDE` chip in the eyebrow's voice,
+the feature's name, and its own switch at the right, the same switch as
+everywhere else. The states differ in words, not in colour:
+
+| State       | The frame shows                                                     |
+| ----------- | ------------------------------------------------------------------- |
+| locked      | a lock in the chip; `Locked: no API key yet.` and a link to add one |
+| off         | `Claude is switched off.` and a link that is the master switch      |
+| feature off | one line on what it would do                                        |
+| on          | the feature, and under it in small type what asking sends           |
+
+What Claude says back is set in italic Fraunces, like a whisper: it is the
+app speaking a sentence, not a control. There is no sparkle, no gradient
+and no second accent; the sun stays the only colour.
+
 Spacing is a 4 px grid with 24 px side margins. Hairlines are 1 px at 14% ink.
 Radii: 6 px for controls, 10 px for surfaces.
 
@@ -167,21 +185,23 @@ is harmless, discoverable by touching the scene, and never required.
 
 ## Decided against
 
-| Idea                        | Why not                                                            |
-| --------------------------- | ------------------------------------------------------------------ |
-| Mica / acrylic window       | the scene paints its own sky; translucency fights it               |
-| a big primary button        | the sun is the button; a second one would make the sun decorative  |
-| a gear for settings         | at 16 px its spokes read as a sun, the app's switch and its mark   |
-| a third row on Home         | no room at 340 × 520; the doors point into Settings instead        |
-| chips for durations         | a rule reads as an instrument and uses a quarter of the height     |
-| a calendar icon             | any app's; an almanac is a book, so the button is an open one      |
-| a fifth door on Home        | the line must stay one line; the almanac is a pane, not a setting  |
-| today's strip by the rule   | two hairlines with marks, a finger apart, read as one instrument   |
-| today in the scene's ground | the scene is the status display; a second reading there muddies it |
-| bar charts of hours         | a day is a horizon here, not a column; the strip shows when        |
-| "you slept 7h"              | it knows the keys went quiet, not what you did: it says "night"    |
-| accent-coloured controls    | one accent, used once                                              |
-| toasts in 0.1               | a sunset you can see is enough; on the roadmap behind a setting    |
+| Idea                         | Why not                                                                |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| Mica / acrylic window        | the scene paints its own sky; translucency fights it                   |
+| a big primary button         | the sun is the button; a second one would make the sun decorative      |
+| a gear for settings          | at 16 px its spokes read as a sun, the app's switch and its mark       |
+| a third row on Home          | no room at 340 × 520; the doors point into Settings instead            |
+| chips for durations          | a rule reads as an instrument and uses a quarter of the height         |
+| hiding AI until it is set up | a feature you cannot see is a setting you cannot find; locked is shown |
+| a sparkle for AI             | a second accent, and it says nothing; the chip says whose it is        |
+| a calendar icon              | any app's; an almanac is a book, so the button is an open one          |
+| a fifth door on Home         | the line must stay one line; the almanac is a pane, not a setting      |
+| today's strip by the rule    | two hairlines with marks, a finger apart, read as one instrument       |
+| today in the scene's ground  | the scene is the status display; a second reading there muddies it     |
+| bar charts of hours          | a day is a horizon here, not a column; the strip shows when            |
+| "you slept 7h"               | it knows the keys went quiet, not what you did: it says "night"        |
+| accent-coloured controls     | one accent, used once                                                  |
+| toasts in 0.1                | a sunset you can see is enough; on the roadmap behind a setting        |
 
 ---
 

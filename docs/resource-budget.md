@@ -35,6 +35,14 @@ otherwise; the strips are positioned boxes with no animation. The numbers
 for a resting minute with the almanac on are still to be measured on both
 machines.
 
+Claude adds nothing at rest: no thread, no timer, no request. The window
+reads the credential store once as it opens, to know whether to show a
+lock. A click makes one HTTPS request. `keyring` is the one new crate;
+`reqwest` and `rustls` were already in the binary for the updater. The
+break reminder rides the almanac's minute look and adds no wake of its own.
+The exe's size with `keyring` in is to be measured at the next release
+build.
+
 Home's today (the strip and the figure) adds no timer: the almanac is asked
 for again when the engine reports, which it does every 30 s while the sun
 is up, and when the window comes back into view, and never more than once

@@ -5,6 +5,26 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+
+- Claude, as a choice. Two features, each shown where it is used and never
+  hidden: **This week, in words** in the Almanac (two or three sentences on
+  the week being read) and **Tell the sun** on Home with Until… (say the
+  plan, `two hours` or `until half six`; it shows what it understood and
+  starts only when you say). Three locks, each visible: with no API key a
+  feature is shown locked, with a way to add one; with a key it says
+  Claude is switched off, with the master switch right there (Settings →
+  Claude → Use Claude, off until you turn it on); and each feature has its
+  own switch beside its name. Nothing is sent without a click that says
+  what it sends. The key is your own, kept in Windows Credential Manager or
+  the macOS Keychain, never in a file and never shown again.
+- Check now, in Settings → About: ask for a newer release without waiting
+  for the daily check.
+- Break reminder (Settings → Almanac, off unless you ask): a toast after
+  1 hour, 90 minutes or 2 hours at the machine without five minutes away.
+- Copy month as CSV, at the foot of the Almanac: a row a day, for a
+  timesheet or a spreadsheet.
+
 ## [0.4.0] - 2026-11-10
 
 The Almanac: your days at this machine, the hours you worked, your leave

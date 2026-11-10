@@ -229,11 +229,47 @@ hand cancels that, and so does a day with nobody back.
 Every automatic thing here has a switch: keeping the almanac at all, an
 empty working day reading as leave, the morning whisper, and Set with me.
 
+**Copy month as CSV**, at the foot, puts the open month on the clipboard, a
+row a day: date, what the day read as, minutes worked and over, first and
+last touch, the night, and whether it was set by hand.
+
 It lives in `almanac.json` beside the settings, keeps 400 days, and is
 written as a stretch begins, two minutes after the keys go quiet, every
 quarter hour while you work, and on quit. What it cannot know: whether what
 you did at the keyboard was work, and a meeting taken without touching the
 laptop for more than ten minutes reads as a break.
+
+## Claude
+
+Off until you turn it on, and locked until you give it a key. Two things in
+the app are easier said than set, and Claude does those two, only when
+asked:
+
+| Feature                 | Where                             | You click      | It sends                                        | You get                                          |
+| ----------------------- | --------------------------------- | -------------- | ----------------------------------------------- | ------------------------------------------------ |
+| **This week, in words** | Almanac, under the week           | Read this week | that week, one line a day, as the pane shows it | two or three sentences on what the week was like |
+| **Tell the sun**        | Home, with **Until…** on the rule | Ask            | the sentence you typed, and the local time      | `Awake for 2 hours`, then **Start** or **No**    |
+
+Each feature is always there, and says where it stands:
+
+| It says                            | Means                                          | To change it                          |
+| ---------------------------------- | ---------------------------------------------- | ------------------------------------- |
+| a lock, `Locked: no API key yet.`  | no key has been added                          | **Add a key** opens Settings → Claude |
+| `Claude is switched off.`          | there is a key; the master switch is off       | **Switch it on**, right there         |
+| what the feature would do          | Claude is on; this feature's own switch is off | the switch beside its name            |
+| the feature, and what asking sends | ready                                          |                                       |
+
+![Claude locked, Paper](assets/claude-locked-light.png) ![This week, in words, Night](assets/claude-week-dark.png)
+
+Settings → **Claude** has the master switch (**Use Claude**), the key, and
+both feature switches again. The key is your own, from
+`console.anthropic.com`, and asking is billed to it. It is typed once and
+kept in Windows Credential Manager or the macOS Keychain: not in the
+settings file, and never shown again, only **Remove it**. Nothing is ever
+sent on the app's own initiative, and with **Use Claude** off nothing is
+sent at all.
+
+![Tell the sun, Paper](assets/claude-tell-light.png) ![Settings → Claude, Paper](assets/claude-settings-light.png)
 
 ## Keyboard
 
@@ -288,7 +324,12 @@ dark menu bar itself. Nothing to set.
 |               | Working hours                | 9:00 am until 6:00 pm by default; past midnight is fine                             |
 |               | Empty working days are leave | on by default; off on a machine you rarely use                                      |
 |               | Whisper the night            | the morning's whisper; on by default                                                |
+|               | Break reminder               | Off · 1h · 90m · 2h at the machine without five minutes away; off by default        |
 |               | Set with me                  | Off · 30m · 1h · 2h of quiet at night before Always sets; off by default            |
+| Claude        | Use Claude                   | the master switch; off by default, and locked without a key                         |
+|               | API key                      | your own; kept in the OS credential store, never shown again                        |
+|               | This week, in words          | its own switch, also beside the feature in the Almanac                              |
+|               | Tell the sun                 | its own switch, also beside the feature on Home                                     |
 | Battery       | Pause below                  | Off, or 10–50%                                                                      |
 |               | Pause whenever unplugged     | strictest: on battery means resting                                                 |
 | Window        | Closing keeps it running     | off quits on close                                                                  |
@@ -354,6 +395,7 @@ while the window is open and focused; the status line already says it.
 | timer ended      | `The sun has set`        | `Resting now. 2h 00m, as asked.`                                       | on                        |
 | sunset near      | `The sun sets soon`      | `In 5 minutes. Give it another 30m from the tray or the window.`       | on, with the timer switch |
 | nobody around    | `Nobody around`          | `No input for 6 hours. Resting at 3:12 am unless you're back.`         | on, with the guard        |
+| a long stretch   | `Time for a break`       | `90 minutes without one. The sun will keep.`                           | off; Settings → Almanac   |
 | quiet at night   | `Quiet for the night`    | `Setting at 3:12 am unless you're back. Up again at your first touch.` | with Set with me          |
 | battery paused   | `Paused for the battery` | `Holding off at 18%. Plug in to resume.`                               | off                       |
 | battery resumed  | `Back up`                | `Charger connected. The sun is up again.`                              | off                       |

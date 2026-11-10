@@ -3,9 +3,9 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: the Almanac built and extended, a schedule fix; unreleased)
+**Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: v0.4.0 released; Claude, Check now, break reminder and CSV built, unreleased)
 **Release:** [v0.4.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.4.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
-**Repo state:** `main` is green (`npm run verify` on Windows: vitest 164, cargo test 217;
+**Repo state:** `main` is green (`npm run verify` on Windows: vitest 181, cargo test 236;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
 the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
@@ -189,6 +189,47 @@ on Windows is listed under **Where to start**.
 | 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                 | Claude Opus 5.5  |
 | 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards    | Claude Fable 5.2 |
 | 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Set with me (4 commits)           | Claude Fable 5.2 |
+| 2026-11-10 | v0.4.0 released (full, latest). Claude behind three locks; Check now; break reminder; month as CSV   | Claude Fable 5.2 |
+
+## Claude: acceptance and decisions
+
+Spec: [`specs/claude-integration.md`](specs/claude-integration.md). (It is
+not named `claude.md`: on a case-insensitive file system that is the same
+name as a `CLAUDE.md` instructions file, and it was read as one.)
+
+| Acceptance (spec)                                             | Status                                                                                                                   |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| No key: both features locked, with Add a key                  | seen in the harness, both themes; the real app answers `Claude is locked: no API key…`                                   |
+| A key, Claude off: Claude is switched off, with Switch it on  | seen in the harness; the real app answers `Claude is switched off.`                                                      |
+| Switched on: a week in words; a sentence understood           | **by hand, needs a real API key**: no successful answer from Anthropic has been seen yet                                 |
+| A wrong key says so                                           | done in the real app on Windows: a real request with a made-up key came back as `Anthropic did not accept that API key.` |
+| Each feature's switch turns only that feature off             | keeper and store tested                                                                                                  |
+| Use Claude off: no request by any path                        | tested (`unlock` refuses before a request is built)                                                                      |
+| The key is in the OS credential store, not in `settings.json` | done on Windows: stored, read back as `has_key`, removed; not in the settings file                                       |
+
+The one thing nobody has seen is a real answer. The request follows the
+documented shape (`claude-opus-5-5`, `anthropic-version: 2026-10-21`, low
+effort, `fallbacks: "default"` with its beta header, a JSON schema for the
+plan), and the wrong-key round trip proves the endpoint, the TLS and the
+error path; the first run with a real key is the test of the rest. If the
+plan request is rejected, look first at the schema and the beta header.
+
+Decisions, each in its commit body: Claude is off by default and locked
+without a key, and a feature is shown in every state rather than hidden;
+the model is fixed (`claude-opus-5-5`) and not a setting; requests go from
+Rust, so the webview's CSP and permissions are unchanged and the key never
+reaches it; the same HTTPS client as the updater; `keyring` is the one new
+crate; Tell the sun never starts a plan without Start; while a plan is
+typed, Home's rows and doors step aside.
+
+For the Mac: `npm run verify`; the key goes into the Keychain (expect one
+permission prompt the first time); the chip, lock and switch in SF Pro at
+340 px.
+
+Also built this round, unreleased: **Check now** in Settings → About (done
+in the real app: answers "nothing newer" on 0.4.0), a **break reminder**
+(keeper tested; the toast **by hand**), and **Copy month as CSV** (tested;
+the clipboard **by hand** in the real window).
 
 ## Almanac: acceptance and decisions
 
@@ -375,6 +416,11 @@ Home's doors lead with a waiting update and drop the hotkey door to stay
 one line; the whisper is once per version, remembered in localStorage.
 
 ## Open questions for Akshay
+
+- Claude's model is fixed at `claude-opus-5-5`. A setting for a cheaper
+  one, or leave it?
+- 0.4.0 went out the same day the almanac was built, before a real night
+  with Set with me or a check on the Mac. Anything found goes in 0.4.1.
 
 - The almanac is **on by default**, which gives every install its first
   wake-up at rest (one idle reading a minute). On, or off until someone

@@ -219,6 +219,31 @@ The window does the rest (`lib/almanac.ts`, pure): days that turn over
 opposite the middle of the working hours, time over, nights as the quiet
 between two spans, leave. Nothing about a night is decided as it happens.
 
+`app/ai.rs` is Claude, and it is inert unless asked. `core::ai` builds the
+two request bodies and reads the answers with no network; `Claude::unlock`
+gives up the key only when one is stored, **Use Claude** is on and the
+feature's own switch is on; `Claude::ask` makes one POST to
+`api.anthropic.com/v1/messages` over the HTTPS client the updater already
+ships. There is no official Anthropic SDK for Rust, so it is the documented
+HTTP shape. The key lives in the OS credential store (`keyring`), is never
+logged, and never crosses to the window.
+
+```mermaid
+sequenceDiagram
+    actor U as You
+    participant UI as Window
+    participant A as app/ai.rs
+    participant K as OS credential store
+    participant C as Anthropic
+    U->>UI: click "Read this week"
+    UI->>A: invoke ai_read_week {digest}
+    A->>K: the key, if there is one
+    A->>A: Use Claude on? this feature on?
+    A->>C: POST /v1/messages (the digest, nothing else)
+    C-->>A: text
+    A-->>UI: two or three sentences, or why not
+```
+
 `app/update.rs` starts a thread, `keepmeawake-update`, that asks the updater
 plugin about 30 s after launch and then 24 h after the last check
 (`last_update_check_unix_ms`), sleeping at most 6 h at a time so a laptop
@@ -262,25 +287,30 @@ sequenceDiagram
     E-->>E: tray.refresh(snapshot)
 ```
 
-| Command           | Arguments                | Returns                                                                                 |
-| ----------------- | ------------------------ | --------------------------------------------------------------------------------------- |
-| `get_snapshot`    |                          | `Snapshot` (also re-reads battery)                                                      |
-| `set_plan`        | `request: PlanRequest`   | `Snapshot`                                                                              |
-| `toggle_session`  |                          | `Snapshot`; skips or resumes an open schedule window                                    |
-| `skip_schedule`   |                          | `Snapshot`                                                                              |
-| `resume_schedule` |                          | `Snapshot`                                                                              |
-| `update_settings` | `settings: Settings`     | `Snapshot`, or an error string if the file could not be saved or the hotkey was refused |
-| `quit_app`        |                          |                                                                                         |
-| `extend_session`  |                          | `Snapshot`: a timed session's end moved 30 minutes later                                |
-| `keep_it_up`      |                          | `Snapshot`: the overnight guard leaves this Always session alone                        |
-| `get_update`      |                          | `UpdateInfo \| null`: a newer release the daily check found                             |
-| `install_update`  |                          | nothing on success (the app relaunches); events `update-progress`; an error string      |
-| `get_history`     |                          | `History`: the session log, oldest entry first                                          |
-| `clear_history`   |                          | `History` (empty), also written to disk                                                 |
-| `get_almanac`     |                          | `Almanac`: presence and marked days, after one fresh look                               |
-| `mark_day`        | `day`, `mark \| null`    | `Almanac`; an error string for a day that is not a date                                 |
-| `fix_day`         | `day`, `stretch \| null` | `Almanac`: the day set by hand to one stretch, or back to what was read                 |
-| `clear_almanac`   |                          | `Almanac` (empty), also written to disk                                                 |
+| Command            | Arguments                | Returns                                                                                 |
+| ------------------ | ------------------------ | --------------------------------------------------------------------------------------- |
+| `get_snapshot`     |                          | `Snapshot` (also re-reads battery)                                                      |
+| `set_plan`         | `request: PlanRequest`   | `Snapshot`                                                                              |
+| `toggle_session`   |                          | `Snapshot`; skips or resumes an open schedule window                                    |
+| `skip_schedule`    |                          | `Snapshot`                                                                              |
+| `resume_schedule`  |                          | `Snapshot`                                                                              |
+| `update_settings`  | `settings: Settings`     | `Snapshot`, or an error string if the file could not be saved or the hotkey was refused |
+| `quit_app`         |                          |                                                                                         |
+| `extend_session`   |                          | `Snapshot`: a timed session's end moved 30 minutes later                                |
+| `keep_it_up`       |                          | `Snapshot`: the overnight guard leaves this Always session alone                        |
+| `ai_status`        |                          | `{ has_key }`: whether a key is stored; the key never comes back                        |
+| `set_ai_key`       | `key \| null`            | `{ has_key }`                                                                           |
+| `ai_read_week`     | `digest`                 | the week in words, or an error sentence                                                 |
+| `ai_plan`          | `sentence`, `now`        | `Understood`: what plan the sentence means; nothing is started                          |
+| `check_for_update` |                          | `UpdateInfo \| null`: asks now, as the daily check does                                 |
+| `get_update`       |                          | `UpdateInfo \| null`: a newer release the daily check found                             |
+| `install_update`   |                          | nothing on success (the app relaunches); events `update-progress`; an error string      |
+| `get_history`      |                          | `History`: the session log, oldest entry first                                          |
+| `clear_history`    |                          | `History` (empty), also written to disk                                                 |
+| `get_almanac`      |                          | `Almanac`: presence and marked days, after one fresh look                               |
+| `mark_day`         | `day`, `mark \| null`    | `Almanac`; an error string for a day that is not a date                                 |
+| `fix_day`          | `day`, `stretch \| null` | `Almanac`: the day set by hand to one stretch, or back to what was read                 |
+| `clear_almanac`    |                          | `Almanac` (empty), also written to disk                                                 |
 
 Field names are `snake_case` on both sides and cross the boundary untouched.
 `src/lib/types.ts` mirrors `core` one to one; a test on each side pins the
@@ -322,6 +352,12 @@ where it last was.
   they run; the webview has no updater or process permission. Fonts and
   assets are bundled. Toasts go to the local notification centre; they are
   sent from Rust, so the webview has no notification permission.
+- With **Use Claude** on and a key added, a click on a Claude feature sends
+  one HTTPS request to `api.anthropic.com` carrying what that feature says
+  it sends: a week of the almanac, or one typed sentence. Off (the default)
+  or without a key, no such request is possible by any path, and none is
+  ever made without a click. The key is in the OS credential store, not in
+  a file of the app's, and the webview never holds it.
 - One settings file, one log and one almanac, per user (see **On disk**).
   The almanac holds only when someone was at the machine, never what they
   did, and never leaves it.
