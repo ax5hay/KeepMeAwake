@@ -112,7 +112,7 @@ pub fn start(app: &AppHandle) {
 /// One check: remembers what it found (or that nothing is newer), tells the
 /// window and the tray, and stamps the time so the next is a day away even
 /// if this one failed.
-fn check_and_record(app: &AppHandle) {
+pub(crate) fn check_and_record(app: &AppHandle) {
     let found = on_this_thread(check_now(app));
     let Some(state) = app.try_state::<AppState>() else {
         return;

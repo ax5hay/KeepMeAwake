@@ -12,6 +12,9 @@
   import Switch from './Switch.svelte';
   import {
     AI_KEY_SAVED,
+    CHECKING,
+    CHECK_NOW,
+    NEWEST,
     AI_KEY_WHY,
     AI_MASTER_HINT,
     AI_MASTER_LOCKED,
@@ -567,6 +570,18 @@
           <span class="sep">·</span>
           <button type="button" class="install" onclick={() => void store.installUpdate()}
             >{INSTALL_UPDATE}</button
+          >
+        </p>
+      {/if}
+      {#if store.installing === null && !store.update}
+        <p class="update">
+          {#if store.checked === 'newest'}{NEWEST}<span class="sep">·</span>{/if}
+          <button
+            type="button"
+            class="install"
+            disabled={store.checked === 'checking'}
+            onclick={() => void store.checkForUpdate()}
+            >{store.checked === 'checking' ? CHECKING : CHECK_NOW}</button
           >
         </p>
       {/if}

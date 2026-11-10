@@ -101,6 +101,7 @@ pub fn run() {
             commands::ai_read_week,
             commands::ai_plan,
             commands::get_update,
+            commands::check_for_update,
             commands::install_update,
         ])
         .setup(|app| setup(app.handle()).map_err(Into::into))

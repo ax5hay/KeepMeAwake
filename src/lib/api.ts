@@ -44,6 +44,7 @@ export const api = {
   aiReadWeek: (digest: string) => invoke<string>('ai_read_week', { digest }),
   aiPlan: (sentence: string, now: string) => invoke<Understood>('ai_plan', { sentence, now }),
   getUpdate: () => invoke<UpdateInfo | null>('get_update'),
+  checkForUpdate: () => invoke<UpdateInfo | null>('check_for_update'),
   installUpdate: () => invoke('install_update'),
   onSnapshot: (handler: (snapshot: Snapshot) => void): Promise<UnlistenFn> =>
     listen<Snapshot>(SNAPSHOT_EVENT, (event) => handler(event.payload)),

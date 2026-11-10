@@ -199,6 +199,11 @@ export function downloading(percent: number | null): string {
   return percent === null ? 'Downloading…' : `Downloading… ${percent}%`;
 }
 
+/** Settings → About: the link that checks now, while it does, and when nothing is newer. */
+export const CHECK_NOW = 'Check now';
+export const CHECKING = 'Checking…';
+export const NEWEST = 'This is the newest.';
+
 /** Settings → About → Check for updates daily. */
 export const UPDATES_HINT = 'Once a day, from GitHub. Nothing else leaves this machine.';
 

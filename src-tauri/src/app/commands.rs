@@ -4,7 +4,7 @@
 // Tauri's command macro requires owned `State` and `AppHandle` arguments.
 #![allow(clippy::needless_pass_by_value)]
 
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use super::ai::{AiStatus, Feature};
 use super::update::UpdateInfo;
@@ -212,6 +212,23 @@ pub async fn ai_plan(
 #[tauri::command]
 pub fn get_update(state: State<'_, AppState>) -> Option<UpdateInfo> {
     state.update.lock().clone()
+}
+
+/// Asks GitHub now, because someone asked: the same check the daily one
+/// makes, with the switch on or off. Returns the newer release, if any.
+#[tauri::command]
+pub async fn check_for_update(app: AppHandle) -> Option<UpdateInfo> {
+    let handle = app.clone();
+    // The check blocks on the network; keep it off the window's thread.
+    let done = tauri::async_runtime::spawn_blocking(move || {
+        super::update::check_and_record(&handle);
+    })
+    .await;
+    if let Err(err) = done {
+        log::debug!("the update check did not finish: {err}");
+    }
+    app.try_state::<AppState>()
+        .and_then(|state| state.update.lock().clone())
 }
 
 /// Download, verify and install the newer release, then relaunch. Resolves

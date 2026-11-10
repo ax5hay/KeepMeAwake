@@ -155,6 +155,7 @@ function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Alm
       say: 'Awake for 2 hours',
     })),
     getUpdate: vi.fn(async () => waiting),
+    checkForUpdate: vi.fn(async () => waiting),
     installUpdate: vi.fn(async () => {
       throw new Error('The update could not be installed: offline');
     }),
@@ -376,6 +377,26 @@ describe('AppStore', () => {
     expect(api.keepItUp).toHaveBeenCalledOnce();
     expect(store.guardAsking).toBe(false);
     store.dispose();
+  });
+});
+
+describe('AppStore and a check by hand', () => {
+  it('says it is the newest when nothing is found, and shows what is', async () => {
+    const none = new AppStore(fakeApi(base).api);
+    await none.init();
+    await none.checkForUpdate();
+    expect(none.checked).toBe('newest');
+    expect(none.update).toBeNull();
+    none.dispose();
+
+    const { api } = fakeApi(base);
+    api.checkForUpdate = vi.fn(async () => ({ version: '0.4.1', notes: null }));
+    const found = new AppStore(api);
+    await found.init();
+    await found.checkForUpdate();
+    expect(found.update?.version).toBe('0.4.1');
+    expect(found.checked).toBe('idle');
+    found.dispose();
   });
 });
 

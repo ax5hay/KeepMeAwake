@@ -191,6 +191,23 @@ export class AppStore {
     this.say(quietNight(formatClock(night.from), formatClock(night.to)), NIGHT_WHISPER_MS);
   }
 
+  /** What the last check by hand found: nothing yet, looking, or nothing newer. */
+  checked = $state<'idle' | 'checking' | 'newest'>('idle');
+
+  /** Asks for a newer release now, because someone asked. */
+  async checkForUpdate(): Promise<void> {
+    if (this.checked === 'checking') return;
+    this.checked = 'checking';
+    try {
+      const info = await this.#api.checkForUpdate();
+      if (info) this.update = info;
+      this.checked = info ? 'idle' : 'newest';
+    } catch (err) {
+      this.checked = 'idle';
+      this.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
   /** Downloads, installs and relaunches; on failure says why and stays. */
   async installUpdate(): Promise<void> {
     if (this.installing !== null) return;
