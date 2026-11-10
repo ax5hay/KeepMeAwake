@@ -3,15 +3,17 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: the Almanac built, unreleased)
+**Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: the Almanac built and extended, a schedule fix; unreleased)
 **Release:** [v0.3.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.3.0), the first **full** release and the latest; `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
-**Repo state:** `main` is green (`npm run verify` on Windows: vitest 153, cargo test 205;
+**Repo state:** `main` is green (`npm run verify` on Windows: vitest 164, cargo test 217;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
 the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
 `.app.tar.gz` (Apple Silicon, ad hoc signed, not notarized), each updater artifact signed,
 and `latest.json` for both. Under Unreleased: the **Almanac** (days and hours
-worked, leave, the night), built on Windows and waiting for the Mac. The project is under its own
+worked, leave, the night, today on Home, days put right by hand, Set with
+me) and a fix for a schedule with equal times; built on Windows and waiting
+for the Mac. The project is under its own
 license, not MIT (see `LICENSE`).
 
 ## Two tracks, two machines
@@ -165,7 +167,7 @@ on Windows is listed under **Where to start**.
 | session-history          | shared  | 5 of 5         | built on the Mac, reviewed, two review fixes in; checked on Windows; acceptance below                           |
 | sunset-warning           | shared  | 6 of 6         | spec written and built on the Mac, reviewed, two review fixes in; checked on Windows; acceptance below          |
 | overnight-guard          | shared  | 7 of 7         | built on Windows, reviewed, two review fixes in; CI green on both runners; hand acceptance below                |
-| almanac                  | shared  | 7 of 7         | built on Windows; not yet reviewed, not yet lived with; acceptance below                                        |
+| almanac                  | shared  | 7 of 7, then 4 | built on Windows, then extended; not yet reviewed, not yet lived with; acceptance below                         |
 
 ## Done this cycle
 
@@ -186,8 +188,30 @@ on Windows is listed under **Where to start**.
 | 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                       | Claude Opus 5.5  |
 | 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                 | Claude Opus 5.5  |
 | 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards    | Claude Fable 5.2 |
+| 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Set with me (4 commits)           | Claude Fable 5.2 |
 
 ## Almanac: acceptance and decisions
+
+Second round, the same day (asked for once the first build was seen):
+
+| What                                                             | Status                                                                                                              |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Schedule with From = Until stuck off                             | fixed: equal times are the whole day and the switch is never touched; core tested; **by hand** in Settings          |
+| Today on Home: the strip under the scene, the figure by the word | seen in the harness, Paper and Night, 380 × 600 and 340 × 520 (strip hidden); seen once in the real window, Night   |
+| Correct the hours, Nobody here, Use what was read                | core, keeper and UI logic tested; clicked through in the harness; `fix_day` answered and refused in the real window |
+| Set with me: asks at night after 30m, sets, rises at a touch     | engine tested with fakes (six tests, including a wake in the night); **by hand**, needs a real night                |
+| Whisper the night has a switch; a full day is whispered once     | store tested                                                                                                        |
+
+Set with me is **off by default** and is the one part of this that changes
+what the sun does; it deserves a real night on each machine before 0.4.0.
+It reuses the overnight guard (question, ten minutes, Keep it up, `idle` in
+history), so a session it ends is logged as `idle`, not as something of its
+own.
+
+The Home screenshots `home-*` and `resting-*` were retaken from the harness
+with a seeded almanac. `schedule-home-*`, `overnight-home-*` and
+`update-home-*` still show Home before it had today on it: retake them from
+the real window.
 
 | Acceptance (spec)                                                  | Status                                                                                              |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
@@ -225,6 +249,13 @@ fifth door.
 `CGEventSourceSecondsSinceLastEventType`, whose behaviour across sleep and
 dark wakes was not seen here. Leave the Mac asleep overnight with Power Nap
 on and check that the night is one dotted run with no specks of ink in it.
+
+Also deferred from the second round: the editor sets a day to one stretch,
+not several; a day set by hand that crosses the turn is cut at the turn; the
+sun rising at a touch says nothing when it does (the window is usually
+closed), and history shows it only as a new `Always` row; with the sun down
+and the window left open, today's figure waits for the window to be looked
+at again.
 
 Not done, and worth a look: the resting-minute numbers with the almanac on
 (the budget says "to be measured"); a review pass like the other specs had;
@@ -350,6 +381,8 @@ one line; the whisper is once per version, remembered in localStorage.
   opens the pane and says yes?
 - Leave is counted, not budgeted: no allowance, no balance, no half days.
   Wanted?
+- Set with me is off by default and offers 30m, 1h and 2h. Right values,
+  and should it ever be on for a new install?
 - The day's total in the tray menu (`4h 29m today`) needs the day-bucketing
   in Rust as well. Wanted?
 

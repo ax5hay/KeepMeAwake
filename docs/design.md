@@ -64,11 +64,11 @@ and Night by name.
 
 ## Type
 
-| Face                | Where                                                         | Why                                                   |
-| ------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
-| Fraunces (variable) | the status word, the wordmark, whispers, the almanac's figure | one voice with character, used in exactly four places |
-| Segoe UI Variable   | everything else, on Windows                                   | native to Windows 11, perfect at 12–13 px             |
-| SF Pro (system)     | everything else, on macOS                                     | `-apple-system` in the same stack; native to the Mac  |
+| Face                | Where                                                                                  | Why                                                   |
+| ------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Fraunces (variable) | the status word, the wordmark, whispers, the day's figure (in the Almanac and on Home) | one voice with character, used in exactly four places |
+| Segoe UI Variable   | everything else, on Windows                                                            | native to Windows 11, perfect at 12–13 px             |
+| SF Pro (system)     | everything else, on macOS                                                              | `-apple-system` in the same stack; native to the Mac  |
 
 Fraunces is bundled (latin subset, upright and italic, 150 KB together) and
 set at `opsz 72`, `SOFT 50`. Tabular numerals wherever a number can change.
@@ -92,12 +92,15 @@ or dark menu bar. No colour, so the sun's amber stays in the window.
    close. The close button is red only on hover, the one concession to
    platform habit.
 2. **Scene**: 380 × 240, scales with width, capped at 440.
-3. **Status**: the word (Resting / Awake / Paused) and one line of detail.
+3. **Today** (with the almanac on): the day as a small horizon directly
+   under the scene, the picture and then its ledger. Its figure stands at
+   the right of the status word. Both open the Almanac.
+4. **Status**: the word (Resting / Awake / Paused) and one line of detail.
    Whispers (tips, easter eggs) briefly replace the detail in italic.
-4. **Rule**: durations as stops on a hairline. The active stop has a filled
+5. **Rule**: durations as stops on a hairline. The active stop has a filled
    dot and a doubled tick. "Until…" opens an inline time field.
-5. **Rows**: the two switches people flip daily.
-6. **Doors**: one quiet line, `Schedule · Overnight · History · Ctrl+Alt+K`,
+6. **Rows**: the two switches people flip daily.
+7. **Doors**: one quiet line, `Schedule · Overnight · History · Ctrl+Alt+K`,
    each opening Settings at its section, with a tooltip saying what is
    behind it. The schedule is off until set, the guard is quiet until it
    acts, history only records, and the hotkey shows its own combination, so
@@ -164,19 +167,21 @@ is harmless, discoverable by touching the scene, and never required.
 
 ## Decided against
 
-| Idea                     | Why not                                                           |
-| ------------------------ | ----------------------------------------------------------------- |
-| Mica / acrylic window    | the scene paints its own sky; translucency fights it              |
-| a big primary button     | the sun is the button; a second one would make the sun decorative |
-| a gear for settings      | at 16 px its spokes read as a sun, the app's switch and its mark  |
-| a third row on Home      | no room at 340 × 520; the doors point into Settings instead       |
-| chips for durations      | a rule reads as an instrument and uses a quarter of the height    |
-| a calendar icon          | any app's; an almanac is a book, so the button is an open one     |
-| a fifth door on Home     | the line must stay one line; the almanac is a pane, not a setting |
-| bar charts of hours      | a day is a horizon here, not a column; the strip shows when       |
-| "you slept 7h"           | it knows the keys went quiet, not what you did: it says "night"   |
-| accent-coloured controls | one accent, used once                                             |
-| toasts in 0.1            | a sunset you can see is enough; on the roadmap behind a setting   |
+| Idea                        | Why not                                                            |
+| --------------------------- | ------------------------------------------------------------------ |
+| Mica / acrylic window       | the scene paints its own sky; translucency fights it               |
+| a big primary button        | the sun is the button; a second one would make the sun decorative  |
+| a gear for settings         | at 16 px its spokes read as a sun, the app's switch and its mark   |
+| a third row on Home         | no room at 340 × 520; the doors point into Settings instead        |
+| chips for durations         | a rule reads as an instrument and uses a quarter of the height     |
+| a calendar icon             | any app's; an almanac is a book, so the button is an open one      |
+| a fifth door on Home        | the line must stay one line; the almanac is a pane, not a setting  |
+| today's strip by the rule   | two hairlines with marks, a finger apart, read as one instrument   |
+| today in the scene's ground | the scene is the status display; a second reading there muddies it |
+| bar charts of hours         | a day is a horizon here, not a column; the strip shows when        |
+| "you slept 7h"              | it knows the keys went quiet, not what you did: it says "night"    |
+| accent-coloured controls    | one accent, used once                                              |
+| toasts in 0.1               | a sunset you can see is enough; on the roadmap behind a setting    |
 
 ---
 

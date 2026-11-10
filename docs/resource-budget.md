@@ -35,6 +35,19 @@ otherwise; the strips are positioned boxes with no animation. The numbers
 for a resting minute with the almanac on are still to be measured on both
 machines.
 
+Home's today (the strip and the figure) adds no timer: the almanac is asked
+for again when the engine reports, which it does every 30 s while the sun
+is up, and when the window comes back into view, and never more than once
+in 55 s. With the sun down and the window left open it waits for the window
+to be looked at again.
+
+Set with me, while it is on, lets the overnight guard read the idle time on
+the poll an Always session already makes. After the sun has set with the
+night, the worker keeps one 30 s poll going (an idle reading and nothing
+else) until someone touches the machine, a session is started by hand, or a
+day has passed. That is a wake-up at rest too, and it exists only between a
+night that set the sun and the morning after.
+
 The sunset warning adds one engine wake per timed session, at the warning
 moment, and nothing in the window: the status line uses the 1 Hz clock a
 timed session already runs.

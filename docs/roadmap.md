@@ -63,9 +63,9 @@ listed in [`HANDOFF.md`](HANDOFF.md); it stays marked pending until they pass.
 
 ## Built for 0.4, not yet released
 
-| Feature                                                                                            | Spec                           | Layers        |
-| -------------------------------------------------------------------------------------------------- | ------------------------------ | ------------- |
-| Almanac: days and hours worked, time over, leave, and the night read from the last and first touch | [almanac.md](specs/almanac.md) | core, app, ui |
+| Feature                                                                                                                                                                                         | Spec                           | Layers                |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | --------------------- |
+| Almanac: days and hours worked, time over, leave, and the night read from the last and first touch; any day put right by hand; today on Home; Always can set with the night and rise at a touch | [almanac.md](specs/almanac.md) | core, engine, app, ui |
 
 Built on Windows; waits for the Mac (see [`HANDOFF.md`](HANDOFF.md)).
 

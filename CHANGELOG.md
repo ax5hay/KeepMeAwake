@@ -5,6 +5,13 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Fixed
+
+- A schedule set to start and end at the same time switched itself off and
+  could not be switched back on, because its hours are greyed out while it
+  is off. The same time twice now means the whole day, and the switch is
+  never touched for you.
+
 ### Added
 
 - The Almanac: a book of your days at this machine, behind the open book in
@@ -21,6 +28,19 @@ Versions: [SemVer](https://semver.org).
   Working hours (past midnight is fine: a day turns over opposite the
   middle of them, so late work stays on the day it began) and Empty working
   days are leave.
+- Today on Home: under the scene, your day as a small horizon, and beside
+  the status word today's hours. Both open the Almanac. The first time a
+  day reaches the length of your working hours, Home whispers it once.
+- Any day can be put right by hand: **Mark as leave** or **Not a leave**,
+  and **Correct the hours** to set it to one stretch, to say nobody was
+  here, or to go back to what was read. A day set by hand says so, and
+  nothing that was read is thrown away.
+- Set with me (Settings → Almanac, off unless asked for): an Always session
+  sets once the keys have been quiet at night for 30 minutes, 1 hour or 2,
+  asking first as the overnight guard does, and rises again at your next
+  touch.
+- Every automatic thing in the almanac has a switch, including the morning
+  whisper (Whisper the night).
 - It reads only how long since the last input, once a minute, the same
   read-only call the overnight guard makes. Nothing is typed, and
   `almanac.json` never leaves the machine. With the switch off the app

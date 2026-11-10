@@ -170,6 +170,16 @@ window already open at launch is reported too. `Ended` is `Idle` when the
 guard let it go, else `Timer`, `Schedule` or `User`, or `Battery` if the
 stretch was still paused for the battery as it ended.
 
+With the almanac's **Set with me** on, the same guard asks much sooner while
+it is night by the almanac's hours (`AlmanacSettings::is_resting`, the ten
+hours around the turn of the day): after the chosen minutes of quiet rather
+than the guard's hours. A session let go that way is remembered
+(`State::rise`), and the worker keeps looking every 30 s though the sun is
+down; at the next touch it starts Always again. A touch is the idle time
+shrinking against the monotonic clock, so a machine that wakes itself in the
+night raises nothing. A command that starts or ends a session, or a day with
+nobody back, forgets it.
+
 ### app
 
 `app/mod.rs` builds the Tauri app. Plugins in order: single-instance (must be
@@ -252,24 +262,25 @@ sequenceDiagram
     E-->>E: tray.refresh(snapshot)
 ```
 
-| Command           | Arguments              | Returns                                                                                 |
-| ----------------- | ---------------------- | --------------------------------------------------------------------------------------- |
-| `get_snapshot`    |                        | `Snapshot` (also re-reads battery)                                                      |
-| `set_plan`        | `request: PlanRequest` | `Snapshot`                                                                              |
-| `toggle_session`  |                        | `Snapshot`; skips or resumes an open schedule window                                    |
-| `skip_schedule`   |                        | `Snapshot`                                                                              |
-| `resume_schedule` |                        | `Snapshot`                                                                              |
-| `update_settings` | `settings: Settings`   | `Snapshot`, or an error string if the file could not be saved or the hotkey was refused |
-| `quit_app`        |                        |                                                                                         |
-| `extend_session`  |                        | `Snapshot`: a timed session's end moved 30 minutes later                                |
-| `keep_it_up`      |                        | `Snapshot`: the overnight guard leaves this Always session alone                        |
-| `get_update`      |                        | `UpdateInfo \| null`: a newer release the daily check found                             |
-| `install_update`  |                        | nothing on success (the app relaunches); events `update-progress`; an error string      |
-| `get_history`     |                        | `History`: the session log, oldest entry first                                          |
-| `clear_history`   |                        | `History` (empty), also written to disk                                                 |
-| `get_almanac`     |                        | `Almanac`: presence and marked days, after one fresh look                               |
-| `mark_day`        | `day`, `mark \| null`  | `Almanac`; an error string for a day that is not a date                                 |
-| `clear_almanac`   |                        | `Almanac` (empty), also written to disk                                                 |
+| Command           | Arguments                | Returns                                                                                 |
+| ----------------- | ------------------------ | --------------------------------------------------------------------------------------- |
+| `get_snapshot`    |                          | `Snapshot` (also re-reads battery)                                                      |
+| `set_plan`        | `request: PlanRequest`   | `Snapshot`                                                                              |
+| `toggle_session`  |                          | `Snapshot`; skips or resumes an open schedule window                                    |
+| `skip_schedule`   |                          | `Snapshot`                                                                              |
+| `resume_schedule` |                          | `Snapshot`                                                                              |
+| `update_settings` | `settings: Settings`     | `Snapshot`, or an error string if the file could not be saved or the hotkey was refused |
+| `quit_app`        |                          |                                                                                         |
+| `extend_session`  |                          | `Snapshot`: a timed session's end moved 30 minutes later                                |
+| `keep_it_up`      |                          | `Snapshot`: the overnight guard leaves this Always session alone                        |
+| `get_update`      |                          | `UpdateInfo \| null`: a newer release the daily check found                             |
+| `install_update`  |                          | nothing on success (the app relaunches); events `update-progress`; an error string      |
+| `get_history`     |                          | `History`: the session log, oldest entry first                                          |
+| `clear_history`   |                          | `History` (empty), also written to disk                                                 |
+| `get_almanac`     |                          | `Almanac`: presence and marked days, after one fresh look                               |
+| `mark_day`        | `day`, `mark \| null`    | `Almanac`; an error string for a day that is not a date                                 |
+| `fix_day`         | `day`, `stretch \| null` | `Almanac`: the day set by hand to one stretch, or back to what was read                 |
+| `clear_almanac`   |                          | `Almanac` (empty), also written to disk                                                 |
 
 Field names are `snake_case` on both sides and cross the boundary untouched.
 `src/lib/types.ts` mirrors `core` one to one; a test on each side pins the

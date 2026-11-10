@@ -1,6 +1,6 @@
 # Almanac
 
-Version 0.4 · Size L · Touches core, app, ui
+Version 0.4 · Size L · Touches core, engine, app, ui
 
 ## Why
 
@@ -97,6 +97,53 @@ On the first open after a night, Home whispers it once:
 
 With the almanac off, the pane says so and offers the switch.
 
+## Added after the first build
+
+Asked for once the first build was in use, and built the same day.
+
+### Today on Home
+
+Under the scene, today as a row-sized strip; at the right of the status
+word, today's figure in Fraunces under the eyebrow `Today`. Both open the
+Almanac. Shown only with the almanac on; the strip hides below 560 px of
+height. Kept fresh with no timer: asked for again when the engine reports
+and when the window comes back into view, at most once in 55 s. The first
+time a day reaches the length of its working hours, Home whispers once:
+`A full day: 9h 02m.`
+
+### Putting a day right
+
+| Link                  | Does                                                                        |
+| --------------------- | --------------------------------------------------------------------------- |
+| **Mark as leave**     | `marks[day] = leave`                                                        |
+| **Not a leave**       | `marks[day] = clear` on an empty past working day, else the mark is removed |
+| **Correct the hours** | opens From / Until; **Save** sets `fixes[day]` to that one stretch          |
+| **Nobody here**       | `fixes[day]` of no length: nobody was at the machine                        |
+| **Use what was read** | removes `fixes[day]`                                                        |
+
+`Almanac::fixes: BTreeMap<String, Span>`, `Almanac::fix(day, Option<Span>)`
+(refuses a non-date, a stretch that ends before it starts, or one over 36
+hours). Corrections are kept beside the spans, not over them. The window
+applies them first (`almanac.ts::corrected`): on a day set by hand, what was
+read inside that day is cut out and the stretch put in, so hours, first and
+last touch, time over and the night all follow. A day set by hand reads
+`Set by you: 3:00 pm – 12:30 am`.
+
+### Set with me
+
+`almanac.rest_after_mins: Option<u16>`, default `None`; Settings → Almanac →
+**Set with me**: Off · 30m · 1h · 2h. While it is on, the almanac is on and
+it is night by the almanac's hours (`AlmanacSettings::is_resting`), the
+overnight guard's wait for an Always session is those minutes instead of
+its hours. The question, the ten minutes, **Keep it up** and the `idle`
+ending are the guard's own; the status line and toast say
+`Quiet for the night. Setting at 3:12 am.` A session that set this way rises
+again at the next touch (`State::rise`, looked for every 30 s; a touch is
+the idle time shrinking against the monotonic clock). A command that starts
+or ends a session cancels it, and so does a day with nobody back.
+
+`almanac.whisper_night: bool`, default `true`: the morning whisper's switch.
+
 ## Settings
 
 Settings → new section **Almanac**, after **Schedule**.
@@ -176,11 +223,12 @@ not a file people read; the same atomic write).
 
 ## IPC
 
-| Command         | Args                                | Returns                                             |
-| --------------- | ----------------------------------- | --------------------------------------------------- |
-| `get_almanac`   |                                     | `Almanac`, after one fresh look                     |
-| `mark_day`      | `day: string`, `mark: Mark \| null` | `Almanac`, or an error for a day that is not a date |
-| `clear_almanac` |                                     | `Almanac` (empty), also written to disk             |
+| Command         | Args                                   | Returns                                             |
+| --------------- | -------------------------------------- | --------------------------------------------------- |
+| `get_almanac`   |                                        | `Almanac`, after one fresh look                     |
+| `mark_day`      | `day: string`, `mark: Mark \| null`    | `Almanac`, or an error for a day that is not a date |
+| `fix_day`       | `day: string`, `stretch: Span \| null` | `Almanac`, or an error for a correction it refuses  |
+| `clear_almanac` |                                        | `Almanac` (empty), also written to disk             |
 
 ## Tests
 
@@ -230,6 +278,11 @@ feature's whole cost and it is behind a switch.
 - [ ] Paper and Night, at 380 × 600 and 340 × 520.
 
 ## Commits
+
+Then, the same day: `fix(core): a schedule with equal times is the whole
+day, not off`, `feat(app): correct a day in the almanac by hand`,
+`feat(engine): Always can set with the night and rise at a touch`,
+`feat(ui): today on Home, and a day's hours corrected by hand`.
 
 1. `docs(specs): the almanac`
 2. `feat(core): the almanac of presence and marked days`
