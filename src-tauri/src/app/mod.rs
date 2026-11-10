@@ -46,8 +46,8 @@ pub struct AppState {
     pub history_path: PathBuf,
     /// The almanac and the thread that keeps it.
     pub almanac: Arc<almanac::Keeper>,
-    /// Claude: the key and the client. Asks nothing unless asked.
-    pub ai: ai::Claude,
+    /// AI: the keys and the client. Asks nothing unless asked.
+    pub ai: ai::Assistant,
     /// Light or dark taskbar, for the tray icon set.
     pub taskbar: Box<dyn TaskbarTheme>,
     /// A newer release, as last found by the daily check.
@@ -196,7 +196,7 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         history,
         history_path,
         almanac: keeper,
-        ai: ai::Claude::new(Box::new(ai::OsKeyStore)),
+        ai: ai::Assistant::new(Box::new(ai::OsKeyStore)),
         taskbar: make_taskbar(),
         update: Mutex::new(None),
     });

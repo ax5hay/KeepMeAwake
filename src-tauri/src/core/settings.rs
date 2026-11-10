@@ -135,16 +135,31 @@ pub struct Schedule {
     pub end_minutes: u16,
 }
 
-/// Claude's switches. `enabled` is the master: off, nothing is ever sent,
-/// whatever the others say. It is off until someone turns it on, and it
-/// does nothing without an API key, which is kept in the OS credential
-/// store and not here. Each feature also has a switch of its own, shown
-/// where the feature is.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Which AI service is asked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum Provider {
+    /// Anthropic's Claude, through its Messages API.
+    #[default]
+    Anthropic,
+    /// `OpenAI`, through Chat Completions.
+    #[serde(rename = "openai")]
+    OpenAi,
+    /// Any other service that speaks the same chat protocol, at an address
+    /// of one's own: a hosted one, or a model running on this machine.
+    Custom,
+}
+
+/// AI's switches and the service it uses. `enabled` is the master: off,
+/// nothing is ever sent, whatever the others say. It is off until someone
+/// turns it on, and it does nothing without an API key, which is kept in
+/// the OS credential store and not here. Each feature also has a switch of
+/// its own, shown where the feature is.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "snake_case")]
 #[allow(clippy::struct_excessive_bools)] // independent switches, one per feature, as in Settings
 pub struct AiSettings {
-    /// Claude may be asked at all.
+    /// AI may be asked at all.
     pub enabled: bool,
     /// The Almanac can put a week into words.
     pub week_in_words: bool,
@@ -154,10 +169,19 @@ pub struct AiSettings {
     pub day_in_a_line: bool,
     /// The Almanac can answer a question about the month in view.
     pub ask_the_almanac: bool,
-    /// Everything of Claude's is kept out of sight, but for one button in
+    /// Everything of AI's is kept out of sight, but for one button in
     /// Settings that brings it back. Hidden, nothing can be asked either.
     pub hidden: bool,
+    /// The service asked.
+    pub provider: Provider,
+    /// The model asked; empty for the service's smallest.
+    pub model: String,
+    /// For a service of one's own: its address, `https://…/v1`.
+    pub base_url: String,
 }
+
+/// The longest a model's name or a service's address may be.
+const MAX_AI_TEXT: usize = 200;
 
 impl Default for AiSettings {
     fn default() -> Self {
@@ -168,7 +192,21 @@ impl Default for AiSettings {
             day_in_a_line: true,
             ask_the_almanac: true,
             hidden: false,
+            provider: Provider::Anthropic,
+            model: String::new(),
+            base_url: String::new(),
         }
+    }
+}
+
+impl AiSettings {
+    /// Trims the model and the address, and bounds their length.
+    #[must_use]
+    pub fn sanitized(mut self) -> Self {
+        let tidy = |text: &str| text.trim().chars().take(MAX_AI_TEXT).collect::<String>();
+        self.model = tidy(&self.model);
+        self.base_url = tidy(&self.base_url);
+        self
     }
 }
 
@@ -189,7 +227,7 @@ pub struct AlmanacSettings {
     pub end_minutes: u16,
     /// A past working day with nothing in it reads as leave.
     pub empty_days_are_leave: bool,
-    /// Morning summary once, on the first open after it.
+    /// Morning whisper once, on the first open after it.
     pub whisper_night: bool,
     /// Minutes without input, inside the resting hours, after which an
     /// Always session sets for the night and rises again at the next
@@ -331,6 +369,7 @@ impl Settings {
         }
         self.schedule = self.schedule.sanitized();
         self.almanac = self.almanac.sanitized();
+        self.ai = self.ai.sanitized();
         self
     }
 }
@@ -505,6 +544,32 @@ mod tests {
             json["ai"].get("key").is_none(),
             "the key is never a setting"
         );
+    }
+
+    #[test]
+    fn the_service_defaults_to_claude_and_its_text_is_tidied() {
+        let ai = Settings::default().ai;
+        assert_eq!(ai.provider, Provider::Anthropic);
+        assert!(ai.model.is_empty() && ai.base_url.is_empty());
+        let json = serde_json::to_value(&ai).unwrap();
+        assert_eq!(json["provider"], "anthropic");
+        let other: AiSettings = serde_json::from_str(
+            r#"{"provider":"openai","model":"  gpt-5.4-nano ","base_url":" https://x.test/v1 "}"#,
+        )
+        .unwrap();
+        let other = other.sanitized();
+        assert_eq!(other.provider, Provider::OpenAi);
+        assert_eq!(other.model, "gpt-5.4-nano");
+        assert_eq!(other.base_url, "https://x.test/v1");
+        assert_eq!(
+            serde_json::to_value(Provider::Custom).unwrap(),
+            serde_json::json!("custom")
+        );
+        let long = AiSettings {
+            model: "m".repeat(500),
+            ..AiSettings::default()
+        };
+        assert_eq!(long.sanitized().model.len(), 200);
     }
 
     #[test]

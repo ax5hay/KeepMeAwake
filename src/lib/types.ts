@@ -51,9 +51,21 @@ export interface AiSettings {
   tell_the_sun: boolean;
   day_in_a_line: boolean;
   ask_the_almanac: boolean;
-  /** Everything of Claude's is out of sight, but for one button in Settings. */
+  /** Everything of AI's is out of sight, but for one button in Settings. */
   hidden: boolean;
+  /** The service asked. */
+  provider: Provider;
+  /** The model asked; empty for the service's smallest. */
+  model: string;
+  /** For a service of one's own: its address, `https://…/v1`. */
+  base_url: string;
 }
+
+/**
+ * Which AI service is asked: Anthropic's Claude, OpenAI, or any other that
+ * speaks the same chat format, at an address of one's own.
+ */
+export type Provider = 'anthropic' | 'openai' | 'custom';
 
 /** Whether an API key is stored. Mirrors `app::ai::AiStatus`. */
 export interface AiStatus {
@@ -84,7 +96,7 @@ export interface AlmanacSettings {
   end_minutes: number;
   /** A past working day with nothing in it reads as leave. */
   empty_days_are_leave: boolean;
-  /** Morning summary once, on the first open after it. */
+  /** Morning whisper once, on the first open after it. */
   whisper_night: boolean;
   /**
    * Minutes without input, inside the resting hours, after which an Always

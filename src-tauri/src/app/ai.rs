@@ -1,9 +1,11 @@
-//! Claude, behind three locks: a key, the master switch and the feature's
-//! own switch. This holds the key (in the OS credential store, never in a
-//! file of ours and never handed back to the window) and makes the request.
+//! AI, behind three locks: a key, the master switch and the feature's own
+//! switch. This holds the keys (in the OS credential store, never in a file
+//! of ours and never handed back to the window) and makes the request, to
+//! whichever service was chosen: Claude, `OpenAI`, or any other that speaks
+//! the same chat protocol.
 //!
-//! The app asks Claude nothing on its own. Every request here begins with a
-//! click on something that says what will be sent.
+//! The app asks nothing on its own. Every request here begins with a click
+//! on something that says what will be sent, and to whom.
 
 use std::time::Duration;
 
@@ -11,33 +13,40 @@ use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::core::ai::{self, AiError};
-use crate::core::settings::AiSettings;
+use crate::core::ai::{self, AiError, Ask};
+use crate::core::settings::{AiSettings, Provider};
 
-/// The Messages API.
-const ENDPOINT: &str = "https://api.anthropic.com/v1/messages";
-
-/// Where the key is kept in the OS credential store.
+/// Where the keys are kept in the OS credential store.
 const SERVICE: &str = "dev.bajpai.keepmeawake";
-const ACCOUNT: &str = "anthropic-api-key";
 
-/// How long one request may take. The answers are a few sentences from the
-/// smallest model, so this is for a slow network, not a slow answer.
+/// How long one request may take. The answers are a few sentences from a
+/// small model, so this is for a slow network, not a slow answer.
 const TIMEOUT: Duration = Duration::from_secs(45);
 
-/// What the window may know about the key: whether there is one.
+/// What the window may know about the key: whether there is one, for the
+/// service chosen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AiStatus {
-    /// A key is stored.
+    /// A key is stored for the chosen service.
     pub has_key: bool,
 }
 
-/// Somewhere a secret can be kept.
+/// The name a service's key is kept under. Each service has its own, so
+/// changing service never sends one service's key to another.
+pub fn account(provider: Provider) -> &'static str {
+    match provider {
+        Provider::Anthropic => "anthropic-api-key",
+        Provider::OpenAi => "openai-api-key",
+        Provider::Custom => "custom-api-key",
+    }
+}
+
+/// Somewhere secrets can be kept, by name.
 pub trait KeyStore: Send + Sync {
-    /// The key, if one is stored.
-    fn get(&self) -> Option<String>;
-    /// Stores `key`, or removes it with `None`.
-    fn set(&self, key: Option<&str>) -> Result<(), String>;
+    /// The key kept under `account`, if there is one.
+    fn get(&self, account: &str) -> Option<String>;
+    /// Stores `key` under `account`, or removes it with `None`.
+    fn set(&self, account: &str, key: Option<&str>) -> Result<(), String>;
 }
 
 /// The OS credential store: Credential Manager on Windows, the Keychain on
@@ -46,19 +55,19 @@ pub trait KeyStore: Send + Sync {
 pub struct OsKeyStore;
 
 impl OsKeyStore {
-    fn entry() -> Result<keyring::Entry, String> {
-        keyring::Entry::new(SERVICE, ACCOUNT).map_err(|err| err.to_string())
+    fn entry(account: &str) -> Result<keyring::Entry, String> {
+        keyring::Entry::new(SERVICE, account).map_err(|err| err.to_string())
     }
 }
 
 impl KeyStore for OsKeyStore {
-    fn get(&self) -> Option<String> {
-        let key = Self::entry().ok()?.get_password().ok()?;
+    fn get(&self, account: &str) -> Option<String> {
+        let key = Self::entry(account).ok()?.get_password().ok()?;
         Some(key).filter(|key| !key.trim().is_empty())
     }
 
-    fn set(&self, key: Option<&str>) -> Result<(), String> {
-        let entry = Self::entry()?;
+    fn set(&self, account: &str, key: Option<&str>) -> Result<(), String> {
+        let entry = Self::entry(account)?;
         match key {
             Some(key) => entry.set_password(key).map_err(|err| err.to_string()),
             None => match entry.delete_credential() {
@@ -69,7 +78,7 @@ impl KeyStore for OsKeyStore {
     }
 }
 
-/// Which of Claude's features is being asked for.
+/// Which feature is being asked for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Feature {
     /// The Almanac's week, in words.
@@ -82,15 +91,15 @@ pub enum Feature {
     AskTheAlmanac,
 }
 
-/// The key and the client that asks.
-pub struct Claude {
+/// The keys and the client that asks.
+pub struct Assistant {
     keys: Box<dyn KeyStore>,
     /// Built on first use: most runs of the app never ask.
     client: Mutex<Option<reqwest::Client>>,
 }
 
-impl Claude {
-    /// Claude with its key in `keys`.
+impl Assistant {
+    /// An assistant with its keys in `keys`.
     pub fn new(keys: Box<dyn KeyStore>) -> Self {
         Self {
             keys,
@@ -98,25 +107,30 @@ impl Claude {
         }
     }
 
-    /// Whether a key is stored.
-    pub fn status(&self) -> AiStatus {
+    /// Whether a key is stored for `provider`.
+    pub fn status(&self, provider: Provider) -> AiStatus {
         AiStatus {
-            has_key: self.keys.get().is_some(),
+            has_key: self.keys.get(account(provider)).is_some(),
         }
     }
 
-    /// Stores the key, or removes it with `None` or nothing but spaces.
-    pub fn set_key(&self, key: Option<&str>) -> Result<AiStatus, String> {
+    /// Stores `provider`'s key, or removes it with `None` or nothing but
+    /// spaces.
+    pub fn set_key(&self, provider: Provider, key: Option<&str>) -> Result<AiStatus, String> {
         let key = key.map(str::trim).filter(|key| !key.is_empty());
-        self.keys.set(key)?;
-        Ok(self.status())
+        self.keys.set(account(provider), key)?;
+        Ok(self.status(provider))
     }
 
-    /// The key, if all three locks are open for `feature`: a key is stored,
-    /// Claude is switched on, and so is the feature. Hidden, Claude is off
-    /// whatever else is set: what cannot be seen cannot be asked.
+    /// The chosen service's key, if all three locks are open for `feature`:
+    /// a key is stored for that service, AI is switched on, and so is the
+    /// feature. Hidden, AI is off whatever else is set: what cannot be seen
+    /// cannot be asked.
     pub fn unlock(&self, settings: &AiSettings, feature: Feature) -> Result<String, AiError> {
-        let key = self.keys.get().ok_or(AiError::NoKey)?;
+        let key = self
+            .keys
+            .get(account(settings.provider))
+            .ok_or(AiError::NoKey)?;
         let feature_on = match feature {
             Feature::WeekInWords => settings.week_in_words,
             Feature::TellTheSun => settings.tell_the_sun,
@@ -147,32 +161,35 @@ impl Claude {
         Ok(client)
     }
 
-    /// Sends `body` to the Messages API with `key` and returns the response
-    /// body. The key goes in a header and nowhere else: it is not logged.
-    pub async fn ask(&self, key: &str, body: &Value) -> Result<Value, AiError> {
-        let response = self
-            .client()?
-            .post(ENDPOINT)
-            .header("x-api-key", key)
-            .header("anthropic-version", ai::API_VERSION)
-            .json(body)
-            .send()
-            .await
-            .map_err(|err| {
-                log::debug!("claude request failed: {err}");
-                AiError::Failed(if err.is_timeout() {
-                    "it took too long".to_owned()
-                } else {
-                    "no connection".to_owned()
-                })
-            })?;
+    /// Asks the chosen service `ask` and returns its response body. The key
+    /// goes in a header and nowhere else: it is not logged.
+    pub async fn ask(&self, settings: &AiSettings, key: &str, ask: &Ask) -> Result<Value, AiError> {
+        let provider = settings.provider;
+        let url = ai::endpoint(provider, &settings.base_url)?;
+        let model = ai::model_for(provider, &settings.model)?;
+        let body = ai::body(provider, &model, ask);
+        let request = self.client()?.post(url);
+        let request = match provider {
+            Provider::Anthropic => request
+                .header("x-api-key", key)
+                .header("anthropic-version", ai::ANTHROPIC_VERSION),
+            Provider::OpenAi | Provider::Custom => request.bearer_auth(key),
+        };
+        let response = request.json(&body).send().await.map_err(|err| {
+            log::debug!("ai request failed: {err}");
+            AiError::Failed(if err.is_timeout() {
+                "it took too long".to_owned()
+            } else {
+                "no connection".to_owned()
+            })
+        })?;
         let status = response.status();
         if !status.is_success() {
-            log::warn!("claude answered {status}");
+            log::warn!("the ai service answered {status}");
             return Err(AiError::from_status(status.as_u16()));
         }
         response.json().await.map_err(|err| {
-            log::debug!("claude response was not JSON: {err}");
+            log::debug!("ai response was not JSON: {err}");
             AiError::Empty
         })
     }
@@ -180,25 +197,31 @@ impl Claude {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
 
-    /// A key kept in memory.
+    /// Keys kept in memory.
     #[derive(Default)]
-    struct MemoryKeys(Mutex<Option<String>>);
+    struct MemoryKeys(Mutex<HashMap<String, String>>);
 
     impl KeyStore for MemoryKeys {
-        fn get(&self) -> Option<String> {
-            self.0.lock().clone()
+        fn get(&self, account: &str) -> Option<String> {
+            self.0.lock().get(account).cloned()
         }
 
-        fn set(&self, key: Option<&str>) -> Result<(), String> {
-            *self.0.lock() = key.map(str::to_owned);
+        fn set(&self, account: &str, key: Option<&str>) -> Result<(), String> {
+            let mut keys = self.0.lock();
+            match key {
+                Some(key) => keys.insert(account.to_owned(), key.to_owned()),
+                None => keys.remove(account),
+            };
             Ok(())
         }
     }
 
-    fn claude() -> Claude {
-        Claude::new(Box::new(MemoryKeys::default()))
+    fn assistant() -> Assistant {
+        Assistant::new(Box::new(MemoryKeys::default()))
     }
 
     fn on() -> AiSettings {
@@ -208,27 +231,26 @@ mod tests {
         }
     }
 
+    const CLAUDE: Provider = Provider::Anthropic;
+
     #[test]
     fn it_is_locked_until_a_key_is_given_whatever_the_switches_say() {
-        let claude = claude();
-        assert!(!claude.status().has_key);
-        assert_eq!(
-            claude.unlock(&on(), Feature::WeekInWords),
-            Err(AiError::NoKey)
-        );
+        let ai = assistant();
+        assert!(!ai.status(CLAUDE).has_key);
+        assert_eq!(ai.unlock(&on(), Feature::WeekInWords), Err(AiError::NoKey));
     }
 
     #[test]
-    fn a_key_alone_opens_nothing_claude_is_off_until_switched_on() {
-        let claude = claude();
-        assert!(claude.set_key(Some("  sk-ant-test  ")).unwrap().has_key);
+    fn a_key_alone_opens_nothing_ai_is_off_until_switched_on() {
+        let ai = assistant();
+        assert!(ai.set_key(CLAUDE, Some("  sk-ant-test  ")).unwrap().has_key);
         assert_eq!(
-            claude.unlock(&AiSettings::default(), Feature::WeekInWords),
+            ai.unlock(&AiSettings::default(), Feature::WeekInWords),
             Err(AiError::Off),
             "off by default"
         );
         assert_eq!(
-            claude.unlock(&on(), Feature::WeekInWords).as_deref(),
+            ai.unlock(&on(), Feature::WeekInWords).as_deref(),
             Ok("sk-ant-test"),
             "trimmed as it was stored"
         );
@@ -236,23 +258,51 @@ mod tests {
 
     #[test]
     fn each_feature_has_a_switch_of_its_own() {
-        let claude = claude();
-        claude.set_key(Some("sk-ant-test")).unwrap();
+        let ai = assistant();
+        ai.set_key(CLAUDE, Some("sk-ant-test")).unwrap();
         let settings = AiSettings {
             tell_the_sun: false,
             ..on()
         };
-        assert!(claude.unlock(&settings, Feature::WeekInWords).is_ok());
+        assert!(ai.unlock(&settings, Feature::WeekInWords).is_ok());
+        assert_eq!(ai.unlock(&settings, Feature::TellTheSun), Err(AiError::Off));
+    }
+
+    #[test]
+    fn each_service_has_a_key_of_its_own_and_never_gets_anothers() {
+        let ai = assistant();
+        ai.set_key(Provider::Anthropic, Some("sk-ant-one")).unwrap();
+        let openai = AiSettings {
+            provider: Provider::OpenAi,
+            ..on()
+        };
+        assert!(!ai.status(Provider::OpenAi).has_key);
         assert_eq!(
-            claude.unlock(&settings, Feature::TellTheSun),
-            Err(AiError::Off)
+            ai.unlock(&openai, Feature::WeekInWords),
+            Err(AiError::NoKey),
+            "Claude's key is not sent to OpenAI"
         );
+        ai.set_key(Provider::OpenAi, Some("sk-two")).unwrap();
+        assert_eq!(
+            ai.unlock(&openai, Feature::WeekInWords).as_deref(),
+            Ok("sk-two")
+        );
+        assert_eq!(
+            ai.unlock(&on(), Feature::WeekInWords).as_deref(),
+            Ok("sk-ant-one")
+        );
+        let names = [
+            account(Provider::Anthropic),
+            account(Provider::OpenAi),
+            account(Provider::Custom),
+        ];
+        assert!(names[0] != names[1] && names[1] != names[2] && names[0] != names[2]);
     }
 
     #[test]
     fn hidden_nothing_can_be_asked_whatever_else_is_on() {
-        let claude = claude();
-        claude.set_key(Some("sk-ant-test")).unwrap();
+        let ai = assistant();
+        ai.set_key(CLAUDE, Some("sk-ant-test")).unwrap();
         let hidden = AiSettings {
             hidden: true,
             ..on()
@@ -263,25 +313,25 @@ mod tests {
             Feature::DayInALine,
             Feature::AskTheAlmanac,
         ] {
-            assert_eq!(claude.unlock(&hidden, feature), Err(AiError::Off));
-            assert!(claude.unlock(&on(), feature).is_ok());
+            assert_eq!(ai.unlock(&hidden, feature), Err(AiError::Off));
+            assert!(ai.unlock(&on(), feature).is_ok());
         }
     }
 
     #[test]
     fn the_key_is_removed_by_none_or_by_nothing_but_spaces() {
-        let claude = claude();
-        claude.set_key(Some("sk-ant-test")).unwrap();
-        assert!(!claude.set_key(Some("   ")).unwrap().has_key);
-        claude.set_key(Some("sk-ant-test")).unwrap();
-        assert!(!claude.set_key(None).unwrap().has_key);
+        let ai = assistant();
+        ai.set_key(CLAUDE, Some("sk-ant-test")).unwrap();
+        assert!(!ai.set_key(CLAUDE, Some("   ")).unwrap().has_key);
+        ai.set_key(CLAUDE, Some("sk-ant-test")).unwrap();
+        assert!(!ai.set_key(CLAUDE, None).unwrap().has_key);
     }
 
     #[test]
     fn the_window_is_told_only_whether_there_is_a_key() {
-        let claude = claude();
-        claude.set_key(Some("sk-ant-secret")).unwrap();
-        let json = serde_json::to_string(&claude.status()).unwrap();
+        let ai = assistant();
+        ai.set_key(CLAUDE, Some("sk-ant-secret")).unwrap();
+        let json = serde_json::to_string(&ai.status(CLAUDE)).unwrap();
         assert_eq!(json, r#"{"has_key":true}"#);
     }
 }

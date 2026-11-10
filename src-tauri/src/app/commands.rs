@@ -9,10 +9,10 @@ use tauri::{AppHandle, Manager, State};
 use super::ai::{AiStatus, Feature};
 use super::update::UpdateInfo;
 use super::{AppState, hotkey};
-use crate::core::ai::{self, Understood};
+use crate::core::ai::{self, AiError, Ask, Understood};
 use crate::core::almanac::{Almanac, Mark, Span};
 use crate::core::history::History;
-use crate::core::{PlanRequest, Settings, Snapshot};
+use crate::core::{AiSettings, PlanRequest, Settings, Snapshot};
 use crate::persistence;
 
 /// Current state. Also nudges the engine to re-read the battery, since this is
@@ -163,81 +163,88 @@ pub fn clear_almanac(state: State<'_, AppState>) -> Result<Almanac, String> {
     })
 }
 
-/// Whether an API key for Claude is stored. The key itself never comes back.
+/// Whether an API key is stored for the AI service chosen. The key itself
+/// never comes back.
 #[tauri::command]
 pub fn ai_status(state: State<'_, AppState>) -> AiStatus {
-    state.ai.status()
+    state.ai.status(state.engine.settings().ai.provider)
 }
 
-/// Stores the API key in the OS credential store, or removes it with
-/// `null`. Says only whether there is one now.
+/// Stores the chosen service's API key in the OS credential store, or
+/// removes it with `null`. Says only whether there is one now.
 #[tauri::command]
 pub fn set_ai_key(state: State<'_, AppState>, key: Option<String>) -> Result<AiStatus, String> {
-    state.ai.set_key(key.as_deref()).map_err(|err| {
+    let provider = state.engine.settings().ai.provider;
+    state.ai.set_key(provider, key.as_deref()).map_err(|err| {
         log::warn!("could not store the API key: {err}");
         format!("The key could not be stored: {err}")
     })
 }
 
-/// Asks Claude to put a week of the almanac into words. `digest` is the
-/// week as the window laid it out, and is all that is sent.
+/// Asks for one of AI's features: the locks first, then the request, then
+/// the answer's words.
+async fn answer(
+    state: &State<'_, AppState>,
+    feature: Feature,
+    ask: Result<Ask, AiError>,
+) -> Result<(AiSettings, serde_json::Value), AiError> {
+    let settings = state.engine.settings().ai;
+    let key = state.ai.unlock(&settings, feature)?;
+    let response = state.ai.ask(&settings, &key, &ask?).await?;
+    Ok((settings, response))
+}
+
+/// Asks for a week of the almanac in words. `digest` is the week as the
+/// window laid it out, and is all that is sent.
 #[tauri::command]
 pub async fn ai_read_week(state: State<'_, AppState>, digest: String) -> Result<String, String> {
-    let settings = state.engine.settings().ai;
-    let read = async {
-        let key = state.ai.unlock(&settings, Feature::WeekInWords)?;
-        let body = ai::week_request(&digest)?;
-        ai::text_of(&state.ai.ask(&key, &body).await?)
-    };
-    read.await.map_err(|err| err.sentence())
+    answer(&state, Feature::WeekInWords, ai::week_ask(&digest))
+        .await
+        .and_then(|(settings, response)| ai::text_of(settings.provider, &response))
+        .map_err(|err| err.sentence())
 }
 
-/// Asks Claude to put one day of the almanac into a line. `digest` is that
-/// day as the window laid it out, and is all that is sent.
+/// Asks for one day of the almanac in a line. `digest` is that day as the
+/// window laid it out, and is all that is sent.
 #[tauri::command]
 pub async fn ai_read_day(state: State<'_, AppState>, digest: String) -> Result<String, String> {
-    let settings = state.engine.settings().ai;
-    let read = async {
-        let key = state.ai.unlock(&settings, Feature::DayInALine)?;
-        let body = ai::day_request(&digest)?;
-        ai::text_of(&state.ai.ask(&key, &body).await?)
-    };
-    read.await.map_err(|err| err.sentence())
+    answer(&state, Feature::DayInALine, ai::day_ask(&digest))
+        .await
+        .and_then(|(settings, response)| ai::text_of(settings.provider, &response))
+        .map_err(|err| err.sentence())
 }
 
-/// Asks Claude a question about the days in `digest`, which with the
-/// question is all that is sent.
+/// Asks a question about the days in `digest`, which with the question is
+/// all that is sent.
 #[tauri::command]
 pub async fn ai_ask(
     state: State<'_, AppState>,
     question: String,
     digest: String,
 ) -> Result<String, String> {
-    let settings = state.engine.settings().ai;
-    let read = async {
-        let key = state.ai.unlock(&settings, Feature::AskTheAlmanac)?;
-        let body = ai::ask_request(&question, &digest)?;
-        ai::text_of(&state.ai.ask(&key, &body).await?)
-    };
-    read.await.map_err(|err| err.sentence())
+    answer(
+        &state,
+        Feature::AskTheAlmanac,
+        ai::question_ask(&question, &digest),
+    )
+    .await
+    .and_then(|(settings, response)| ai::text_of(settings.provider, &response))
+    .map_err(|err| err.sentence())
 }
 
-/// Asks Claude what plan a sentence means. Nothing is started here: the
-/// window shows what was understood and asks first. `now` is the local
-/// date and time as the window has it.
+/// Asks what plan a sentence means. Nothing is started here: the window
+/// shows what was understood and asks first. `now` is the local date and
+/// time as the window has it.
 #[tauri::command]
 pub async fn ai_plan(
     state: State<'_, AppState>,
     sentence: String,
     now: String,
 ) -> Result<Understood, String> {
-    let settings = state.engine.settings().ai;
-    let read = async {
-        let key = state.ai.unlock(&settings, Feature::TellTheSun)?;
-        let body = ai::plan_request(&sentence, &now)?;
-        ai::understood(&state.ai.ask(&key, &body).await?)
-    };
-    read.await.map_err(|err| err.sentence())
+    answer(&state, Feature::TellTheSun, ai::plan_ask(&sentence, &now))
+        .await
+        .and_then(|(settings, response)| ai::understood(settings.provider, &response))
+        .map_err(|err| err.sentence())
 }
 
 /// The newer release the daily check found, if any.

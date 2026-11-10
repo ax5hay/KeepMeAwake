@@ -12,5 +12,5 @@ pub mod snapshot;
 
 pub use plan::PlanRequest;
 pub use session::{Mode, Session, SessionEvent};
-pub use settings::{AiSettings, AlmanacSettings, Schedule, Settings};
+pub use settings::{AiSettings, AlmanacSettings, Provider, Schedule, Settings};
 pub use snapshot::{BatteryState, GuardState, PauseReason, ScheduleState, Snapshot};
