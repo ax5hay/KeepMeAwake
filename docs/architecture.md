@@ -13,11 +13,11 @@ flowchart TB
         direction TB
         app["app/<br/>commands · tray · window"]
         engine["engine/<br/>worker thread · policy"]
-        core["core/<br/>Session · PlanRequest · Settings · Schedule · Snapshot<br/><i>pure, no I/O</i>"]
+        core["core/<br/>Session · PlanRequest · Settings · Schedule · Snapshot · Almanac<br/><i>pure, no I/O</i>"]
         platform["platform/<br/>PowerGuard · BatteryProbe · IdleProbe · Clock · TaskbarTheme"]
         win["platform/windows.rs<br/>PowerCreateRequest · PowerSetRequest<br/>GetSystemPowerStatus · GetLastInputInfo · registry theme<br/><i>unsafe, Windows only</i>"]
         mac["platform/macos.rs<br/>IOPMAssertionCreateWithName · Release<br/>IOPSCopyPowerSourcesInfo · CGEventSource idle time<br/><i>unsafe, macOS only</i>"]
-        persist["persistence.rs<br/>settings.json, atomic save"]
+        persist["persistence.rs<br/>settings.json · history.json · almanac.json, atomic save"]
         app --> engine --> core
         engine --> platform --> win
         platform --> mac
@@ -27,8 +27,8 @@ flowchart TB
         direction TB
         api["lib/api.ts<br/>the only file that calls invoke()"]
         store["lib/state.svelte.ts<br/>one store, 1 Hz clock only during a countdown"]
-        pure["lib/format.ts · sun.ts · copy.ts · platform.ts<br/><i>pure, unit tested</i>"]
-        ui["components/<br/>Scene · DurationRule · Settings · …"]
+        pure["lib/format.ts · sun.ts · copy.ts · platform.ts · almanac.ts<br/><i>pure, unit tested</i>"]
+        ui["components/<br/>Scene · DurationRule · Settings · Almanac · …"]
         ui --> store --> api
         store --> pure
     end
@@ -49,6 +49,7 @@ is the first thing to check in a review.
 | `Settings`    | versioned, every field defaulted, `sanitized()` clamps ranges                                          |
 | `schedule`    | `current_window`, `next_window`, `next_boundary`: pure local-time arithmetic, generic over the zone    |
 | `Snapshot`    | everything the UI and tray render, in one message                                                      |
+| `Almanac`     | spans of presence as instants, and a mark per local date; `note` takes one idle reading at a time      |
 
 `until` is resolved to `for` against the wall clock before it reaches the state
 machine, which only knows monotonic time.
@@ -184,6 +185,30 @@ tray, emits `snapshot` to the window and hands the other events to
 `RunEvent::ExitRequested` with no exit code (the last window closed) is vetoed
 so the app lives in the tray.
 
+`app/almanac.rs` keeps the almanac beside the engine, not in it: who is at
+the machine is not a power decision, and has to be noted with the sun up or
+down alike. A thread, `keepmeawake-almanac`, reads the idle time once a
+minute while **Keep an almanac** is on and blocks with no timeout while it
+is off. Each reading goes to `core::almanac::Almanac::note`, which grows the
+newest span or opens a new one after ten quiet minutes. The almanac is saved
+as a span opens, two minutes after the keys go quiet, every quarter hour
+while a span grows, and on exit.
+
+```mermaid
+flowchart LR
+    wake(["once a minute, while on"]) --> read["idle.idle()<br/>read-only"]
+    read --> touched{"idle shrank against<br/>the monotonic clock?"}
+    touched -->|no| nothing["nothing: nobody touched anything"]
+    touched -->|"yes, within 10 min of the newest span"| grow["the span grows to that input"]
+    touched -->|"yes, after a longer quiet"| open["a new span opens · save"]
+    grow --> save{"quiet 2 min,<br/>or 15 min since the last save?"}
+    save -->|yes| disk["almanac.json"]
+```
+
+The window does the rest (`lib/almanac.ts`, pure): days that turn over
+opposite the middle of the working hours, time over, nights as the quiet
+between two spans, leave. Nothing about a night is decided as it happens.
+
 `app/update.rs` starts a thread, `keepmeawake-update`, that asks the updater
 plugin about 30 s after launch and then 24 h after the last check
 (`last_update_check_unix_ms`), sleeping at most 6 h at a time so a laptop
@@ -242,6 +267,9 @@ sequenceDiagram
 | `install_update`  |                        | nothing on success (the app relaunches); events `update-progress`; an error string      |
 | `get_history`     |                        | `History`: the session log, oldest entry first                                          |
 | `clear_history`   |                        | `History` (empty), also written to disk                                                 |
+| `get_almanac`     |                        | `Almanac`: presence and marked days, after one fresh look                               |
+| `mark_day`        | `day`, `mark \| null`  | `Almanac`; an error string for a day that is not a date                                 |
+| `clear_almanac`   |                        | `Almanac` (empty), also written to disk                                                 |
 
 Field names are `snake_case` on both sides and cross the boundary untouched.
 `src/lib/types.ts` mirrors `core` one to one; a test on each side pins the
@@ -283,13 +311,16 @@ where it last was.
   they run; the webview has no updater or process permission. Fonts and
   assets are bundled. Toasts go to the local notification centre; they are
   sent from Rust, so the webview has no notification permission.
-- One settings file and one log, per user (see **On disk**).
+- One settings file, one log and one almanac, per user (see **On disk**).
+  The almanac holds only when someone was at the machine, never what they
+  did, and never leaves it.
 - A handful of OS calls, one file per OS: on Windows power requests, power
   status, the last input time, two registry reads and a registry change
   notification; on macOS two power assertions, the power sources snapshot
   and the HID idle time.
-- No input is ever sent to other applications. The overnight guard only
-  reads how long ago the last input was; neither OS asks permission for it. The global hotkey is
+- No input is ever sent to other applications. The overnight guard and
+  the almanac only read how long ago the last input was; neither OS asks
+  permission for it. The global hotkey is
   registered from Rust (`RegisterHotKey` on Windows, a Carbon hot key on
   macOS), which only listens, so the webview has no shortcut permission.
 - CSP is `default-src 'self'`; the capability file grants only window
@@ -305,6 +336,7 @@ where it last was.
 | Settings  | `%APPDATA%\dev.bajpai.keepmeawake\settings.json`             | `~/Library/Application Support/dev.bajpai.keepmeawake/settings.json`    |
 | Log       | `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs\keepmeawake.log` | `~/Library/Logs/dev.bajpai.keepmeawake/keepmeawake.log`                 |
 | History   | `%APPDATA%\dev.bajpai.keepmeawake\history.json`              | `~/Library/Application Support/dev.bajpai.keepmeawake/history.json`     |
+| Almanac   | `%APPDATA%\dev.bajpai.keepmeawake\almanac.json`              | `~/Library/Application Support/dev.bajpai.keepmeawake/almanac.json`     |
 | Autostart | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`         | a LaunchAgent plist in `~/Library/LaunchAgents/`, written by the plugin |
 
 ---

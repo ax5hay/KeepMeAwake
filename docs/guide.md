@@ -8,7 +8,7 @@ Everything the app can do, including the parts that are not labelled.
 flowchart TB
     subgraph Window["380 × 600, frameless"]
         direction TB
-        T["Title bar · wordmark · settings · minimise · close"]
+        T["Title bar · wordmark · almanac · settings · minimise · close"]
         S["Scene · sky, sun, horizon, ground"]
         ST["Status · Resting / Awake / Paused + one line of detail"]
         R["Rule · Always · 30m · 1h · 2h · 4h · 8h · Until…"]
@@ -127,13 +127,77 @@ is behind it. When an update is ready the line leads with it,
 button in the title bar (the sliders) opens Settings where you left it. The
 line hides when the window is shorter than 560 px.
 
+## Almanac
+
+The open book in the title bar. A book of your days at this machine: how
+long you worked, which days you took off, and when the keys went quiet at
+night. It is on by default and reads one thing, once a minute: how long
+since the last keyboard, mouse or trackpad input. Nothing is typed, nothing
+is sent anywhere, and it works the same with the sun up or down.
+
+![Almanac, Paper](assets/almanac-light.png) ![Almanac, Night](assets/almanac-dark.png)
+
+| Part      | Shows                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------- |
+| The day   | `4h 29m`, or a word: `Leave`, `Rest`, `Nothing`, `Ahead`                                                |
+| Detail    | `First light 11:39 am · last 2:17 am · 2h 47m over`; then `Night 2:17 am – 11:12 am · 8h 55m`           |
+| The strip | the day as a small horizon; see below                                                                   |
+| The week  | seven smaller strips, Monday first, with each day's total; click one to read it                         |
+| The month | a calendar: a bar under a day worked (longer for a longer day), a ring for leave, the sun on today      |
+| The tally | the year's leaves and days worked; `Usual night` once three nights are known                            |
+| The foot  | **Working days and hours…** opens Settings → Almanac; **Clear the almanac** empties it, no confirmation |
+
+Reading a strip:
+
+| Mark                      | Means                                                      |
+| ------------------------- | ---------------------------------------------------------- |
+| the band of sky           | your working hours (working days only)                     |
+| ink on the line           | you were here; a break under ten minutes does not split it |
+| ink outside the band      | time over: before hours, after hours, or on a day off      |
+| the dotted run underneath | the night, at whichever end of the day it falls            |
+| the sun                   | now, on today                                              |
+
+The **night** is read backwards: it is the quiet between the last touch of
+one day and the first touch of the next, so nothing is asked and nothing is
+guessed as it happens. That is why it is found with the sun on **Always**
+(the laptop never slept, but the keys did go quiet) exactly as it is with
+the laptop asleep. On the first open after a night, Home whispers it once:
+`A quiet night: 2:17 am to 11:12 am.`
+
+| A quiet is a night when                           | So                                          |
+| ------------------------------------------------- | ------------------------------------------- |
+| it lasts 3 to 16 hours                            | an afternoon out, or a weekend away, is not |
+| at least 2 hours of it fall in your resting hours | the 10 hours opposite your working hours    |
+| a touch under 2 minutes inside it is looked past  | a nudged mouse at 3 am is not a morning     |
+
+It says "night" and "quiet", never that you slept: it knows when the keys
+went quiet, not what you did.
+
+A **day** does not end at midnight. It turns over opposite the middle of
+your working hours (1 am for 9 to 6, 7 am for 3 pm to midnight), so work
+that runs late stays on the day it began.
+
+**Leave**: the link under the strip marks the day being read, **Mark as
+leave** or **Not a leave**. Days still to come can be marked, and show as a
+ring ahead. A past working day with nothing in it reads as leave on its own
+(switch that off on a machine you rarely use), and a day with under five
+minutes in it is not a day's work.
+
+![Almanac → month, Paper](assets/almanac-month-light.png) ![Almanac → month, Night](assets/almanac-month-dark.png)
+
+It lives in `almanac.json` beside the settings, keeps 400 days, and is
+written as a stretch begins, two minutes after the keys go quiet, every
+quarter hour while you work, and on quit. What it cannot know: whether what
+you did at the keyboard was work, and a meeting taken without touching the
+laptop for more than ten minutes reads as a break.
+
 ## Keyboard
 
 | Windows    | macOS    | Does                                                                      |
 | ---------- | -------- | ------------------------------------------------------------------------- |
 | Space      | Space    | toggle awake / resting                                                    |
 | Ctrl+Alt+K | ⌥⌘K      | toggle from any app, window open or not (recordable in Settings → Hotkey) |
-| Esc        | Esc      | back from settings, else close to the tray or menu bar                    |
+| Esc        | Esc      | back from settings or the almanac, else close to the tray or menu bar     |
 |            | ⌘W       | close to the menu bar                                                     |
 |            | ⌘M       | minimise                                                                  |
 |            | ⌘Q       | quit                                                                      |
@@ -163,35 +227,41 @@ dark menu bar itself. Nothing to set.
 
 ## Settings
 
-| Section       | Setting                    | Notes                                                                     |
-| ------------- | -------------------------- | ------------------------------------------------------------------------- |
-| Startup       | Launch at sign-in          | registers under the current user; starts hidden                           |
-|               | Open the window at launch  | only applies when you start it yourself                                   |
-|               | Begin as                   | Resting · Awake · Default length                                          |
-| Waking        | Default length             | what the sun, tray toggle and Space use. Always, or a stop                |
-|               | Warn before sunset         | Off · 2m · 5m · 10m before a timer ends; 5m by default                    |
-|               | Overnight guard            | Off · 4h · 6h · 8h without input before Always asks, then rests; 6h       |
-|               | Keep the screen on         | same switch as on the home pane                                           |
-| Schedule      | Keep a schedule            | awake during these hours, resting outside them. Off by default            |
-|               | Days                       | Monday first; weekdays by default                                         |
-|               | From / Until               | 9:00 am until 6:00 pm by default; overnight is fine                       |
-| Battery       | Pause below                | Off, or 10–50%                                                            |
-|               | Pause whenever unplugged   | strictest: on battery means resting                                       |
-| Window        | Closing keeps it running   | off quits on close                                                        |
-|               | Free memory when closed    | destroys the UI on close (default); off hides it for an instant reopen    |
-|               | Appearance                 | System · Paper · Night                                                    |
-| Notifications | When a timer ends          | a toast when a timed session sets on its own. On by default               |
-|               | Battery pauses and resumes | when the battery rule pauses the sun, and when the charger brings it back |
-|               | Schedule starts and ends   | when a schedule window opens or closes                                    |
-| Hotkey        | Hotkey                     | `Ctrl+Alt+K` by default. Change records a new one; Off removes it         |
-| History       |                            | the last 30 times the sun was up; see below                               |
-| Tips          |                            | the keyboard and tray table                                               |
-| About         | Check for updates daily    | once a day, from GitHub; on by default. See Updates below                 |
-|               |                            | version, how it works, author, Source, Quit                               |
+| Section       | Setting                      | Notes                                                                     |
+| ------------- | ---------------------------- | ------------------------------------------------------------------------- |
+| Startup       | Launch at sign-in            | registers under the current user; starts hidden                           |
+|               | Open the window at launch    | only applies when you start it yourself                                   |
+|               | Begin as                     | Resting · Awake · Default length                                          |
+| Waking        | Default length               | what the sun, tray toggle and Space use. Always, or a stop                |
+|               | Warn before sunset           | Off · 2m · 5m · 10m before a timer ends; 5m by default                    |
+|               | Overnight guard              | Off · 4h · 6h · 8h without input before Always asks, then rests; 6h       |
+|               | Keep the screen on           | same switch as on the home pane                                           |
+| Schedule      | Keep a schedule              | awake during these hours, resting outside them. Off by default            |
+|               | Days                         | Monday first; weekdays by default                                         |
+|               | From / Until                 | 9:00 am until 6:00 pm by default; overnight is fine                       |
+| Almanac       | Keep an almanac              | days, hours and nights, from your input. On by default; see Almanac above |
+|               | Working days                 | Monday first; weekdays by default                                         |
+|               | Working hours                | 9:00 am until 6:00 pm by default; past midnight is fine                   |
+|               | Empty working days are leave | on by default; off on a machine you rarely use                            |
+| Battery       | Pause below                  | Off, or 10–50%                                                            |
+|               | Pause whenever unplugged     | strictest: on battery means resting                                       |
+| Window        | Closing keeps it running     | off quits on close                                                        |
+|               | Free memory when closed      | destroys the UI on close (default); off hides it for an instant reopen    |
+|               | Appearance                   | System · Paper · Night                                                    |
+| Notifications | When a timer ends            | a toast when a timed session sets on its own. On by default               |
+|               | Battery pauses and resumes   | when the battery rule pauses the sun, and when the charger brings it back |
+|               | Schedule starts and ends     | when a schedule window opens or closes                                    |
+| Hotkey        | Hotkey                       | `Ctrl+Alt+K` by default. Change records a new one; Off removes it         |
+| History       |                              | the last 30 times the sun was up; see below                               |
+| Tips          |                              | the keyboard and tray table                                               |
+| About         | Check for updates daily      | once a day, from GitHub; on by default. See Updates below                 |
+|               |                              | version, how it works, author, Source, Quit                               |
 
 ![Settings → Waking, Paper](assets/overnight-settings-light.png) ![Settings → Waking, Night](assets/overnight-settings-dark.png)
 
 ![Settings → Schedule, Paper](assets/schedule-settings-light.png) ![Settings → Schedule, Night](assets/schedule-settings-dark.png)
+
+![Settings → Almanac, Paper](assets/almanac-settings-light.png) ![Settings → Almanac, Night](assets/almanac-settings-dark.png)
 
 ## History
 

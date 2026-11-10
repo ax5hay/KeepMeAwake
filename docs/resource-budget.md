@@ -8,7 +8,8 @@
 | ------------------------------ | ------------------- | ------------------------------------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------- |
 | Private memory, tray only      | ≤ 12 MB             | 4.5 MB after an update check (0.2: 5.7 MB)                   | **16 MB resting, 17 MB awake** (over)            | one native process, no webview                                              |
 | Private memory, window open    | ≤ 90 MB             | 5.4 MB app + WebView2                                        | 26 MB app + 30 MB WebContent                     | the system webview is the floor; the page is small                          |
-| CPU while resting              | 0 wake-ups          | 0 ms CPU in 60 s                                             | 0 ms CPU in 60 s                                 | the engine (and, on Windows, theme) threads block in the kernel             |
+| CPU while resting              | 0 wake-ups          | 0 ms CPU in 60 s (almanac off)                               | 0 ms CPU in 60 s (almanac off)                   | the engine (and, on Windows, theme) threads block in the kernel             |
+| CPU while resting, almanac on  | 1 wake-up / min     | by design; to be measured                                    | by design; to be measured                        | one idle reading a minute, nothing else                                     |
 | CPU while awake                | 1 wake-up / 30 s    | 1 / 30 s                                                     | 20 ms CPU in 60 s (two polls)                    | battery poll only                                                           |
 | CPU while resting, schedule on | ≤ 1 wake-up / 5 min | by design                                                    | by design                                        | the next window start, re-checked so sleep cannot make it late              |
 | Threads at rest                | no polling threads  | 30 (Tauri, WebView2 loader, plugins)                         | 14 resting, 18 awake                             | `keepmeawake-engine` (and `keepmeawake-theme`) sleep until woken            |
@@ -17,6 +18,22 @@
 | UI bundle (JS + CSS, gzip)     | ≤ 60 KB             | 30 KB + 3.7 KB (0.1: 28 KB + 3.5 KB)                         | 32 KB + 3.8 KB (both, from the next build)       | Svelte compiles away; no framework runtime                                  |
 | Fonts                          | ≤ 160 KB            | 149 KB                                                       | 149 KB                                           | one family, two files, latin subset                                         |
 | Cold open of the window        | ≤ 400 ms            | under 1 s                                                    | 0.86 s from a cold launch                        | webview spin-up + first paint                                               |
+
+The almanac is the first thing that wakes the app at rest, and it is behind
+a switch (Settings → Almanac → Keep an almanac, on by default). One thread,
+`keepmeawake-almanac`, waits on a condvar: with the almanac on it wakes
+once a minute to read the idle time (`GetLastInputInfo` or
+`CGEventSourceSecondsSinceLastEventType`, one call of microseconds) and
+note it; with it off it waits with no timeout and never wakes. A minute is
+enough because the OS stamps the last input itself: the moment someone left
+is known to the second from a look taken later. `almanac.json` (one line,
+400 days at most, a few tens of KB after a year) is written as a span
+opens, two minutes after the keys go quiet, every 15 minutes while a span
+grows, and on exit. In the window, the Almanac pane asks for it once a
+minute while it is on screen and the window is visible, and never
+otherwise; the strips are positioned boxes with no animation. The numbers
+for a resting minute with the almanac on are still to be measured on both
+machines.
 
 The sunset warning adds one engine wake per timed session, at the warning
 moment, and nothing in the window: the status line uses the 1 Hz clock a
@@ -96,7 +113,7 @@ npm run ui:build   # Vite prints gzip sizes per chunk
 
 ```mermaid
 flowchart TD
-    A["No setInterval faster than 1 s,<br/>and none unless a countdown is on screen"] --> keep["Budget holds"]
+    A["No setInterval faster than 1 s,<br/>and none unless a countdown is on screen<br/>(the Almanac pane: one a minute, while it is)"] --> keep["Budget holds"]
     B["No CSS animation that runs while idle;<br/>transitions on state change only"] --> keep
     C["Grain is a static filter;<br/>never animate baseFrequency"] --> keep
     D["Engine waits are wait_until(deadline) or wait();<br/>the loop never spins"] --> keep

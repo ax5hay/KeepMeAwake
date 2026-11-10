@@ -5,6 +5,27 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+
+- The Almanac: a book of your days at this machine, behind the open book in
+  the title bar. It shows how long you worked each day, what ran over your
+  working hours, which days were leave, and the night: the quiet between
+  the last touch of one day and the first of the next. The night is read
+  backwards, so it is found with the sun on Always exactly as with the
+  laptop asleep, and Home whispers it once on the first open after it.
+  Each day is drawn as a small horizon (a band of sky over your working
+  hours, ink where you were here, the night dotted under the line, the sun
+  at now), with the week as seven strips and the month as a calendar.
+  **Mark as leave** on any day, past or to come.
+- Settings → Almanac: Keep an almanac (on by default), Working days,
+  Working hours (past midnight is fine: a day turns over opposite the
+  middle of them, so late work stays on the day it began) and Empty working
+  days are leave.
+- It reads only how long since the last input, once a minute, the same
+  read-only call the overnight guard makes. Nothing is typed, and
+  `almanac.json` never leaves the machine. With the switch off the app
+  wakes for nothing at rest, as before.
+
 ## [0.3.0] - 2026-11-07
 
 Session history, the sunset warning, the overnight guard and auto-update,

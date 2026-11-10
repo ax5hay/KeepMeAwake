@@ -85,6 +85,7 @@ that are not labelled. The short version:
 | do all of this without a window | right-click the sun in the tray              |
 | change defaults                 | the sliders, or **Ctrl+,** (**⌘,** on a Mac) |
 | see when it stayed up           | **History** at the foot of the window        |
+| see your days, hours and leave  | the open book in the title bar: the Almanac  |
 
 Settings live at `%APPDATA%\dev.bajpai.keepmeawake\settings.json`, logs at
 `%LOCALAPPDATA%\dev.bajpai.keepmeawake\logs`. On a Mac:

@@ -52,15 +52,22 @@ timeline
 
 ## Next
 
-| Feature                                                                                 | Spec                                     | Layers        |
-| --------------------------------------------------------------------------------------- | ---------------------------------------- | ------------- |
-| Winget and Scoop                                                                        | [winget-scoop.md](specs/winget-scoop.md) | ci, docs      |
-| Almanac: days and hours worked, leave, and the night read from the last and first touch | [almanac.md](specs/almanac.md)           | core, app, ui |
+| Feature          | Spec                                     | Layers   |
+| ---------------- | ---------------------------------------- | -------- |
+| Winget and Scoop | [winget-scoop.md](specs/winget-scoop.md) | ci, docs |
 
 macOS shipped in 0.2.0 as a pre-release, built on a Mac. The
 by-hand acceptance items that need a person at the Mac (menu bar click and
 legibility, ⌘W/⌘Q in the real app, toasts, launch at sign-in, unplugging) are
 listed in [`HANDOFF.md`](HANDOFF.md); it stays marked pending until they pass.
+
+## Built for 0.4, not yet released
+
+| Feature                                                                                            | Spec                           | Layers        |
+| -------------------------------------------------------------------------------------------------- | ------------------------------ | ------------- |
+| Almanac: days and hours worked, time over, leave, and the night read from the last and first touch | [almanac.md](specs/almanac.md) | core, app, ui |
+
+Built on Windows; waits for the Mac (see [`HANDOFF.md`](HANDOFF.md)).
 
 ## After 0.3
 
@@ -82,7 +89,7 @@ Scoped enough to size; each gets a full spec when it is next in line.
 | Presenting awareness | `SHQueryUserNotificationState` reports presentation mode and full-screen apps. Option: **stay awake while presenting or full-screen** (keeps the display on during a talk or a film, lets go after). Polled only while the option is on, every 30 s alongside the battery. | platform, engine, ui | S    |
 | Docked awareness     | External display present (`EnumDisplayMonitors`, `WM_DISPLAYCHANGE` via a message-only window) → option **stay awake while docked**. Works with the schedule: docked overrides battery rules because docks power the laptop.                                               | platform, engine, ui | M    |
 | Watch a process      | **Stay awake while this runs**: pick a process name (`cargo.exe`, `rsync`, a game); the sun stays up while it exists and sets a minute after it exits. Enumerate with `CreateToolhelp32Snapshot` every 15 s only while a watch is set.                                     | platform, engine, ui | M    |
-| Sky log              | History drawn, not listed: one row per day, each session a small arc from its start to its end on a 24-hour horizon, pauses as gaps, sleep as a broken arc. The most beautiful screen in the app; lives behind History.                                                    | ui                   | M    |
+| Sky log              | History drawn, not listed: one row per day, each session a small arc from its start to its end on a 24-hour horizon, pauses as gaps, sleep as a broken arc. The Almanac's strips already draw each day that way for presence; this lays the sun's sessions over them.      | ui                   | S    |
 
 ### Later
 
