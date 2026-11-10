@@ -4,13 +4,13 @@ The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
 **Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: the Almanac built and extended, a schedule fix; unreleased)
-**Release:** [v0.3.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.3.0), the first **full** release and the latest; `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
+**Release:** [v0.4.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.4.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
 **Repo state:** `main` is green (`npm run verify` on Windows: vitest 164, cargo test 217;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
 the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
 `.app.tar.gz` (Apple Silicon, ad hoc signed, not notarized), each updater artifact signed,
-and `latest.json` for both. Under Unreleased: the **Almanac** (days and hours
+and `latest.json` for both. In 0.4.0: the **Almanac** (days and hours
 worked, leave, the night, today on Home, days put right by hand, Set with
 me) and a fix for a schedule with equal times; built on Windows and waiting
 for the Mac. The project is under its own

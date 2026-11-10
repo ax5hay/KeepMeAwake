@@ -5,6 +5,13 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-10
+
+The Almanac: your days at this machine, the hours you worked, your leave
+and your nights, with today on Home. Built and checked on Windows; the Mac
+has compiled and tested it on CI but nobody has lived with it there yet,
+and Set with me (off unless you ask) has not yet had a real night.
+
 ### Fixed
 
 - A schedule set to start and end at the same time switched itself off and
@@ -172,6 +179,7 @@ First release. A twenty-line Python script became a desktop app.
   late-night line.
 - Settings persisted atomically; rotating log file.
 
-[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.4.0
 [0.3.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.3.0
 [0.2.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.2.0

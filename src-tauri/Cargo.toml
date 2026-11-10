@@ -1,6 +1,6 @@
 [package]
 name = "keepmeawake"
-version = "0.3.0"
+version = "0.4.0"
 description = "Keeps your laptop awake while you need it, on Windows and macOS, without faking input."
 authors = ["Akshay Bajpai"]
 license-file = "../LICENSE"

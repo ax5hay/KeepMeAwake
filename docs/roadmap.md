@@ -61,13 +61,13 @@ by-hand acceptance items that need a person at the Mac (menu bar click and
 legibility, ⌘W/⌘Q in the real app, toasts, launch at sign-in, unplugging) are
 listed in [`HANDOFF.md`](HANDOFF.md); it stays marked pending until they pass.
 
-## Built for 0.4, not yet released
+## Shipped in 0.4
 
 | Feature                                                                                                                                                                                         | Spec                           | Layers                |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | --------------------- |
 | Almanac: days and hours worked, time over, leave, and the night read from the last and first touch; any day put right by hand; today on Home; Always can set with the night and rise at a touch | [almanac.md](specs/almanac.md) | core, engine, app, ui |
 
-Built on Windows; waits for the Mac (see [`HANDOFF.md`](HANDOFF.md)).
+Built and checked on Windows; the Mac's checks are listed in [`HANDOFF.md`](HANDOFF.md).
 
 ## After 0.3
 
