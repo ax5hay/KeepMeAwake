@@ -5,6 +5,14 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-11
+
+AI, as a choice: off until you turn it on, with your own key, by the
+service you pick. Also checking for updates when you ask and when the
+window opens. Built and checked on Windows; the Mac has compiled and
+tested it on CI. No answer from a real service has been seen yet, for
+want of a key: the first request with yours is the test.
+
 ### Added
 
 - AI, as a choice, and a cheap one, by the service you choose: Claude,
@@ -15,7 +23,7 @@ Versions: [SemVer](https://semver.org).
   with Until…, **Tell the sun** (say the plan, `two hours` or `until half
   six`; it shows what it understood and starts only when you say). Three
   locks, each visible: with no API key the features are shown locked, with
-  a way to add one; with a key they say Claude is switched off, with the
+  a way to add one; with a key they say AI is switched off, with the
   master switch right there (Settings → AI → Use AI, off until you
   turn it on); and each feature has its own switch beside its name.
   Nothing is sent without a click that says what it sends. The key is your
@@ -219,7 +227,8 @@ First release. A twenty-line Python script became a desktop app.
   late-night line.
 - Settings persisted atomically; rotating log file.
 
-[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.5.0
 [0.4.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.4.0
 [0.3.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.3.0
 [0.2.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.2.0

@@ -3,8 +3,8 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: v0.4.0 released; Claude, Check for updates, break reminder and CSV built, unreleased)
-**Release:** [v0.4.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.4.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
+**Last updated:** 2026-11-11 · by Claude Fable 5.2 (Windows session: v0.5.0 released: AI by any service, Check for updates, break reminder, CSV)
+**Release:** [v0.5.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.5.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
 **Repo state:** `main` is green (`npm run verify` on Windows: vitest 192, cargo test 246;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
@@ -190,6 +190,7 @@ on Windows is listed under **Where to start**.
 | 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards          | Claude Fable 5.2 |
 | 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Sleep when I'm away (4 commits)         | Claude Fable 5.2 |
 | 2026-11-10 | v0.4.0 released (full, latest). Claude behind three locks; Check for updates; break reminder; month as CSV | Claude Fable 5.2 |
+| 2026-11-11 | AI by any service (Claude, OpenAI, other); product names back; v0.5.0 released (full, latest)              | Claude Fable 5.2 |
 
 ## Updates and wording, third round
 
@@ -267,7 +268,7 @@ For the Mac: `npm run verify`; the key goes into the Keychain (expect one
 permission prompt the first time); the chip, lock and switch in SF Pro at
 340 px.
 
-Also built this round, unreleased: **Check for updates** in Settings → About (done
+Also built this round, released in 0.5.0: **Check for updates** in Settings → About (done
 in the real app: answers "nothing newer" on 0.4.0), a **break reminder**
 (keeper tested; the toast **by hand**), and **Copy month as CSV** (tested;
 the clipboard **by hand** in the real window).

@@ -69,7 +69,7 @@ listed in [`HANDOFF.md`](HANDOFF.md); it stays marked pending until they pass.
 
 Built and checked on Windows; the Mac's checks are listed in [`HANDOFF.md`](HANDOFF.md).
 
-## Built for 0.5, not yet released
+## Shipped in 0.5
 
 | Feature                                                         | Spec                                                 | Layers        |
 | --------------------------------------------------------------- | ---------------------------------------------------- | ------------- |
