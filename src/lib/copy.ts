@@ -159,7 +159,7 @@ export const SET_WITH_THE_NIGHT = 'Asleep for the night. Always resumes when you
 export const SET_WITH_ME_HINT =
   "At night, lets the laptop sleep once you've been away this long, and turns Always back on when you return.";
 
-/** Settings → Almanac → Morning summary. */
+/** Settings → Almanac → Morning whisper. */
 export const WHISPER_NIGHT_HINT = "Last night's time away, shown once when you open the app.";
 
 /** The action under the status line, and the tray item, while the guard asks. */
@@ -264,7 +264,7 @@ export const ALMANAC_TITLE = 'Almanac: your days, hours and nights';
  * what was done with it: the keys went quiet, and that is all it knows.
  */
 export function quietNight(from: string, to: string): string {
-  return `Away overnight: ${from} to ${to}.`;
+  return `A quiet night: ${from} to ${to}.`;
 }
 
 /** The word a day reads as when it has no hours to show. */
@@ -375,12 +375,12 @@ export const ALMANAC_SETTINGS = 'Working days and hours…';
 export const CLEAR_ALMANAC = 'Clear the almanac';
 
 /** The pane while the almanac is switched off. */
-export const ALMANAC_CLOSED = 'Tracking is off. Nothing is being recorded.';
+export const ALMANAC_CLOSED = 'The almanac is closed. Nothing is being recorded.';
 
 /** The pane on its first day, before there is anything to draw. */
-export const ALMANAC_BEGINS = 'Tracking starts today.';
+export const ALMANAC_BEGINS = 'The first day is being written.';
 
-/** Settings → Almanac → Track my days. */
+/** Settings → Almanac → Keep an almanac. */
 export const ALMANAC_HINT = 'Your hours, leave and nights.';
 
 /** Settings → Almanac → Working hours. */
@@ -389,76 +389,97 @@ export const WORK_HOURS_HINT = 'Past midnight is fine. Time outside them counts 
 /** Settings → Almanac → Empty working days are leave. */
 export const EMPTY_LEAVE_HINT = 'Off on a machine you rarely use.';
 
-/** A Claude feature with no API key: said wherever the feature is. */
+/** AI's features with no API key: said wherever they are. */
 export const AI_LOCKED = 'Locked: needs an API key.';
 
-/** The link beside it, into Settings → Claude. */
+/** The link beside it, into Settings → AI. */
 export const AI_ADD_KEY = 'Add a key';
 
-/** A Claude feature with a key, while Claude is switched off. */
-export const AI_OFF = 'Claude is switched off.';
+/** AI's features with a key, while AI is switched off. */
+export const AI_OFF = 'AI is switched off.';
 
 /** The link beside it: the master switch, from where the feature is. */
 export const AI_SWITCH_ON = 'Switch it on';
 
-/** Settings → Claude → Use Claude. */
-export const AI_MASTER_HINT = 'Off, nothing is ever sent to Anthropic.';
+/** Settings → AI → Use AI. */
+export const AI_MASTER_HINT = 'Off, nothing is ever sent anywhere.';
 
 /** The same row with no key: the switch cannot move yet. */
 export const AI_MASTER_LOCKED = 'Needs an API key first.';
 
-/** Settings → Claude, under the key field, while there is none. */
-export const AI_KEY_WHY = 'Your own key from console.anthropic.com. Asking Claude is billed to it.';
+/** Settings → AI → Service. */
+export const AI_SERVICE_HINT = 'Whose model answers. Each service keeps its own key.';
 
-/** Settings → Claude, once a key is stored. */
+/** Settings → AI → Model, for a service with a smallest model of its own. */
+export function modelHint(smallest: string): string {
+  return smallest === ''
+    ? "The model's name, as the service lists it."
+    : `Leave empty for the smallest, ${smallest}.`;
+}
+
+/** Settings → AI → Address, for a service of one's own. */
+export const AI_ADDRESS_HINT =
+  'Any service that speaks the OpenAI chat format, or a model running on this machine.';
+
+/** Settings → AI, under the key field, while there is none. */
+export function keyWhy(keysFrom: string): string {
+  return `Your own key, from ${keysFrom}. Asking is billed to it.`;
+}
+
+/** Settings → AI, once a key is stored. */
 export const AI_KEY_SAVED = 'A key is saved.';
 
-/** Settings → Claude: what the app does and does not do with it. */
+/** Settings → AI: what the app does and does not do with it. */
 export const AI_PROMISE =
-  'Claude is asked only when you click something that says so, and is sent only what that says.';
+  'AI is asked only when you click something that says so, and is sent only what that says.';
 
-/** Settings → Claude: what it costs to ask. */
+/** Settings → AI: what it costs to ask. */
 export const AI_CHEAP =
-  'Uses Claude Haiku, the smallest model, for a line or two at a time: asking costs a small fraction of a cent.';
+  'It asks the smallest model for a line or two at a time, so asking costs a small fraction of a cent.';
 
-/** Settings → Claude → Hide AI. */
+/** Settings → AI → Hide AI. */
 export const AI_HIDE_HINT =
   'Takes every AI feature out of sight. One button here brings them back.';
 
-/** Settings → Claude, while hidden: all that is left of it. */
+/** Settings → AI, while hidden: all that is left of it. */
 export const AI_HIDDEN = 'AI is hidden';
 export const AI_HIDDEN_HINT = 'Nothing of it is shown, and nothing can be asked.';
 export const AI_ENABLE = 'Enable AI';
 
 /** The Almanac's day, put into a line. */
-export const DAY_IN_A_LINE = 'Summarise this day';
+export const DAY_IN_A_LINE = 'The day, in a line';
 export const DAY_HINT = 'One sentence about the selected day.';
-export const DAY_READ = 'Summarise day';
-export const DAY_SENDS = 'Sends this one day to Anthropic, when you ask.';
+export const DAY_READ = 'Read this day';
 
 /** A question, answered from the month in view. */
-export const ASK_THE_ALMANAC = 'Ask about this month';
+export const ASK_THE_ALMANAC = 'Ask the almanac';
 export const ASK_HINT = 'Ask a question about the month shown.';
 export const ASK_PLACEHOLDER = 'how many hours last week?';
-export const ASK_SENDS = 'Sends your question and this month of days to Anthropic.';
 
 /** The Almanac's week, put into words. */
-export const WEEK_IN_WORDS = 'Summarise this week';
-
-/** What it does, shown while its switch is off. */
+export const WEEK_IN_WORDS = 'This week, in words';
 export const WEEK_HINT = 'Two or three sentences about the selected week.';
+export const WEEK_READ = 'Read this week';
 
-/** The link that asks. */
-export const WEEK_READ = 'Summarise week';
-
-/** While it is being read. */
+/** While an answer is on its way. */
 export const WEEK_READING = 'Working…';
 
-/** What asking sends. */
-export const WEEK_SENDS = 'Sends this week of hours and nights to Anthropic, when you ask.';
+/** What asking sends, and to whom: said under each feature. */
+export function sendsDay(to: string): string {
+  return `Sends this one day to ${to}, when you ask.`;
+}
+export function sendsWeek(to: string): string {
+  return `Sends this week of hours and nights to ${to}, when you ask.`;
+}
+export function sendsMonth(to: string): string {
+  return `Sends your question and this month of days to ${to}.`;
+}
+export function sendsSentence(to: string): string {
+  return `Sends this sentence to ${to}.`;
+}
 
 /** Home's plan in a sentence. */
-export const TELL_THE_SUN = 'Plan in words';
+export const TELL_THE_SUN = 'Tell the sun';
 
 /** What it does, shown while its switch is off. */
 export const TELL_HINT = 'Type how long to stay awake instead of picking a time.';
@@ -472,9 +493,6 @@ export const TELL_THINKING = 'Asking…';
 
 /** The button that starts what was understood. */
 export const TELL_START = 'Start';
-
-/** What asking sends. */
-export const TELL_SENDS = 'Sends this sentence to Anthropic.';
 
 /** Settings → Almanac → Break reminder. */
 export const BREAK_HINT = 'A toast after that long without five minutes away.';
@@ -553,7 +571,7 @@ export interface PlatformCopy {
   about: { before: string; code: string; after: string };
   /** Status line when the OS turns the request down. */
   refused: string;
-  /** Settings → Claude: where the API key is kept. */
+  /** Settings → AI: where the API key is kept. */
   keyKept: string;
 }
 

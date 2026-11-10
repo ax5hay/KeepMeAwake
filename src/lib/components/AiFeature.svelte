@@ -1,13 +1,13 @@
 <script lang="ts">
   /**
-   * One of Claude's features, inside a ClaudeGroup: its name, its own
+   * One of AI's features, inside an AiGroup: its name, its own
    * switch, and under them either what it does (while it cannot be used) or
    * the feature itself.
    */
   import type { Snippet } from 'svelte';
 
   import Switch from './Switch.svelte';
-  import type { AiFeature } from '$lib/claude';
+  import type { AiFeature } from '$lib/ai';
   import { store } from '$lib/state.svelte';
 
   interface Props {

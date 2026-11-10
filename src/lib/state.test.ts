@@ -63,6 +63,9 @@ const base: Snapshot = {
       day_in_a_line: true,
       ask_the_almanac: true,
       hidden: false,
+      provider: 'anthropic',
+      model: '',
+      base_url: '',
     },
     check_for_updates: true,
     last_update_check_unix_ms: 0,
@@ -409,7 +412,7 @@ describe('AppStore and a check by hand', () => {
   });
 });
 
-describe('AppStore and Claude', () => {
+describe('AppStore and AI', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 0, 1, 12, 0, 0));
@@ -466,16 +469,39 @@ describe('AppStore and Claude', () => {
     expect((await store.askPlan('two hours', 'now'))?.say).toBe('Awake for 2 hours');
 
     api.aiReadWeek = vi.fn(async () => {
-      throw new Error('Claude is switched off.');
+      throw new Error('AI is switched off.');
     });
     // A different week: the one above is remembered, and is not asked again.
     expect(await store.readWeek('Mon 16 Nov: 8h')).toBeNull();
-    expect(store.error).toBe('Claude is switched off.');
+    expect(store.error).toBe('AI is switched off.');
     store.dispose();
   });
 });
 
-describe('AppStore, Claude and cost', () => {
+describe('AppStore and the AI service', () => {
+  it('starts a new service from its smallest model and asks afresh for its key', async () => {
+    const { api } = fakeApi(base);
+    const store = new AppStore(api);
+    await store.init();
+    await store.setAiKey('sk-ant-test');
+    await store.setAiModel('  claude-opus-5-5 ');
+    expect(store.settings?.ai.model).toBe('claude-opus-5-5');
+    expect(api.aiStatus).toHaveBeenCalledTimes(1);
+
+    await store.setAiProvider('openai');
+    expect(store.settings?.ai.provider).toBe('openai');
+    expect(store.settings?.ai.model).toBe('');
+    expect(api.aiStatus).toHaveBeenCalledTimes(2);
+
+    await store.setAiProvider('openai');
+    expect(api.aiStatus).toHaveBeenCalledTimes(2);
+    await store.setAiAddress(' https://example.test/v1 ');
+    expect(store.settings?.ai.base_url).toBe('https://example.test/v1');
+    store.dispose();
+  });
+});
+
+describe('AppStore, AI and cost', () => {
   it('answers the same question about the same days from memory, not from the API', async () => {
     const { api } = fakeApi(base);
     const store = new AppStore(api);
@@ -556,7 +582,7 @@ describe('AppStore and the almanac', () => {
   it('whispers the night once, on the first open after it', async () => {
     const first = new AppStore(fakeApi(base, null, slept).api);
     await first.init();
-    expect(first.whisper).toBe('Away overnight: 11:48 pm to 7:02 am.');
+    expect(first.whisper).toBe('A quiet night: 11:48 pm to 7:02 am.');
     first.dispose();
 
     const again = new AppStore(fakeApi(base, null, slept).api);

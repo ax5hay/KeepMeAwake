@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { gateOf, nowLocal, planOf, stateOf } from './claude';
+import { SERVICES, gateOf, nowLocal, planOf, serviceOf, stateOf } from './ai';
 import type { AiSettings, Understood } from './types';
 
 const on: AiSettings = {
@@ -10,6 +10,9 @@ const on: AiSettings = {
   day_in_a_line: true,
   ask_the_almanac: true,
   hidden: false,
+  provider: 'anthropic',
+  model: '',
+  base_url: '',
 };
 
 describe('gateOf', () => {
@@ -45,6 +48,21 @@ describe('Hide AI', () => {
     expect(stateOf({ has_key: false }, on)).toBe('locked');
     expect(stateOf({ has_key: true }, { ...on, enabled: false })).toBe('off');
     expect(stateOf({ has_key: true }, on)).toBe('on');
+  });
+});
+
+describe('services', () => {
+  it('offers Claude, OpenAI and any other, Claude until another is chosen', () => {
+    expect(Object.keys(SERVICES)).toEqual(['anthropic', 'openai', 'custom']);
+    expect(serviceOf(null).label).toBe('Claude');
+    expect(serviceOf({ ...on, provider: 'openai' }).sentTo).toBe('OpenAI');
+    expect(serviceOf({ ...on, provider: 'custom' }).label).toBe('Other');
+  });
+
+  it('asks each named service for its smallest model, and a third to name one', () => {
+    expect(SERVICES.anthropic.smallest).toBe('claude-haiku-5-5');
+    expect(SERVICES.openai.smallest).toBe('gpt-5.4-nano');
+    expect(SERVICES.custom.smallest).toBe('');
   });
 });
 

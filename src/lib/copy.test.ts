@@ -2,15 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AI_ADD_KEY,
-  AI_KEY_WHY,
+  AI_CHEAP,
+  AI_HIDE_HINT,
   AI_LOCKED,
   AI_MASTER_HINT,
   AI_OFF,
   AI_PROMISE,
   AI_SWITCH_ON,
   ALMANAC_BEGINS,
-  TELL_SENDS,
-  WEEK_SENDS,
   fullDay,
   ALMANAC_CLOSED,
   ALMANAC_FOOT,
@@ -21,7 +20,13 @@ import {
   EMPTY_LEAVE_HINT,
   leavesTaken,
   nightLine,
+  keyWhy,
+  modelHint,
   quietNight,
+  sendsDay,
+  sendsMonth,
+  sendsSentence,
+  sendsWeek,
   WORK_HOURS_HINT,
   doors,
   downloading,
@@ -208,22 +213,40 @@ describe('update copy', () => {
   });
 });
 
-describe('Claude copy', () => {
+describe('AI copy', () => {
   it('says locked and off differently, each with its way out', () => {
     expect(AI_LOCKED).toBe('Locked: needs an API key.');
     expect(AI_ADD_KEY).toBe('Add a key');
-    expect(AI_OFF).toBe('Claude is switched off.');
+    expect(AI_OFF).toBe('AI is switched off.');
     expect(AI_SWITCH_ON).toBe('Switch it on');
     expect(`${AI_LOCKED} ${AI_ADD_KEY}`.length).toBeLessThanOrEqual(44);
     expect(`${AI_OFF} ${AI_SWITCH_ON}`.length).toBeLessThanOrEqual(44);
   });
 
-  it('says what is sent, where it goes, and that nothing goes unasked', () => {
-    for (const text of [WEEK_SENDS, TELL_SENDS, AI_MASTER_HINT]) {
-      expect(text).toMatch(/Anthropic/);
-    }
+  it('says what is sent and to whom, whichever service was chosen', () => {
+    expect(sendsDay('Anthropic')).toBe('Sends this one day to Anthropic, when you ask.');
+    expect(sendsWeek('OpenAI')).toBe(
+      'Sends this week of hours and nights to OpenAI, when you ask.',
+    );
+    expect(sendsMonth('the service you chose')).toBe(
+      'Sends your question and this month of days to the service you chose.',
+    );
+    expect(sendsSentence('OpenAI')).toBe('Sends this sentence to OpenAI.');
     expect(AI_PROMISE).toMatch(/only when you click/);
-    expect(AI_KEY_WHY).toMatch(/billed/);
+    expect(keyWhy('platform.openai.com')).toBe(
+      'Your own key, from platform.openai.com. Asking is billed to it.',
+    );
+  });
+
+  it('names no one service where any of them may be in use', () => {
+    for (const text of [AI_LOCKED, AI_OFF, AI_MASTER_HINT, AI_PROMISE, AI_CHEAP, AI_HIDE_HINT]) {
+      expect(text).not.toMatch(/Claude|Anthropic|OpenAI/);
+    }
+  });
+
+  it('says which model is asked when none is named', () => {
+    expect(modelHint('claude-haiku-5-5')).toBe('Leave empty for the smallest, claude-haiku-5-5.');
+    expect(modelHint('')).toBe("The model's name, as the service lists it.");
   });
 
   it("says where the key is kept, in each platform's own words", () => {
@@ -282,7 +305,7 @@ describe('almanac copy', () => {
   });
 
   it('names the quiet and never says anyone slept', () => {
-    expect(quietNight('11:48 pm', '7:02 am')).toBe('Away overnight: 11:48 pm to 7:02 am.');
+    expect(quietNight('11:48 pm', '7:02 am')).toBe('A quiet night: 11:48 pm to 7:02 am.');
     expect(nightLine('11:48 pm', '7:02 am', '7h 14m')).toBe(
       'Away overnight 11:48 pm – 7:02 am · 7h 14m',
     );

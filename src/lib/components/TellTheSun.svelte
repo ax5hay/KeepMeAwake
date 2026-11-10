@@ -1,20 +1,20 @@
 <script lang="ts">
   /**
    * A plan, said in words: "two hours", "until half six", "till I say".
-   * Claude reads the sentence; the sun does nothing until what it understood
+   * The model reads the sentence; the sun does nothing until what it understood
    * has been shown and agreed to.
    */
-  import ClaudeFeature from './ClaudeFeature.svelte';
-  import ClaudeGroup from './ClaudeGroup.svelte';
-  import { nowLocal, planOf } from '$lib/claude';
+  import AiFeature from './AiFeature.svelte';
+  import AiGroup from './AiGroup.svelte';
+  import { nowLocal, planOf, serviceOf } from '$lib/ai';
   import {
     TELL_ASK,
     TELL_HINT,
     TELL_PLACEHOLDER,
-    TELL_SENDS,
     TELL_START,
     TELL_THE_SUN,
     TELL_THINKING,
+    sendsSentence,
   } from '$lib/copy';
   import { store } from '$lib/state.svelte';
   import type { Understood } from '$lib/types';
@@ -58,8 +58,8 @@
 
 {#if store.aiState !== 'hidden'}
   <div class="tell">
-    <ClaudeGroup>
-      <ClaudeFeature feature="tell_the_sun" title={TELL_THE_SUN} hint={TELL_HINT}>
+    <AiGroup>
+      <AiFeature feature="tell_the_sun" title={TELL_THE_SUN} hint={TELL_HINT}>
         {#if understood}
           <p class="said" role="status">
             <span class="words">{understood.say}</span>
@@ -85,10 +85,10 @@
               {asking ? TELL_THINKING : TELL_ASK}
             </button>
           </form>
-          <p class="sends">{TELL_SENDS}</p>
+          <p class="sends">{sendsSentence(serviceOf(store.settings?.ai ?? null).sentTo)}</p>
         {/if}
-      </ClaudeFeature>
-    </ClaudeGroup>
+      </AiFeature>
+    </AiGroup>
   </div>
 {/if}
 

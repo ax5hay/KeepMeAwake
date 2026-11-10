@@ -1,9 +1,9 @@
 <script lang="ts">
   /**
-   * The frame Claude's features sit in, wherever they are. It says once, for
+   * The frame AI's features sit in, wherever they are. It says once, for
    * all of them, whose they are and whether they can be used: locked with no
    * key, switched off with one, or ready. The features inside are always
-   * listed, so what Claude could do is seen before any of it is switched on.
+   * listed, so what AI could do is seen before any of it is switched on.
    * With "Hide AI" on, the whole frame is gone.
    */
   import type { Snippet } from 'svelte';
@@ -30,7 +30,7 @@
             <path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7" />
           </svg>
         {/if}
-        Claude
+        AI
       </span>
       {#if state === 'locked'}
         <span class="why">{AI_LOCKED}</span>

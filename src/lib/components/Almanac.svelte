@@ -5,8 +5,8 @@
    * up to. Everything here is derived from the spans the app keeps; the pane
    * holds only which day is being read and which month is open.
    */
-  import ClaudeFeature from './ClaudeFeature.svelte';
-  import ClaudeGroup from './ClaudeGroup.svelte';
+  import AiFeature from './AiFeature.svelte';
+  import AiGroup from './AiGroup.svelte';
   import DayStrip from './DayStrip.svelte';
   import MonthGrid from './MonthGrid.svelte';
   import Row from './Row.svelte';
@@ -40,7 +40,6 @@
     ALMANAC_SETTINGS,
     ASK_HINT,
     ASK_PLACEHOLDER,
-    ASK_SENDS,
     ASK_THE_ALMANAC,
     CLEAR_ALMANAC,
     COPIED,
@@ -49,7 +48,6 @@
     DAY_HINT,
     DAY_IN_A_LINE,
     DAY_READ,
-    DAY_SENDS,
     DAY_WORDS,
     MARK_LEAVE,
     NOBODY_HERE,
@@ -61,16 +59,20 @@
     WEEK_IN_WORDS,
     WEEK_READ,
     WEEK_READING,
-    WEEK_SENDS,
     dayDetail,
     daysWorked,
     leavesTaken,
     nightLine,
+    sendsDay,
+    sendsMonth,
+    sendsWeek,
   } from '$lib/copy';
+  import { serviceOf } from '$lib/ai';
   import { formatClock, minutesToTime, timeToMinutes } from '$lib/format';
   import { store } from '$lib/state.svelte';
 
   const settings = $derived(store.settings?.almanac ?? null);
+  const sentTo = $derived(serviceOf(store.settings?.ai ?? null).sentTo);
   const reading = $derived(
     store.almanac && settings ? read(store.almanac, settings, store.almanacAt) : null,
   );
@@ -97,12 +99,12 @@
   const year = $derived(reading ? tally(yearOf(reading, shown.year)) : null);
   const usual = $derived(reading ? usualNight(reading.nights, reading.turn) : null);
 
-  /** What Claude said, and what of, so another day, week or month starts clean. */
+  /** What was said back, and what of, so another day, week or month starts clean. */
   let line = $state<{ of: string; text: string } | null>(null);
   let words = $state<{ of: string; text: string } | null>(null);
   let answer = $state<{ of: string; text: string } | null>(null);
   let question = $state('');
-  /** Which of Claude's three is being asked just now; one at a time. */
+  /** Which of the three is being asked just now; one at a time. */
   let busy = $state<'day' | 'week' | 'ask' | null>(null);
   const weekKey = $derived(week[0]?.key ?? '');
   const monthKey = $derived(`${shown.year}-${shown.month}`);
@@ -300,10 +302,10 @@
 <div class="scroll">
   {#if settings && !settings.enabled}
     <p class="aside">{ALMANAC_CLOSED}</p>
-    <Row label="Track my days" hint={ALMANAC_HINT}>
+    <Row label="Keep an almanac" hint={ALMANAC_HINT}>
       <Switch
         checked={false}
-        label="Track my days"
+        label="Keep an almanac"
         onchange={(v) => {
           if (!settings) return;
           void store
@@ -422,8 +424,8 @@
 
     {#if store.aiState !== 'hidden'}
       <section>
-        <ClaudeGroup>
-          <ClaudeFeature feature="day_in_a_line" title={DAY_IN_A_LINE} hint={DAY_HINT}>
+        <AiGroup>
+          <AiFeature feature="day_in_a_line" title={DAY_IN_A_LINE} hint={DAY_HINT}>
             {#if line && line.of === day.key}
               <p class="words">{line.text}</p>
             {/if}
@@ -436,10 +438,10 @@
               >
                 {busy === 'day' ? WEEK_READING : DAY_READ}
               </button>
-              <span class="sends">{DAY_SENDS}</span>
+              <span class="sends">{sendsDay(sentTo)}</span>
             </p>
-          </ClaudeFeature>
-          <ClaudeFeature feature="week_in_words" title={WEEK_IN_WORDS} hint={WEEK_HINT}>
+          </AiFeature>
+          <AiFeature feature="week_in_words" title={WEEK_IN_WORDS} hint={WEEK_HINT}>
             {#if words && words.of === weekKey}
               <p class="words">{words.text}</p>
             {/if}
@@ -452,10 +454,10 @@
               >
                 {busy === 'week' ? WEEK_READING : WEEK_READ}
               </button>
-              <span class="sends">{WEEK_SENDS}</span>
+              <span class="sends">{sendsWeek(sentTo)}</span>
             </p>
-          </ClaudeFeature>
-          <ClaudeFeature feature="ask_the_almanac" title={ASK_THE_ALMANAC} hint={ASK_HINT}>
+          </AiFeature>
+          <AiFeature feature="ask_the_almanac" title={ASK_THE_ALMANAC} hint={ASK_HINT}>
             {#if answer && answer.of === monthKey}
               <p class="words">{answer.text}</p>
             {/if}
@@ -476,9 +478,9 @@
                 {busy === 'ask' ? TELL_THINKING : TELL_ASK}
               </button>
             </form>
-            <p class="sends">{ASK_SENDS}</p>
-          </ClaudeFeature>
-        </ClaudeGroup>
+            <p class="sends">{sendsMonth(sentTo)}</p>
+          </AiFeature>
+        </AiGroup>
       </section>
     {/if}
 
@@ -635,7 +637,7 @@
     font-size: 12px;
   }
 
-  /* What Claude said of the week: said, so in the whisper's voice. */
+  /* What was said of the week: said, so in the whisper's voice. */
   .words {
     margin: 8px 0 0;
     font-family: var(--font-display);

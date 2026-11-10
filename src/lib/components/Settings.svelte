@@ -24,9 +24,10 @@
     CHECKING,
     CHECK_NOW,
     NEWEST,
-    AI_KEY_WHY,
     AI_MASTER_HINT,
+    AI_ADDRESS_HINT,
     AI_MASTER_LOCKED,
+    AI_SERVICE_HINT,
     AI_PROMISE,
     ALMANAC_HINT,
     BREAK_HINT,
@@ -45,14 +46,24 @@
     WHISPER_NIGHT_HINT,
     WORK_HOURS_HINT,
     downloading,
+    keyWhy,
+    modelHint,
     tipsWith,
     updateAvailable,
   } from '$lib/copy';
+  import { SERVICES, serviceOf, type AiFeature } from '$lib/ai';
   import { displayAccelerator } from '$lib/hotkey';
   import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
   import { isMac } from '$lib/platform';
   import { store } from '$lib/state.svelte';
-  import type { AlmanacSettings, Notifications, Schedule, StartupPlan, Theme } from '$lib/types';
+  import type {
+    AlmanacSettings,
+    Provider,
+    Notifications,
+    Schedule,
+    StartupPlan,
+    Theme,
+  } from '$lib/types';
 
   const settings = $derived(store.settings);
 
@@ -181,6 +192,17 @@
     { value: '60', label: '1h' },
     { value: '90', label: '90m' },
     { value: '120', label: '2h' },
+  ];
+
+  const service = $derived(serviceOf(settings?.ai ?? null));
+  const serviceOptions: ReadonlyArray<{ value: Provider; label: string }> = (
+    ['anthropic', 'openai', 'custom'] as const
+  ).map((value) => ({ value, label: SERVICES[value].label }));
+  const features: ReadonlyArray<{ id: AiFeature; title: string; hint: string }> = [
+    { id: 'day_in_a_line', title: DAY_IN_A_LINE, hint: DAY_HINT },
+    { id: 'week_in_words', title: WEEK_IN_WORDS, hint: WEEK_HINT },
+    { id: 'ask_the_almanac', title: ASK_THE_ALMANAC, hint: ASK_HINT },
+    { id: 'tell_the_sun', title: TELL_THE_SUN, hint: TELL_HINT },
   ];
 
   // The key is typed here and handed straight to the app; it is never read back.
@@ -327,10 +349,10 @@
 
     <section id="settings-almanac">
       <h2 class="eyebrow">Almanac</h2>
-      <Row label="Track my days" hint={ALMANAC_HINT}>
+      <Row label="Keep an almanac" hint={ALMANAC_HINT}>
         <Switch
           checked={settings.almanac.enabled}
-          label="Track my days"
+          label="Keep an almanac"
           onchange={(v) => setAlmanac({ enabled: v })}
         />
       </Row>
@@ -368,10 +390,10 @@
             onchange={(v) => setAlmanac({ empty_days_are_leave: v })}
           />
         </Row>
-        <Row label="Morning summary" hint={WHISPER_NIGHT_HINT}>
+        <Row label="Morning whisper" hint={WHISPER_NIGHT_HINT}>
           <Switch
             checked={settings.almanac.whisper_night}
-            label="Morning summary"
+            label="Morning whisper"
             onchange={(v) => setAlmanac({ whisper_night: v })}
           />
         </Row>
@@ -399,7 +421,7 @@
     </section>
 
     <section id="settings-ai">
-      <h2 class="eyebrow">Claude</h2>
+      <h2 class="eyebrow">AI</h2>
       {#if settings.ai.hidden}
         <Row label={AI_HIDDEN} hint={AI_HIDDEN_HINT}>
           <button type="button" class="save" onclick={() => void store.setAiHidden(false)}>
@@ -407,16 +429,52 @@
           </button>
         </Row>
       {:else}
-        <Row label="Use Claude" hint={hasKey ? AI_MASTER_HINT : AI_MASTER_LOCKED}>
+        <Row label="Use AI" hint={hasKey ? AI_MASTER_HINT : AI_MASTER_LOCKED}>
           <Switch
             checked={hasKey && settings.ai.enabled}
             disabled={!hasKey}
-            label="Use Claude"
+            label="Use AI"
             onchange={(v) => void store.setAiEnabled(v)}
           />
         </Row>
-        <div class="key">
-          <div class="label">API key</div>
+        <Row label="Service" hint={AI_SERVICE_HINT}>
+          <Segmented
+            options={serviceOptions}
+            value={settings.ai.provider}
+            label="AI service"
+            onchange={(v) => void store.setAiProvider(v)}
+          />
+        </Row>
+        {#if settings.ai.provider === 'custom'}
+          <div class="field">
+            <label for="ai-address">Address</label>
+            <input
+              id="ai-address"
+              type="url"
+              placeholder="https://…/v1"
+              autocomplete="off"
+              spellcheck="false"
+              value={settings.ai.base_url}
+              onchange={(e) => void store.setAiAddress(e.currentTarget.value)}
+            />
+            <p class="hint">{AI_ADDRESS_HINT}</p>
+          </div>
+        {/if}
+        <div class="field">
+          <label for="ai-model">Model</label>
+          <input
+            id="ai-model"
+            type="text"
+            placeholder={service.smallest === '' ? 'its name' : service.smallest}
+            autocomplete="off"
+            spellcheck="false"
+            value={settings.ai.model}
+            onchange={(e) => void store.setAiModel(e.currentTarget.value)}
+          />
+          <p class="hint">{modelHint(service.smallest)}</p>
+        </div>
+        <div class="field">
+          <label for="ai-key">API key</label>
           {#if hasKey}
             <p class="hint">
               {AI_KEY_SAVED}
@@ -428,51 +486,29 @@
           {:else}
             <form class="keyform" onsubmit={saveKey}>
               <input
+                id="ai-key"
                 type="password"
-                aria-label="Anthropic API key"
-                placeholder="sk-ant-…"
+                placeholder={service.keyLooksLike}
                 autocomplete="off"
                 spellcheck="false"
                 bind:value={keyDraft}
               />
               <button type="submit" class="save" disabled={keyDraft.trim() === ''}>Save</button>
             </form>
-            <p class="hint">{AI_KEY_WHY} {PLATFORM_COPY.keyKept}</p>
+            <p class="hint">{keyWhy(service.keysFrom)} {PLATFORM_COPY.keyKept}</p>
           {/if}
         </div>
         <div class="dependent" class:off={!hasKey || !settings.ai.enabled}>
-          <Row label={WEEK_IN_WORDS} hint={WEEK_HINT}>
-            <Switch
-              checked={settings.ai.week_in_words}
-              disabled={!hasKey || !settings.ai.enabled}
-              label={WEEK_IN_WORDS}
-              onchange={(v) => void store.setAiFeature('week_in_words', v)}
-            />
-          </Row>
-          <Row label={TELL_THE_SUN} hint={TELL_HINT}>
-            <Switch
-              checked={settings.ai.tell_the_sun}
-              disabled={!hasKey || !settings.ai.enabled}
-              label={TELL_THE_SUN}
-              onchange={(v) => void store.setAiFeature('tell_the_sun', v)}
-            />
-          </Row>
-          <Row label={DAY_IN_A_LINE} hint={DAY_HINT}>
-            <Switch
-              checked={settings.ai.day_in_a_line}
-              disabled={!hasKey || !settings.ai.enabled}
-              label={DAY_IN_A_LINE}
-              onchange={(v) => void store.setAiFeature('day_in_a_line', v)}
-            />
-          </Row>
-          <Row label={ASK_THE_ALMANAC} hint={ASK_HINT}>
-            <Switch
-              checked={settings.ai.ask_the_almanac}
-              disabled={!hasKey || !settings.ai.enabled}
-              label={ASK_THE_ALMANAC}
-              onchange={(v) => void store.setAiFeature('ask_the_almanac', v)}
-            />
-          </Row>
+          {#each features as feature (feature.id)}
+            <Row label={feature.title} hint={feature.hint}>
+              <Switch
+                checked={settings.ai[feature.id]}
+                disabled={!hasKey || !settings.ai.enabled}
+                label={feature.title}
+                onchange={(v) => void store.setAiFeature(feature.id, v)}
+              />
+            </Row>
+          {/each}
         </div>
         <Row label="Hide AI" hint={AI_HIDE_HINT}>
           <Switch checked={false} label="Hide AI" onchange={(v) => void store.setAiHidden(v)} />
@@ -681,13 +717,34 @@
     opacity: 0.4;
   }
 
-  .key {
+  /* A field with its name above it: the model, the address, the key. */
+  .field {
     padding: 11px 0;
     border-top: 1px solid var(--hair);
   }
 
-  .key .hint {
+  .field label {
+    display: block;
+    color: var(--ink);
+  }
+
+  .field .hint {
     margin: 4px 0 0;
+  }
+
+  .field > input {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 4px 8px;
+    border: 1px solid var(--hair-strong);
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    font-size: 12px;
+  }
+
+  .field input::placeholder {
+    color: var(--ink-3);
   }
 
   .keyform {

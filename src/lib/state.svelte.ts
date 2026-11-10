@@ -7,7 +7,7 @@
  */
 import { formatWorked, hoursLength, read, type Reading } from './almanac';
 import { api, type Api } from './api';
-import { gateOf, stateOf, type AiFeature, type AiState, type Gate } from './claude';
+import { gateOf, stateOf, type AiFeature, type AiState, type Gate } from './ai';
 import { fullDay, quietNight, updateWhisper, type SettingsSection } from './copy';
 import {
   downloadPercent,
@@ -19,11 +19,13 @@ import {
   toggleWhisper,
 } from './format';
 import type {
+  AiSettings,
   AiStatus,
   Almanac,
   History,
   Mark,
   PlanRequest,
+  Provider,
   Settings,
   Snapshot,
   Span,
@@ -81,7 +83,7 @@ export class AppStore {
   almanacAt = $state(Date.now());
   /** A plan is being typed on Home (Until…): the rows below step aside for it. */
   planning = $state(false);
-  /** Whether Claude has a key; `null` until asked. The key never comes here. */
+  /** Whether the chosen service has a key; `null` until asked. The key never comes here. */
   ai = $state<AiStatus | null>(null);
   /** The Settings section to bring into view as Settings opens, if any. */
   section = $state<SettingsSection | null>(null);
@@ -123,24 +125,54 @@ export class AppStore {
     await this.#greet();
   }
 
-  /** Which lock, if any, is shut on a Claude feature. */
+  /** Which lock, if any, is shut on an AI feature. */
   gate(feature: AiFeature): Gate {
     return gateOf(this.ai, this.settings?.ai ?? null, feature);
   }
 
-  /** Where Claude as a whole stands: hidden, locked, off or on. */
+  /** Where AI as a whole stands: hidden, locked, off or on. */
   get aiState(): AiState {
     return stateOf(this.ai, this.settings?.ai ?? null);
   }
 
-  /** Hide AI: everything of Claude's out of sight, or back. */
+  async #setAi(patch: Partial<AiSettings>): Promise<void> {
+    const ai = this.settings?.ai;
+    if (ai) await this.updateSettings({ ai: { ...ai, ...patch } });
+  }
+
+  /**
+   * Chooses the service. Its model starts again from that service's
+   * smallest, and whether there is a key is asked afresh: each service
+   * keeps its own.
+   */
+  async setAiProvider(provider: Provider): Promise<void> {
+    if (this.settings?.ai.provider === provider) return;
+    await this.#setAi({ provider, model: '' });
+    try {
+      this.ai = await this.#api.aiStatus();
+    } catch {
+      this.ai = { has_key: false };
+    }
+  }
+
+  /** Names the model; empty goes back to the service's smallest. */
+  setAiModel(model: string): Promise<void> {
+    return this.#setAi({ model: model.trim() });
+  }
+
+  /** The address of a service of one's own. */
+  setAiAddress(base_url: string): Promise<void> {
+    return this.#setAi({ base_url: base_url.trim() });
+  }
+
+  /** Hide AI: everything of AI's out of sight, or back. */
   async setAiHidden(hidden: boolean): Promise<void> {
     const ai = this.settings?.ai;
     if (ai) await this.updateSettings({ ai: { ...ai, hidden } });
   }
 
   /**
-   * What Claude has already said this session, by what it was asked. The
+   * What has already been said this session, by what it was asked. The
    * same question about the same days is answered from here: asking twice
    * costs nothing the second time.
    */
@@ -161,12 +193,12 @@ export class AppStore {
     }
   }
 
-  /** Asks Claude to put a day into a line. */
+  /** Asks for a day in a line. */
   readDay(digest: string): Promise<string | null> {
     return this.#asked(`day\n${digest}`, () => this.#api.aiReadDay(digest));
   }
 
-  /** Asks Claude a question about the days in `digest`. */
+  /** Asks a question about the days in `digest`. */
   askAlmanac(question: string, digest: string): Promise<string | null> {
     return this.#asked(`ask\n${question}\n${digest}`, () => this.#api.aiAsk(question, digest));
   }
@@ -194,12 +226,12 @@ export class AppStore {
     }
   }
 
-  /** Asks Claude to put a week into words; `null`, with the reason shown, if it could not. */
+  /** Asks for a week in words; `null`, with the reason shown, if it could not. */
   readWeek(digest: string): Promise<string | null> {
     return this.#asked(`week\n${digest}`, () => this.#api.aiReadWeek(digest));
   }
 
-  /** Asks Claude what plan a sentence means. Nothing is started. */
+  /** Asks what plan a sentence means. Nothing is started. */
   async askPlan(sentence: string, now: string): Promise<Understood | null> {
     try {
       return await this.#api.aiPlan(sentence, now);
