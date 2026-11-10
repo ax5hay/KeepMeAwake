@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Api } from './api';
 import { AppStore } from './state.svelte';
-import type { History, Snapshot, UpdateInfo, UpdateProgress } from './types';
+import type { Almanac, History, Snapshot, UpdateInfo, UpdateProgress } from './types';
 
 const base: Snapshot = {
   mode: 'off',
@@ -70,8 +70,11 @@ const logged: History = {
   ],
 };
 
-function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null) {
+const blank: Almanac = { version: 1, spans: [], marks: {} };
+
+function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Almanac = blank) {
   let current = initial;
+  let almanac = kept;
   let push: ((s: Snapshot) => void) | undefined;
   let announce: ((u: UpdateInfo) => void) | undefined;
   let report: ((p: UpdateProgress) => void) | undefined;
@@ -109,6 +112,17 @@ function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null) {
     }),
     getHistory: vi.fn(async () => logged),
     clearHistory: vi.fn(async () => ({ version: 1, entries: [] })),
+    getAlmanac: vi.fn(async () => almanac),
+    markDay: vi.fn(async (day, mark) => {
+      const others = Object.entries(almanac.marks).filter(([key]) => key !== day);
+      const marks = Object.fromEntries(mark === null ? others : [...others, [day, mark]]);
+      almanac = { ...almanac, marks };
+      return almanac;
+    }),
+    clearAlmanac: vi.fn(async () => {
+      almanac = blank;
+      return almanac;
+    }),
     onSnapshot: vi.fn(async (handler) => {
       push = handler;
       return () => {
@@ -336,6 +350,93 @@ describe('AppStore', () => {
     await store.keepItUp();
     expect(api.keepItUp).toHaveBeenCalledOnce();
     expect(store.guardAsking).toBe(false);
+    store.dispose();
+  });
+});
+
+describe('AppStore and the almanac', () => {
+  const morning = new Date(2026, 10, 10, 9, 30).getTime();
+  /** Stopped at 11:48 pm, back at 7:02 am. */
+  const slept: Almanac = {
+    version: 1,
+    spans: [
+      {
+        from_unix_ms: new Date(2026, 10, 9, 9, 0).getTime(),
+        to_unix_ms: new Date(2026, 10, 9, 23, 48).getTime(),
+      },
+      {
+        from_unix_ms: new Date(2026, 10, 10, 7, 2).getTime(),
+        to_unix_ms: morning,
+      },
+    ],
+    marks: {},
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(morning);
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('whispers the night once, on the first open after it', async () => {
+    const first = new AppStore(fakeApi(base, null, slept).api);
+    await first.init();
+    expect(first.whisper).toBe('A quiet night: 11:48 pm to 7:02 am.');
+    first.dispose();
+
+    const again = new AppStore(fakeApi(base, null, slept).api);
+    await again.init();
+    expect(again.whisper).toBeNull();
+    again.dispose();
+  });
+
+  it('says nothing without a night, and does not read the almanac while it is off', async () => {
+    const quiet = new AppStore(fakeApi(base).api);
+    await quiet.init();
+    expect(quiet.whisper).toBeNull();
+    quiet.dispose();
+
+    const off = { ...base, settings: { ...base.settings } };
+    off.settings.almanac = { ...base.settings.almanac, enabled: false };
+    const { api } = fakeApi(off, null, slept);
+    const store = new AppStore(api);
+    await store.init();
+    expect(api.getAlmanac).not.toHaveBeenCalled();
+    expect(store.whisper).toBeNull();
+    store.dispose();
+  });
+
+  it('opens the Almanac, marks a day, takes the mark away and clears', async () => {
+    const { api } = fakeApi(base, null, slept);
+    const store = new AppStore(api);
+    await store.init();
+    store.openAlmanac();
+    expect(store.view).toBe('almanac');
+    await vi.waitFor(() => expect(api.getAlmanac).toHaveBeenCalledTimes(2));
+
+    await store.markDay('2026-11-12', 'leave');
+    expect(store.almanac?.marks).toEqual({ '2026-11-12': 'leave' });
+    await store.markDay('2026-11-12', null);
+    expect(store.almanac?.marks).toEqual({});
+
+    await store.clearAlmanac();
+    expect(store.almanac?.spans).toEqual([]);
+    store.dispose();
+  });
+
+  it('says why when a day cannot be marked', async () => {
+    const { api } = fakeApi(base);
+    api.markDay = vi.fn(async () => {
+      throw new Error('someday is not a day');
+    });
+    const store = new AppStore(api);
+    await store.init();
+    await store.markDay('someday', 'leave');
+    expect(store.error).toBe('someday is not a day');
     store.dispose();
   });
 });

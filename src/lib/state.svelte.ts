@@ -1,42 +1,50 @@
 /**
  * The one reactive store. Holds the latest snapshot from the engine, a
  * once-per-second clock that only runs while a countdown is visible, the
- * current view, and the "whisper": a line of text that briefly replaces the
+ * current view, the almanac while its pane is open, and the "whisper": a line of text that briefly replaces the
  * status detail (tips, easter eggs). Everything derived is computed from pure
  * helpers in format.ts.
  */
+import { read } from './almanac';
 import { api, type Api } from './api';
-import { updateWhisper, type SettingsSection } from './copy';
+import { quietNight, updateWhisper, type SettingsSection } from './copy';
 import {
   downloadPercent,
+  formatClock,
   progress,
   remainingSecs,
   statusText,
   sunsetSoon,
   toggleWhisper,
 } from './format';
-import type { History, PlanRequest, Settings, Snapshot, UpdateInfo } from './types';
+import type { Almanac, History, Mark, PlanRequest, Settings, Snapshot, UpdateInfo } from './types';
 
 /** Where the version last whispered about is remembered, per webview. */
 const WHISPERED_KEY = 'keepmeawake.update-whispered';
 
-function whisperedFor(): string | null {
+/** Where the night last whispered about is remembered: the moment it ended. */
+const NIGHT_KEY = 'keepmeawake.night-whispered';
+
+function remembered(key: string): string | null {
   try {
-    return localStorage.getItem(WHISPERED_KEY);
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
-function rememberWhispered(version: string): void {
+function remember(key: string, value: string): void {
   try {
-    localStorage.setItem(WHISPERED_KEY, version);
+    localStorage.setItem(key, value);
   } catch {
     // Storage off: the whisper may come again next time. Harmless.
   }
 }
 
-export type View = 'home' | 'settings';
+export type View = 'home' | 'settings' | 'almanac';
+
+/** How long the morning's whisper stays: it has two times in it to read. */
+export const NIGHT_WHISPER_MS = 7000;
 
 /** How long a whisper stays on screen. */
 export const WHISPER_MS = 4200;
@@ -49,6 +57,10 @@ export class AppStore {
   whisper = $state<string | null>(null);
   /** The session log; loaded when Settings opens, not at launch. */
   history = $state<History | null>(null);
+  /** The almanac; loaded when its pane opens and once at launch for the night. */
+  almanac = $state<Almanac | null>(null);
+  /** When the almanac was last read from the app, for what "now" means in it. */
+  almanacAt = $state(Date.now());
   /** The Settings section to bring into view as Settings opens, if any. */
   section = $state<SettingsSection | null>(null);
   /** A newer release, as the daily check found it. */
@@ -80,6 +92,26 @@ export class AppStore {
     } catch {
       // No update news is fine; the window works the same.
     }
+    await this.#greet();
+  }
+
+  /**
+   * The morning's whisper: the night that led into today, said once. The
+   * almanac is read for it only while it is being kept.
+   */
+  async #greet(): Promise<void> {
+    const settings = this.settings;
+    if (!settings?.almanac.enabled) return;
+    try {
+      this.almanac = await this.#api.getAlmanac();
+      this.almanacAt = Date.now();
+    } catch {
+      return;
+    }
+    const night = read(this.almanac, settings.almanac, this.almanacAt).today.night;
+    if (night === null || remembered(NIGHT_KEY) === String(night.to)) return;
+    remember(NIGHT_KEY, String(night.to));
+    this.say(quietNight(formatClock(night.from), formatClock(night.to)), NIGHT_WHISPER_MS);
   }
 
   /** Downloads, installs and relaunches; on failure says why and stays. */
@@ -96,8 +128,8 @@ export class AppStore {
 
   #foundUpdate(info: UpdateInfo): void {
     this.update = info;
-    if (whisperedFor() !== info.version) {
-      rememberWhispered(info.version);
+    if (remembered(WHISPERED_KEY) !== info.version) {
+      remember(WHISPERED_KEY, info.version);
       this.say(updateWhisper(info.version));
     }
   }
@@ -143,6 +175,41 @@ export class AppStore {
   openSettings(section: SettingsSection | null = null): void {
     this.section = section;
     this.view = 'settings';
+  }
+
+  /** Opens the Almanac and reads it afresh. */
+  openAlmanac(): void {
+    this.view = 'almanac';
+    void this.loadAlmanac();
+  }
+
+  /** Fetches the almanac; the app takes one fresh look first. */
+  async loadAlmanac(): Promise<void> {
+    try {
+      this.almanac = await this.#api.getAlmanac();
+      this.almanacAt = Date.now();
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  /** Marks a day as leave or as not a leave; `null` takes the mark away. */
+  async markDay(day: string, mark: Mark | null): Promise<void> {
+    try {
+      this.almanac = await this.#api.markDay(day, mark);
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  /** Empties the almanac. It starts again from now. */
+  async clearAlmanac(): Promise<void> {
+    try {
+      this.almanac = await this.#api.clearAlmanac();
+      this.almanacAt = Date.now();
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+    }
   }
 
   /** The overnight guard is asking whether anyone is there. */

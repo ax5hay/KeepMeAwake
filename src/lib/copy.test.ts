@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  ALMANAC_BEGINS,
+  ALMANAC_CLOSED,
+  ALMANAC_FOOT,
+  ALMANAC_HINT,
   AUTHOR,
+  dayDetail,
+  daysWorked,
+  EMPTY_LEAVE_HINT,
+  leavesTaken,
+  nightLine,
+  quietNight,
+  WORK_HOURS_HINT,
   doors,
   downloading,
   updateAvailable,
@@ -184,6 +195,74 @@ describe('update copy', () => {
     });
     expect(line.map((d) => d.section)).toEqual(['about', 'schedule', 'waking', 'history']);
     expect(doors('Ctrl+Alt+K', 6)).toHaveLength(4);
+  });
+});
+
+describe('almanac copy', () => {
+  const day = {
+    kind: 'worked',
+    today: false,
+    ahead: false,
+    marked: false,
+    first: '9:02 am',
+    last: '6:40 pm',
+    over: null,
+  } as const;
+
+  it('names the first and last touch, and what ran over', () => {
+    expect(dayDetail(day)).toBe('First light 9:02 am · last 6:40 pm');
+    expect(dayDetail({ ...day, over: '40m' })).toBe(
+      'First light 9:02 am · last 6:40 pm · 40m over',
+    );
+    expect(dayDetail({ ...day, today: true, over: '40m' })).toBe('First light 9:02 am · 40m over');
+  });
+
+  it('says why a day has no hours', () => {
+    const empty = { ...day, first: null, last: null };
+    expect(dayDetail({ ...empty, kind: 'leave' })).toBe('A working day with nothing in it.');
+    expect(dayDetail({ ...empty, kind: 'leave', marked: true })).toBe('A day off, marked by you.');
+    expect(dayDetail({ ...empty, kind: 'leave', marked: true, ahead: true })).toBe(
+      'Leave, still to come.',
+    );
+    expect(dayDetail({ ...empty, kind: 'rest' })).toBe('Not a working day.');
+    expect(dayDetail({ ...empty, kind: 'ahead', ahead: true })).toBe('Still to come.');
+    expect(dayDetail({ ...empty, kind: 'nothing', today: true })).toBe('Nothing yet today.');
+    expect(dayDetail({ ...empty, kind: 'nothing', marked: true })).toBe(
+      'Nothing here, and not a leave.',
+    );
+  });
+
+  it('names the quiet and never says anyone slept', () => {
+    expect(quietNight('11:48 pm', '7:02 am')).toBe('A quiet night: 11:48 pm to 7:02 am.');
+    expect(nightLine('11:48 pm', '7:02 am', '7h 14m')).toBe('Night 11:48 pm – 7:02 am · 7h 14m');
+    for (const text of [quietNight('a', 'b'), nightLine('a', 'b', 'c'), ALMANAC_FOOT]) {
+      expect(text).not.toMatch(/sle[e]?pt?|asleep/i);
+    }
+  });
+
+  it('counts days and leaves in words', () => {
+    expect(daysWorked(1)).toBe('1 day');
+    expect(daysWorked(4)).toBe('4 days');
+    expect(leavesTaken(0)).toBe('No leave');
+    expect(leavesTaken(1)).toBe('1 leave');
+    expect(leavesTaken(9)).toBe('9 leaves');
+  });
+
+  it('keeps the lines short enough for where they sit', () => {
+    const longest = dayDetail({ ...day, first: '12:59 am', last: '12:59 pm', over: '12h 59m' });
+    expect(longest.length).toBeLessThanOrEqual(52);
+    expect(nightLine('12:59 pm', '12:59 am', '12h 59m').length).toBeLessThanOrEqual(52);
+    expect(quietNight('12:59 pm', '12:59 am').length).toBeLessThanOrEqual(84);
+    for (const hint of [ALMANAC_HINT, EMPTY_LEAVE_HINT])
+      expect(hint.length).toBeLessThanOrEqual(42);
+    expect(WORK_HOURS_HINT.length).toBeLessThanOrEqual(58);
+    for (const line of [ALMANAC_CLOSED, ALMANAC_BEGINS]) expect(line).not.toMatch(/!/);
+  });
+
+  it('names no platform', () => {
+    for (const text of [ALMANAC_FOOT, ALMANAC_CLOSED, ALMANAC_HINT, WORK_HOURS_HINT]) {
+      expect(text).not.toMatch(/tray|taskbar|Windows|menu bar|macOS/i);
+    }
   });
 });
 

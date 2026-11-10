@@ -182,7 +182,7 @@ export function downloading(percent: number | null): string {
 export const UPDATES_HINT = 'Once a day, from GitHub. Nothing else leaves this machine.';
 
 /** A Settings section Home can open directly. */
-export type SettingsSection = 'waking' | 'schedule' | 'history' | 'hotkey' | 'about';
+export type SettingsSection = 'waking' | 'schedule' | 'almanac' | 'history' | 'hotkey' | 'about';
 
 /** One way from Home straight into a Settings section. */
 export interface Door {
@@ -228,6 +228,110 @@ export function doors(
       : { section: 'hotkey', label: hotkey, title: `${hotkey} toggles from any app` },
   ];
 }
+
+/** The title bar's way into the Almanac. */
+export const ALMANAC_TITLE = 'Almanac: your days, hours and nights';
+
+/**
+ * Whispered once on the first open after a night. It names the quiet, not
+ * what was done with it: the keys went quiet, and that is all it knows.
+ */
+export function quietNight(from: string, to: string): string {
+  return `A quiet night: ${from} to ${to}.`;
+}
+
+/** The word a day reads as when it has no hours to show. */
+export const DAY_WORDS = {
+  leave: 'Leave',
+  rest: 'Rest',
+  nothing: 'Nothing',
+  ahead: 'Ahead',
+} as const;
+
+/** What the detail line can be told about the selected day. */
+export interface DayFacts {
+  kind: 'worked' | 'leave' | 'rest' | 'nothing' | 'ahead';
+  today: boolean;
+  /** Still to come. */
+  ahead: boolean;
+  /** Marked by hand, either way. */
+  marked: boolean;
+  /** First and last touch, already as clock times. */
+  first: string | null;
+  last: string | null;
+  /** Time outside working hours, already formatted, or `null` for none. */
+  over: string | null;
+}
+
+/** The line under the day's figure. */
+export function dayDetail(day: DayFacts): string {
+  if (day.first !== null && day.last !== null && (day.kind === 'worked' || day.today)) {
+    // Today the last touch is now: saying so would only repeat the clock.
+    const span = day.today
+      ? `First light ${day.first}`
+      : `First light ${day.first} · last ${day.last}`;
+    return day.over === null ? span : `${span} · ${day.over} over`;
+  }
+  switch (day.kind) {
+    case 'leave':
+      if (day.ahead) return 'Leave, still to come.';
+      return day.marked ? 'A day off, marked by you.' : 'A working day with nothing in it.';
+    case 'rest':
+      return 'Not a working day.';
+    case 'ahead':
+      return 'Still to come.';
+    default:
+      if (day.today) return 'Nothing yet today.';
+      return day.marked ? 'Nothing here, and not a leave.' : 'Nothing was kept for this day.';
+  }
+}
+
+/** The night that led into a day: `Night 11:48 pm – 7:02 am · 7h 14m`. */
+export function nightLine(from: string, to: string, length: string): string {
+  return `Night ${from} – ${to} · ${length}`;
+}
+
+/** The link that marks the selected day as leave. */
+export const MARK_LEAVE = 'Mark as leave';
+
+/** The same link on a day that reads as leave. */
+export const NOT_A_LEAVE = 'Not a leave';
+
+/** `1 day`, `4 days`. */
+export function daysWorked(count: number): string {
+  return `${count} day${count === 1 ? '' : 's'}`;
+}
+
+/** `No leave`, `1 leave`, `9 leaves`. */
+export function leavesTaken(count: number): string {
+  if (count === 0) return 'No leave';
+  return `${count} leave${count === 1 ? '' : 's'}`;
+}
+
+/** Under the almanac, what it reads and where it stays. */
+export const ALMANAC_FOOT =
+  'Read from the keyboard and mouse, and kept on this machine. A break under ten minutes still counts.';
+
+/** The link from the Almanac into its settings. */
+export const ALMANAC_SETTINGS = 'Working days and hours…';
+
+/** The link that empties it. */
+export const CLEAR_ALMANAC = 'Clear the almanac';
+
+/** The pane while the almanac is switched off. */
+export const ALMANAC_CLOSED = 'The almanac is closed. Nothing is being read.';
+
+/** The pane on its first day, before there is anything to draw. */
+export const ALMANAC_BEGINS = 'The first day is being written.';
+
+/** Settings → Almanac → Keep an almanac. */
+export const ALMANAC_HINT = 'Days, hours and nights, from your input.';
+
+/** Settings → Almanac → Working hours. */
+export const WORK_HOURS_HINT = 'Past midnight is fine. Time outside them counts as over.';
+
+/** Settings → Almanac → Empty working days are leave. */
+export const EMPTY_LEAVE_HINT = 'Off on a machine you rarely use.';
 
 /** Settings → History before anything has been logged. */
 export const HISTORY_EMPTY = 'Nothing yet. The first sunset will be written here.';
