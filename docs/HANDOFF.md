@@ -3,14 +3,15 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-07 · by Claude Opus 5.5 (Windows session: UI pass, auto-update built, v0.3.0 released)
+**Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: the Almanac built, unreleased)
 **Release:** [v0.3.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.3.0), the first **full** release and the latest; `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
-**Repo state:** `main` is green (`npm run verify` on Windows: vitest 108, cargo test 180;
+**Repo state:** `main` is green (`npm run verify` on Windows: vitest 153, cargo test 205;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
 the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
 `.app.tar.gz` (Apple Silicon, ad hoc signed, not notarized), each updater artifact signed,
-and `latest.json` for both. Nothing is under Unreleased. The project is under its own
+and `latest.json` for both. Under Unreleased: the **Almanac** (days and hours
+worked, leave, the night), built on Windows and waiting for the Mac. The project is under its own
 license, not MIT (see `LICENSE`).
 
 ## Two tracks, two machines
@@ -18,8 +19,8 @@ license, not MIT (see `LICENSE`).
 ```mermaid
 flowchart LR
     main["main (ax5hay/KeepMeAwake, public)"]
-    win["Windows PC<br/>0.3.0 out; next: winget → after the sun sets"]
-    mac["Mac<br/>check the guard, the doors, updates; hand acceptance left"]
+    win["Windows PC<br/>Almanac built; next: live with it, then winget → after the sun sets"]
+    mac["Mac<br/>check the almanac, the guard, the doors, updates; hand acceptance left"]
     win -->|small commits| main
     mac -->|small commits| main
     main -->|pull first| win
@@ -35,7 +36,9 @@ can collide, so commit it small and push it soon.
 ### On the Mac (macOS track)
 
 Paused: development is on the Windows PC. When back on the Mac, pull,
-then work **Waiting for the other machine**: the overnight guard (its
+then work **Waiting for the other machine**: the Almanac first (it is the
+newest, and its night depends on how the Mac's idle clock behaves across
+sleep; see its table below), then the overnight guard (its
 `MacIdle` probe is compiled and tested only by CI's `macos-latest` so far),
 the UI pass (sliders, the doors line in SF Pro at 340 px, `⌥⌘K` as the
 hotkey door), and auto-update (install the 0.3.0 DMG from the release; its
@@ -87,7 +90,12 @@ secrets. Ask the owner for it. A shell opened before rustup was installed
 has no `cargo` on PATH and the pre-commit hook then fails with
 `cargo: command not found`; a new terminal fixes it.
 
-1. **Hand checks left on Windows** (no script can do these: they need a
+1. **Live with the Almanac** (it needs real days, so no script can): open
+   it from the open book in the title bar; set your working hours in
+   Settings → Almanac; walk its acceptance table below over a day and a
+   night. An installed 0.3.0 does not have it: run `npm run dev` (after
+   `taskkill /IM keepmeawake.exe /F`), or cut 0.4.0.
+2. **Hand checks left on Windows** (no script can do these: they need a
    click on the tray, a look at the taskbar or a battery):
    - right-click the tray: **Give it another 30m** near a timer's end, and
      **Keep it up** while the guard asks, each doing what it says;
@@ -97,12 +105,12 @@ has no `cargo` on PATH and the pre-commit hook then fails with
      `overnight_guard_hours` to 1 in the settings file, start Always, and
      leave the PC untouched for an hour;
    - on a laptop: unplug below the threshold (history: one row, one pause).
-2. **Install 0.3.0** from the releases page once (a dev build's toasts say
+3. **Install 0.3.0** from the releases page once (a dev build's toasts say
    "Windows PowerShell"; an installed one should name the app). It is a
    full release, so the next one (0.3.1) is what proves auto-update end to
    end: publish it through [`releasing.md`](releasing.md) and the installed
    0.3.0 should offer it within a minute of launch (acceptance below).
-3. **Build, in this order:**
+4. **Build, in this order:**
 
    | Spec                                  | State        | How, on Windows                                                                                                                                                                                         |
    | ------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -110,12 +118,14 @@ has no `cargo` on PATH and the pre-commit hook then fails with
    | After the sun sets (roadmap 0.4)      | needs a spec | Windows-first: `LockWorkStation`, `SetSuspendState`. macOS has no public lock API and system sleep may need privileges; spec it as Windows-only with a macOS note, or `pmset sleepnow`-style sleep only |
    | Sleep detection (roadmap 0.4)         | needs a spec | `PowerRegisterSuspendResumeNotification` on Windows; the macOS equivalent is `IORegisterForSystemPower` (IOKit). Closes the history gap noted in the guide                                              |
 
-4. **Each feature:** spec → bottom-up commits → `npm run verify` → push →
+5. **Each feature:** spec → bottom-up commits → `npm run verify` → push →
    add it to **Waiting for the other machine** for the Mac → update this
    page. A Mac can't type-check the Windows build (Tauri's build script needs
    the Windows SDK), and the reverse is true too, so CI on both runners is
    the cross-platform compile check: watch it after each push.
-5. Driving the UI: `taskkill /IM keepmeawake.exe /F` before a dev build;
+6. Driving the UI: `taskkill /IM keepmeawake.exe /F` before a dev build
+   (or leave the installed app running and give the dev build its own
+   identity and data: `npx tauri dev --config '{"identifier":"dev.bajpai.keepmeawake.devcheck"}'`);
    `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` before
    `npm run dev` lets you drive and inspect it over the DevTools protocol.
    From `http://127.0.0.1:9222/json`, `Runtime.evaluate` can call
@@ -130,11 +140,12 @@ Built on one machine, not yet built and checked on the other. A row goes
 when the other machine has run `npm run verify` and the acceptance items that
 apply there (see [`development.md`](development.md#two-machines-one-main)).
 
-| What                    | Built on | Waits for | Check there                                                                                                          |
-| ----------------------- | -------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
-| Overnight guard         | Windows  | Mac       | `npm run verify` (includes the real `MacIdle` reading); the guard's acceptance (below) on the Mac, menu bar item     |
-| UI pass, sliders, doors | Windows  | Mac       | the icon; the doors fit one line in SF Pro at 340 px and show `⌥⌘K`; each opens its section; Esc in Until…           |
-| Auto-update             | Windows  | Mac       | the 0.3.0 DMG installs; its check runs and stamps `last_update_check_unix_ms`; About shows the switch; menu bar line |
+| What                    | Built on | Waits for | Check there                                                                                                                      |
+| ----------------------- | -------- | --------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Almanac                 | Windows  | Mac       | `npm run verify`; its acceptance (below) on the Mac; the title bar button and the pane in SF Pro at 340 px; a night across sleep |
+| Overnight guard         | Windows  | Mac       | `npm run verify` (includes the real `MacIdle` reading); the guard's acceptance (below) on the Mac, menu bar item                 |
+| UI pass, sliders, doors | Windows  | Mac       | the icon; the doors fit one line in SF Pro at 340 px and show `⌥⌘K`; each opens its section; Esc in Until…                       |
+| Auto-update             | Windows  | Mac       | the 0.3.0 DMG installs; its check runs and stamps `last_update_check_unix_ms`; About shows the switch; menu bar line             |
 
 Checked on Windows this session, so these rows came off: the **macOS
 track** (`npm run verify` green; toasts and the hotkey as in 0.2), **session
@@ -154,6 +165,7 @@ on Windows is listed under **Where to start**.
 | session-history          | shared  | 5 of 5         | built on the Mac, reviewed, two review fixes in; checked on Windows; acceptance below                           |
 | sunset-warning           | shared  | 6 of 6         | spec written and built on the Mac, reviewed, two review fixes in; checked on Windows; acceptance below          |
 | overnight-guard          | shared  | 7 of 7         | built on Windows, reviewed, two review fixes in; CI green on both runners; hand acceptance below                |
+| almanac                  | shared  | 7 of 7         | built on Windows; not yet reviewed, not yet lived with; acceptance below                                        |
 
 ## Done this cycle
 
@@ -173,6 +185,53 @@ on Windows is listed under **Where to start**.
 | 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)          | Claude Opus 5.5  |
 | 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                       | Claude Opus 5.5  |
 | 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                 | Claude Opus 5.5  |
+| 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards    | Claude Fable 5.2 |
+
+## Almanac: acceptance and decisions
+
+| Acceptance (spec)                                                  | Status                                                                                              |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Leave it 15 minutes, come back: two runs of ink, no growth between | **by hand**; core tested (a quiet over ten minutes opens a new span, ended at the last touch)       |
+| Always overnight: the whisper names the night, the strip dots it   | **by hand**, needs a night; UI tested with seeded spans, store tested (whispers once)               |
+| The same with the sun down and the laptop asleep                   | **by hand**; core tested (a span opened after sleep starts at most a look before its input)         |
+| 3:00 pm – 12:00 am, work past midnight: stays on its day, as over  | UI tested; seen in the browser harness; **by hand** in the real window                              |
+| Mark a day as leave, then not                                      | done in the real window on Windows over the DevTools port (`mark_day`), and by click in the harness |
+| Switch it off: the thread stops waking; the pane says it is closed | keeper tested; **by hand** with Resource Monitor                                                    |
+| Clear the almanac empties the pane and the file                    | keeper tested; by click in the harness; **by hand** in the real window                              |
+| Paper and Night, at 380 × 600 and 340 × 520                        | seen in the harness, both themes and both sizes; the real window seen once in Night                 |
+
+What was checked on the real app (a dev build under its own identifier, so
+the installed app and its data were left alone): the keeper opened a span
+from the real `GetLastInputInfo` reading within a second of launch,
+`get_almanac`, `mark_day` (and its refusal of a non-date) answered, the pane
+drew, and quitting wrote the grown span to `almanac.json`.
+
+The guide's six screenshots are the real UI in a browser with a fake backend
+and a seeded almanac, not the real window: a fresh install has no days to
+show. Retake them from the real window once there are a few weeks in it.
+
+Decisions, each in its commit body: the keeper is beside the engine, not in
+it (presence is not a power decision; the engine and its tests are
+untouched); nights are never recorded, only read from the gaps, so the rule
+can change without touching the file; a day turns over opposite the middle
+of the working hours, on the hour, and the resting hours are the ten around
+that turn; under five minutes is not a day's work; "no input since the last
+look" is judged on the monotonic clock, because an idle clock that stands
+still during sleep would otherwise turn a wake in the night into a touch;
+the almanac is on by default; the pane is behind a title bar button, not a
+fifth door.
+
+**For the Mac in particular:** the monotonic check exists for
+`CGEventSourceSecondsSinceLastEventType`, whose behaviour across sleep and
+dark wakes was not seen here. Leave the Mac asleep overnight with Power Nap
+on and check that the night is one dotted run with no specks of ink in it.
+
+Not done, and worth a look: the resting-minute numbers with the almanac on
+(the budget says "to be measured"); a review pass like the other specs had;
+`Almanac.svelte` has no component test of its own (its parts and its logic
+do); an early riser's work before the turn of the day lands on the day
+before; the week's sum counts the hours of a day marked as leave while its
+row says `leave`.
 
 ## Decisions made on the macOS track
 
@@ -285,6 +344,14 @@ Home's doors lead with a waiting update and drop the hotkey door to stay
 one line; the whisper is once per version, remembered in localStorage.
 
 ## Open questions for Akshay
+
+- The almanac is **on by default**, which gives every install its first
+  wake-up at rest (one idle reading a minute). On, or off until someone
+  opens the pane and says yes?
+- Leave is counted, not budgeted: no allowance, no balance, no half days.
+  Wanted?
+- The day's total in the tray menu (`4h 29m today`) needs the day-bucketing
+  in Rust as well. Wanted?
 
 - GitHub still holds the pre-rewrite commits under the six closed
   Dependabot pull requests (`refs/pull/1…6/head`), which only GitHub
