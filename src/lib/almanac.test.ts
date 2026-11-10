@@ -300,6 +300,12 @@ describe('a strip', () => {
     ]);
   });
 
+  it('stands no band of working hours on a day that is not a working day', () => {
+    const reading = read(book([span(at(14, 10), at(14, 12))]), office, at(16, 12));
+    expect(stripOf(reading, reading.dayAt(at(14, 12))).hours.width).toBe(0);
+    expect(stripOf(reading, reading.dayAt(at(13, 12))).hours.width).toBeGreaterThan(0);
+  });
+
   it('draws the head of the next night at the end of the day before, and no sun there', () => {
     const spans = [span(at(9, 9), at(9, 23)), span(at(10, 7), at(10, 13))];
     const reading = read(book(spans), office, at(10, 13));

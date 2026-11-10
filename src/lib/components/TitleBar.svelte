@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getCurrentWindow } from '@tauri-apps/api/window';
 
-  import { CREDIT, PLATFORM_COPY } from '$lib/copy';
+  import { ALMANAC_TITLE, CREDIT, PLATFORM_COPY } from '$lib/copy';
   import { store } from '$lib/state.svelte';
 
   const win = getCurrentWindow();
@@ -19,6 +19,21 @@
   </div>
 
   <nav aria-label="Window">
+    <button
+      type="button"
+      class="ctl"
+      aria-label="Almanac"
+      aria-pressed={store.view === 'almanac'}
+      title={store.view === 'almanac' ? 'Back (Esc)' : ALMANAC_TITLE}
+      onclick={() => (store.view === 'almanac' ? (store.view = 'home') : store.openAlmanac())}
+    >
+      <!-- An open book: an almanac is one, and a calendar would be any app's. -->
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M8 4.6C6.5 3.7 4.6 3.4 2.5 3.6v8.3c2.1-.2 4 .1 5.5 1 1.5-.9 3.4-1.2 5.5-1V3.6c-2.1-.2-4 .1-5.5 1zM8 4.6v8.3"
+        />
+      </svg>
+    </button>
     <button
       type="button"
       class="ctl"

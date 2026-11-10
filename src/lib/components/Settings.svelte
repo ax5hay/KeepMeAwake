@@ -11,11 +11,14 @@
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
   import {
+    ALMANAC_HINT,
     AUTHOR,
+    EMPTY_LEAVE_HINT,
     INSTALL_UPDATE,
     OVERNIGHT_GUARD_HINT,
     PLATFORM_COPY,
     UPDATES_HINT,
+    WORK_HOURS_HINT,
     downloading,
     tipsWith,
     updateAvailable,
@@ -24,13 +27,25 @@
   import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
   import { isMac } from '$lib/platform';
   import { store } from '$lib/state.svelte';
-  import type { Notifications, Schedule, StartupPlan, Theme } from '$lib/types';
+  import type { AlmanacSettings, Notifications, Schedule, StartupPlan, Theme } from '$lib/types';
 
   const settings = $derived(store.settings);
 
   function setSchedule(patch: Partial<Schedule>) {
     if (!settings) return;
     void store.updateSettings({ schedule: { ...settings.schedule, ...patch } });
+  }
+
+  function setAlmanac(patch: Partial<AlmanacSettings>) {
+    if (!settings) return;
+    void store.updateSettings({ almanac: { ...settings.almanac, ...patch } });
+  }
+
+  function setWorkTime(field: 'start_minutes' | 'end_minutes') {
+    return (event: Event) => {
+      const minutes = timeToMinutes((event.currentTarget as HTMLInputElement).value);
+      if (minutes !== null) setAlmanac({ [field]: minutes });
+    };
   }
 
   function setNotifications(patch: Partial<Notifications>) {
@@ -257,6 +272,52 @@
               onchange={setTime('end_minutes')}
             />
           </div>
+        </Row>
+      </div>
+    </section>
+
+    <section id="settings-almanac">
+      <h2 class="eyebrow">Almanac</h2>
+      <Row label="Keep an almanac" hint={ALMANAC_HINT}>
+        <Switch
+          checked={settings.almanac.enabled}
+          label="Keep an almanac"
+          onchange={(v) => setAlmanac({ enabled: v })}
+        />
+      </Row>
+      <div
+        class="dependent"
+        class:off={!settings.almanac.enabled}
+        inert={!settings.almanac.enabled}
+      >
+        <Row label="Working days">
+          <DayPills
+            days={settings.almanac.work_days}
+            onchange={(work_days) => setAlmanac({ work_days })}
+          />
+        </Row>
+        <Row label="Working hours" hint={WORK_HOURS_HINT}>
+          <div class="times">
+            <input
+              type="time"
+              aria-label="Work starts"
+              value={minutesToTime(settings.almanac.start_minutes)}
+              onchange={setWorkTime('start_minutes')}
+            />
+            <input
+              type="time"
+              aria-label="Work ends"
+              value={minutesToTime(settings.almanac.end_minutes)}
+              onchange={setWorkTime('end_minutes')}
+            />
+          </div>
+        </Row>
+        <Row label="Empty working days are leave" hint={EMPTY_LEAVE_HINT}>
+          <Switch
+            checked={settings.almanac.empty_days_are_leave}
+            label="Empty working days are leave"
+            onchange={(v) => setAlmanac({ empty_days_are_leave: v })}
+          />
         </Row>
       </div>
     </section>

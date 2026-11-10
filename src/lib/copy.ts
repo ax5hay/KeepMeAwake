@@ -265,7 +265,8 @@ export interface DayFacts {
 
 /** The line under the day's figure. */
 export function dayDetail(day: DayFacts): string {
-  if (day.first !== null && day.last !== null && (day.kind === 'worked' || day.today)) {
+  const hasHours = day.kind === 'worked' || (day.today && day.kind !== 'leave');
+  if (day.first !== null && day.last !== null && hasHours) {
     // Today the last touch is now: saying so would only repeat the clock.
     const span = day.today
       ? `First light ${day.first}`

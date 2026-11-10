@@ -368,7 +368,7 @@ export interface Strip {
   runs: Piece[];
   /** The dotted run under the line: the night, at either end of the day. */
   quiet: Piece[];
-  /** The bracket: working hours. */
+  /** The band of sky: working hours, on a working day; empty on any other. */
   hours: Piece;
   /** Where now is, on today only. */
   sun: number | null;
@@ -392,7 +392,7 @@ export function stripOf(reading: Reading, day: Day): Strip {
   return {
     runs: day.stretches.map(piece),
     quiet,
-    hours: piece(day.hours),
+    hours: day.working ? piece(day.hours) : { left: 0, width: 0 },
     sun: day.today ? clamp((reading.now - day.start) / length, 0, 1) : null,
     ticks: [0, 1, 2, 3].map((quarter) => ({
       at: quarter / 4,

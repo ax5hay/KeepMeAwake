@@ -2,6 +2,7 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { onMount } from 'svelte';
 
+  import Almanac from '$lib/components/Almanac.svelte';
   import Home from '$lib/components/Home.svelte';
   import Settings from '$lib/components/Settings.svelte';
   import TitleBar from '$lib/components/TitleBar.svelte';
@@ -53,7 +54,7 @@
     if (action !== 'back-or-close') event.preventDefault();
     switch (action) {
       case 'back-or-close':
-        if (store.view === 'settings') store.view = 'home';
+        if (store.view !== 'home') store.view = 'home';
         else void getCurrentWindow().close();
         break;
       case 'toggle':
@@ -84,7 +85,14 @@
       <Home />
     </div>
     <div
-      class="pane settings"
+      class="pane aside"
+      class:offscreen={store.view !== 'almanac'}
+      inert={store.view !== 'almanac'}
+    >
+      <Almanac />
+    </div>
+    <div
+      class="pane aside"
       class:offscreen={store.view !== 'settings'}
       inert={store.view !== 'settings'}
     >
@@ -124,7 +132,7 @@
     transform: translateX(-24px);
   }
 
-  .pane.settings.offscreen {
+  .pane.aside.offscreen {
     transform: translateX(24px);
   }
 
