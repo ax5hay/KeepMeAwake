@@ -93,7 +93,7 @@ What a day reads as:
 | anything else with nothing in it                      | `Nothing` (today shows `0m`)                                                        |
 
 On the first open after a night, Home whispers it once:
-`Away overnight: 2:17 am to 11:12 am.`
+`A quiet night: 2:17 am to 11:12 am.`
 
 With the almanac off, the pane says so and offers the switch.
 
@@ -150,7 +150,7 @@ Settings → new section **Almanac**, after **Schedule**.
 
 | Field                          | Type        | Default       | UI                                                                                             |
 | ------------------------------ | ----------- | ------------- | ---------------------------------------------------------------------------------------------- |
-| `almanac.enabled`              | `bool`      | `true`        | **Track my days**: `Your hours, leave and nights.`                                             |
+| `almanac.enabled`              | `bool`      | `true`        | **Keep an almanac**: `Your hours, leave and nights.`                                           |
 | `almanac.work_days`            | `[bool; 7]` | Monday–Friday | **Working days**: the schedule's day pills                                                     |
 | `almanac.start_minutes`        | `u16`       | `540`         | **Working hours**, two time fields: `Past midnight is fine. Time outside them counts as over.` |
 | `almanac.end_minutes`          | `u16`       | `1080`        |                                                                                                |

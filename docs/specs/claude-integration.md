@@ -1,4 +1,4 @@
-# Claude
+# AI: Claude, OpenAI or any other service
 
 Version 0.5 · Size M · Touches core, app, ui
 
@@ -21,22 +21,22 @@ stateDiagram-v2
     FeatureOff: Feature off<br/>Claude on, this feature not
     On: On<br/>asked only on a click
     Locked --> Off: add a key
-    Off --> On: Use Claude
+    Off --> On: Use AI
     On --> FeatureOff: the feature's own switch
     FeatureOff --> On: the feature's own switch
-    On --> Off: Use Claude, off
+    On --> Off: Use AI, off
     Off --> Locked: remove the key
 ```
 
-| Lock        | Default | Where it is                                                   |
-| ----------- | ------- | ------------------------------------------------------------- |
-| An API key  | none    | Settings → Claude; kept in the OS credential store            |
-| Use Claude  | off     | Settings → Claude, and **Switch it on** wherever a feature is |
-| The feature | on      | a switch beside the feature's name, where the feature is      |
+| Lock        | Default | Where it is                                               |
+| ----------- | ------- | --------------------------------------------------------- |
+| An API key  | none    | Settings → AI; kept in the OS credential store            |
+| Use AI      | off     | Settings → AI, and **Switch it on** wherever a feature is |
+| The feature | on      | a switch beside the feature's name, where the feature is  |
 
 A feature is never hidden. Without a key it is shown locked, with a lock and
 `Locked: needs an API key.` **Add a key**. With a key and Claude off it says
-`Claude is switched off.` **Switch it on**. With its own switch off it says
+`AI is switched off.` **Switch it on**. With its own switch off it says
 what it would do. Only with all three open does it show something to click,
 and beside that, what clicking sends.
 
@@ -51,14 +51,14 @@ used. Under it each feature (`ClaudeFeature`) has its name, its own switch
 and a line on what it does, so what Claude could do is seen before any of it
 is switched on.
 
-| Feature                  | Where                             | Asks with      | Sends                                           | Gives back                                     |
-| ------------------------ | --------------------------------- | -------------- | ----------------------------------------------- | ---------------------------------------------- |
-| **Summarise this day**   | Almanac, under the month          | Summarise day  | the one day being read                          | one sentence                                   |
-| **Summarise this week**  | Almanac, under the month          | Summarise week | the week being read, one line a day             | two or three sentences                         |
-| **Ask about this month** | Almanac, under the month          | Ask            | your question and the month in view             | one or two sentences                           |
-| **Plan in words**        | Home, under the rule, with Until… | Ask            | the sentence typed, and the local date and time | `Awake for 2 hours`, with **Start** and **No** |
+| Feature                 | Where                             | Asks with      | Sends                                           | Gives back                                     |
+| ----------------------- | --------------------------------- | -------------- | ----------------------------------------------- | ---------------------------------------------- |
+| **The day, in a line**  | Almanac, under the month          | Read this day  | the one day being read                          | one sentence                                   |
+| **This week, in words** | Almanac, under the month          | Read this week | the week being read, one line a day             | two or three sentences                         |
+| **Ask the almanac**     | Almanac, under the month          | Ask            | your question and the month in view             | one or two sentences                           |
+| **Tell the sun**        | Home, under the rule, with Until… | Ask            | the sentence typed, and the local date and time | `Awake for 2 hours`, with **Start** and **No** |
 
-Plan in words never starts anything on its own: it shows what it understood
+Tell the sun never starts anything on its own: it shows what it understood
 and waits. While a plan is being typed, Home's two rows and its doors step
 aside to give it room.
 
@@ -68,10 +68,44 @@ the days still to come. Nothing else in the almanac leaves the machine.
 
 ### Hide AI
 
-Settings → Claude → **Hide AI**, off by default, so a new install sees the
+Settings → AI → **Hide AI**, off by default, so a new install sees the
 features, locked. On, every one of them is gone from Home and the Almanac,
-and Settings → Claude is one row: `AI is hidden` and a button, **Enable
+and Settings → AI is one row: `AI is hidden` and a button, **Enable
 AI**. Hidden, nothing can be asked either, whatever else is set.
+
+## Services
+
+| Service    | Asked through                         | Model when none is named | Key from                |
+| ---------- | ------------------------------------- | ------------------------ | ----------------------- |
+| **Claude** | Anthropic's Messages API              | `claude-haiku-5-5`       | `console.anthropic.com` |
+| **OpenAI** | Chat Completions                      | `gpt-5.4-nano`           | `platform.openai.com`   |
+| **Other**  | the same chat format, at your address | none: you name it        | the service you chose   |
+
+**Other** is any service that speaks the OpenAI chat format: OpenRouter,
+Gemini's compatible endpoint, Groq, Mistral, or a model on this machine
+(Ollama at `http://localhost:11434/v1`, where any text will do for the key).
+The address must be `https`, or plain `http` only to this machine, so a key
+is never sent in the clear. Each service keeps its own key; choosing another
+never sends it the first one's.
+
+`ai.provider` (`anthropic`, `openai`, `custom`), `ai.model` (empty for the
+service's smallest) and `ai.base_url` (for `custom`) are settings; the keys
+are not, and each service has its own entry in the OS credential store
+(`anthropic-api-key`, `openai-api-key`, `custom-api-key`). Nothing in the
+window names a service unless it is the one chosen: the chip reads `AI`,
+and the line under each feature says who is sent what.
+
+| Service | Request                                                                                                         | Answer read from                                          |
+| ------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Claude  | `/v1/messages`: `thinking` disabled, `effort: low`, `max_tokens`; the plan through `output_config.format`       | text blocks; `stop_reason: "refusal"` is a refusal        |
+| OpenAI  | `/v1/chat/completions`: a `developer` message, `max_completion_tokens`; the plan through a strict `json_schema` | `choices[0].message.content`; `refusal`, `content_filter` |
+| Other   | `{address}/chat/completions`: a `system` message, `max_tokens`; no schema, the plan's shape asked for in words  | the same, with the JSON object looked for in the text     |
+
+OpenAI's own pages marked both of its nano models as deprecated when this
+was written and named no successor, so `gpt-5.4-nano` is a default that
+will need changing; the Model field is there for that. No request sets a
+reasoning effort for OpenAI or another service, since not every model takes
+one: the default model there does not reason unless asked.
 
 ## What it costs
 
@@ -97,11 +131,11 @@ Settings → new section **Claude**, after **Almanac**.
 
 | Field                | Type   | Default | UI                                                                                    |
 | -------------------- | ------ | ------- | ------------------------------------------------------------------------------------- |
-| `ai.enabled`         | `bool` | `false` | **Use Claude**: `Off, nothing is ever sent to Anthropic.`                             |
-| `ai.week_in_words`   | `bool` | `true`  | **Summarise this week** (also beside the feature)                                     |
-| `ai.tell_the_sun`    | `bool` | `true`  | **Plan in words** (also beside the feature)                                           |
-| `ai.day_in_a_line`   | `bool` | `true`  | **Summarise this day** (also beside the feature)                                      |
-| `ai.ask_the_almanac` | `bool` | `true`  | **Ask about this month** (also beside the feature)                                    |
+| `ai.enabled`         | `bool` | `false` | **Use AI**: `Off, nothing is ever sent to Anthropic.`                                 |
+| `ai.week_in_words`   | `bool` | `true`  | **This week, in words** (also beside the feature)                                     |
+| `ai.tell_the_sun`    | `bool` | `true`  | **Tell the sun** (also beside the feature)                                            |
+| `ai.day_in_a_line`   | `bool` | `true`  | **The day, in a line** (also beside the feature)                                      |
+| `ai.ask_the_almanac` | `bool` | `true`  | **Ask the almanac** (also beside the feature)                                         |
 | `ai.hidden`          | `bool` | `false` | **Hide AI**: `Takes every AI feature out of sight. One button here brings them back.` |
 | (not a setting)      |        |         | **API key**: a password field and Save; then `A key is saved.` Remove                 |
 
@@ -184,12 +218,12 @@ The exe's growth is to be measured at the next release build.
 
 - [ ] No key: both features show locked, with the lock and Add a key.
 - [ ] Add a key: both say Claude is switched off, with Switch it on.
-- [ ] Switch it on: Summarise week returns two or three sentences; Tell the
+- [ ] Switch it on: Read this week returns two or three sentences; Tell the
       sun understands `two hours` and `until half six`, and starts only on
       Start.
 - [ ] A wrong key says `Anthropic did not accept that API key.`
 - [ ] Each feature's switch turns only that feature off.
-- [ ] Use Claude off: no request is made, by any path.
+- [ ] Use AI off: no request is made, by any path.
 - [ ] The key is in the OS credential store and not in `settings.json`.
 
 ## Commits
@@ -201,7 +235,7 @@ The exe's growth is to be measured at the next release build.
 
 ## Out of scope
 
-Choosing a larger model, streaming the answer, a chat, a conversation that
+Listing a service's models, checking a named model exists before asking, streaming the answer, a chat, a conversation that
 remembers, anything sent without a
 click, other providers, keys shared between machines, a monthly or yearly
 reading, cost shown in the app.

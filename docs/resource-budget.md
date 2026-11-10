@@ -20,7 +20,7 @@
 | Cold open of the window        | ≤ 400 ms            | under 1 s                                                    | 0.86 s from a cold launch                        | webview spin-up + first paint                                               |
 
 The almanac is the first thing that wakes the app at rest, and it is behind
-a switch (Settings → Almanac → Track my days, on by default). One thread,
+a switch (Settings → Almanac → Keep an almanac, on by default). One thread,
 `keepmeawake-almanac`, waits on a condvar: with the almanac on it wakes
 once a minute to read the idle time (`GetLastInputInfo` or
 `CGEventSourceSecondsSinceLastEventType`, one call of microseconds) and

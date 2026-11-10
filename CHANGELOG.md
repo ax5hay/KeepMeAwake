@@ -7,23 +7,26 @@ Versions: [SemVer](https://semver.org).
 
 ### Added
 
-- Claude, as a choice, and a cheap one. Four features, shown where they
-  are used: in the Almanac, **Summarise this day**, **Summarise this week**
-  and **Ask about this month** (a question about the month in view); on Home
-  with Until…, **Plan in words** (say the plan, `two hours` or `until half
+- AI, as a choice, and a cheap one, by the service you choose: Claude,
+  OpenAI, or any other that speaks the OpenAI chat format, including a
+  model on your own machine (Settings → AI → Service). Four features, shown where they
+  are used: in the Almanac, **The day, in a line**, **This week, in words**
+  and **Ask the almanac** (a question about the month in view); on Home
+  with Until…, **Tell the sun** (say the plan, `two hours` or `until half
   six`; it shows what it understood and starts only when you say). Three
   locks, each visible: with no API key the features are shown locked, with
   a way to add one; with a key they say Claude is switched off, with the
-  master switch right there (Settings → Claude → Use Claude, off until you
+  master switch right there (Settings → AI → Use AI, off until you
   turn it on); and each feature has its own switch beside its name.
   Nothing is sent without a click that says what it sends. The key is your
   own, kept in Windows Credential Manager or the macOS Keychain, never in a
   file and never shown again.
-- Every request goes to Claude Haiku, the smallest model, with thinking
-  off and a hard cap on the answer; the largest costs about a thirtieth of
-  a cent at today's list price, and the same question twice in a session
+- Every request asks the service's smallest model unless you name
+  another, with a hard cap on the answer (and, with Claude, thinking off);
+  the largest costs about a thirtieth of a cent with Claude Haiku at
+  today's list price, and the same question twice in a session
   costs nothing the second time.
-- Hide AI (Settings → Claude, off by default): takes every AI feature out
+- Hide AI (Settings → AI, off by default): takes every AI feature out
   of sight and leaves one button, Enable AI.
 - Check for updates, a button in Settings → About: look for a newer
   release now. The app also looks whenever the window is opened, if it has
@@ -44,9 +47,9 @@ and Sleep when I'm away (off unless you ask) has not yet had a real night.
 
 ### Changed
 
-- The almanac and Claude are worded plainly: Started and ended rather than
-  first light, Away overnight rather than a quiet night, Track my days,
-  Morning summary, Sleep when I'm away, Plan in words, Summarise this day
+- The almanac and AI say facts plainly and keep their own names: Started and ended rather than
+  first light, Away overnight rather than a quiet night, Keep an almanac,
+  Morning whisper, Sleep when I'm away, Tell the sun, The day, in a line
   and week, Edit hours. The scene and its whispers keep their voice.
 
 ### Fixed
@@ -68,7 +71,7 @@ and Sleep when I'm away (off unless you ask) has not yet had a real night.
   hours, ink where you were here, the night dotted under the line, the sun
   at now), with the week as seven strips and the month as a calendar.
   **Mark as leave** on any day, past or to come.
-- Settings → Almanac: Track my days (on by default), Working days,
+- Settings → Almanac: Keep an almanac (on by default), Working days,
   Working hours (past midnight is fine: a day turns over opposite the
   middle of them, so late work stays on the day it began) and Empty working
   days are leave.
@@ -84,7 +87,7 @@ and Sleep when I'm away (off unless you ask) has not yet had a real night.
   asking first as the overnight guard does, and rises again at your next
   touch.
 - Every automatic thing in the almanac has a switch, including the morning
-  whisper (Morning summary).
+  whisper (Morning whisper).
 - It reads only how long since the last input, once a minute, the same
   read-only call the overnight guard makes. Nothing is typed, and
   `almanac.json` never leaves the machine. With the switch off the app

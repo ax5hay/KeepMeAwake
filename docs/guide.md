@@ -177,7 +177,7 @@ one day and the first touch of the next, so nothing is asked and nothing is
 guessed as it happens. That is why it is found with the sun on **Always**
 (the laptop never slept, but the keys did go quiet) exactly as it is with
 the laptop asleep. On the first open after a night, Home whispers it once:
-`Away overnight: 2:17 am to 11:12 am.`
+`A quiet night: 2:17 am to 11:12 am.`
 
 | A quiet is a night when                           | So                                          |
 | ------------------------------------------------- | ------------------------------------------- |
@@ -239,49 +239,68 @@ quarter hour while you work, and on quit. What it cannot know: whether what
 you did at the keyboard was work, and a meeting taken without touching the
 laptop for more than ten minutes reads as a break.
 
-## Claude
+## AI
 
 Off until you turn it on, locked until you give it a key, and built to cost
-next to nothing. Four things in the app are easier said than set, and Claude
-does those four, only when asked:
+next to nothing. Four things in the app are easier said than set, and a
+language model does those four, only when asked. Which model is yours to
+choose: Claude, OpenAI, or any other service.
 
-| Feature                  | Where                             | You click      | It sends                               | You get                                       |
-| ------------------------ | --------------------------------- | -------------- | -------------------------------------- | --------------------------------------------- |
-| **Summarise this day**   | Almanac, under the month          | Summarise day  | the one day being read                 | one sentence on it                            |
-| **Summarise this week**  | Almanac, under the month          | Summarise week | that week, one line a day              | two or three sentences                        |
-| **Ask about this month** | Almanac, under the month          | Ask            | your question and the month in view    | an answer in a sentence or two                |
-| **Plan in words**        | Home, with **Until…** on the rule | Ask            | the sentence you typed, and local time | `Awake for 2 hours`, then **Start** or **No** |
+| Feature                 | Where                             | You click      | It sends                               | You get                                       |
+| ----------------------- | --------------------------------- | -------------- | -------------------------------------- | --------------------------------------------- |
+| **The day, in a line**  | Almanac, under the month          | Read this day  | the one day being read                 | one sentence on it                            |
+| **This week, in words** | Almanac, under the month          | Read this week | that week, one line a day              | two or three sentences                        |
+| **Ask the almanac**     | Almanac, under the month          | Ask            | your question and the month in view    | an answer in a sentence or two                |
+| **Tell the sun**        | Home, with **Until…** on the rule | Ask            | the sentence you typed, and local time | `Awake for 2 hours`, then **Start** or **No** |
 
-They are always there, under a small `CLAUDE` chip that says where things
+They are always there, under a small `AI` chip that says where things
 stand, and each has its own switch beside its name:
 
-| The chip says                       | Means                                    | To change it                          |
-| ----------------------------------- | ---------------------------------------- | ------------------------------------- |
-| a lock, `Locked: needs an API key.` | no key has been added                    | **Add a key** opens Settings → Claude |
-| `Claude is switched off.`           | there is a key; the master switch is off | **Switch it on**, right there         |
-| nothing more                        | ready; each feature shows what it sends  | a feature's own switch turns it off   |
+| The chip says                       | Means                                    | To change it                        |
+| ----------------------------------- | ---------------------------------------- | ----------------------------------- |
+| a lock, `Locked: needs an API key.` | no key has been added                    | **Add a key** opens Settings → AI   |
+| `AI is switched off.`               | there is a key; the master switch is off | **Switch it on**, right there       |
+| nothing more                        | ready; each feature shows what it sends  | a feature's own switch turns it off |
 
-![Claude locked, Paper](assets/claude-locked-light.png) ![Claude on, Night](assets/claude-week-dark.png)
+![AI locked, Paper](assets/claude-locked-light.png) ![AI on, Night](assets/claude-week-dark.png)
 
-**What it costs.** Every request goes to Claude Haiku, the smallest and
-cheapest model, with thinking switched off, and is capped: a line, or a few
-sentences, never more. The largest thing the app can ask, a question about a
-whole month, comes to about a thirtieth of a cent at the list price when
-this was written; a day in a line is a tenth of that. Asking the same thing
-twice in a session is answered from memory and costs nothing. Nothing is
-ever asked on the app's own initiative.
+**Which service.** Settings → **AI** → **Service**:
 
-Settings → **Claude** has the master switch (**Use Claude**), the key, and
-every feature's switch again. The key is your own, from
-`console.anthropic.com`, and asking is billed to it. It is typed once and
-kept in Windows Credential Manager or the macOS Keychain: not in the
-settings file, and never shown again, only **Remove it**.
+| Service    | Asked through                         | Model when none is named | Key from                |
+| ---------- | ------------------------------------- | ------------------------ | ----------------------- |
+| **Claude** | Anthropic's Messages API              | `claude-haiku-5-5`       | `console.anthropic.com` |
+| **OpenAI** | Chat Completions                      | `gpt-5.4-nano`           | `platform.openai.com`   |
+| **Other**  | the same chat format, at your address | none: you name it        | the service you chose   |
+
+**Other** is any service that speaks the OpenAI chat format: OpenRouter,
+Gemini's compatible endpoint, Groq, Mistral, or a model on this machine
+(Ollama at `http://localhost:11434/v1`, where any text will do for the key).
+The address must be `https`, or plain `http` only to this machine, so a key
+is never sent in the clear. Each service keeps its own key; choosing another
+never sends it the first one's.
+
+**What it costs.** Every request asks the service's smallest model unless
+you name another, and is capped: a line, or a few sentences, never more.
+With Claude, thinking is switched off as well, so nothing is paid for but
+the answer. The largest thing the app can ask, a question about a whole
+month, comes to about a thirtieth of a cent with Claude Haiku at the list
+price when this was written. Asking the same thing twice in a session is
+answered from memory and costs nothing. Nothing is ever asked on the app's
+own initiative. A model you name yourself costs what that model costs: one
+that reasons before it answers may spend the cap on reasoning and return
+nothing, so pick a small, direct one.
+
+Settings → **AI** also has the master switch (**Use AI**), the model, the
+key, and every feature's switch again. The key is your own and asking is
+billed to it. It is typed once and kept in Windows Credential Manager or the
+macOS Keychain: not in the settings file, and never shown again, only
+**Remove it**.
 
 **Hide AI**, at the foot of that section, takes every one of these out of
 sight, on Home and in the Almanac. What is left is one row in Settings →
 Claude with one button, **Enable AI**. It is off by default.
 
-![Plan in words, Paper](assets/claude-tell-light.png) ![Settings → Claude, Paper](assets/claude-settings-light.png)
+![Tell the sun, Paper](assets/claude-tell-light.png) ![Settings → AI, Paper](assets/claude-settings-light.png)
 
 ![AI hidden, Paper](assets/claude-hidden-light.png)
 
@@ -333,19 +352,22 @@ dark menu bar itself. Nothing to set.
 | Schedule      | Keep a schedule                 | awake during these hours, resting outside them. Off by default                      |
 |               | Days                            | Monday first; weekdays by default                                                   |
 |               | From / Until                    | 9:00 am until 6:00 pm by default; overnight is fine; the same time twice is all day |
-| Almanac       | Track my days                   | days, hours and nights, from your input. On by default; see Almanac above           |
+| Almanac       | Keep an almanac                 | days, hours and nights, from your input. On by default; see Almanac above           |
 |               | Working days                    | Monday first; weekdays by default                                                   |
 |               | Working hours                   | 9:00 am until 6:00 pm by default; past midnight is fine                             |
 |               | Empty working days are leave    | on by default; off on a machine you rarely use                                      |
-|               | Morning summary                 | the morning's whisper; on by default                                                |
+|               | Morning whisper                 | the morning's whisper; on by default                                                |
 |               | Break reminder                  | Off · 1h · 90m · 2h at the machine without five minutes away; off by default        |
 |               | Sleep when I'm away             | Off · 30m · 1h · 2h of quiet at night before Always sets; off by default            |
-| Claude        | Use Claude                      | the master switch; off by default, and locked without a key                         |
+| AI            | Use AI                          | the master switch; off by default, and locked without a key                         |
+|               | Service                         | Claude · OpenAI · Other (any service in the OpenAI chat format)                     |
+|               | Model                           | empty for the service's smallest; or name one                                       |
+|               | Address                         | for Other: `https://…/v1`, or `http://localhost…`                                   |
 |               | API key                         | your own; kept in the OS credential store, never shown again                        |
-|               | Summarise this week             | its own switch, also beside the feature in the Almanac                              |
-|               | Plan in words                   | its own switch, also beside the feature on Home                                     |
-|               | Summarise this day              | its own switch, also beside the feature in the Almanac                              |
-|               | Ask about this month            | its own switch, also beside the feature in the Almanac                              |
+|               | This week, in words             | its own switch, also beside the feature in the Almanac                              |
+|               | Tell the sun                    | its own switch, also beside the feature on Home                                     |
+|               | The day, in a line              | its own switch, also beside the feature in the Almanac                              |
+|               | Ask the almanac                 | its own switch, also beside the feature in the Almanac                              |
 |               | Hide AI                         | off by default; on, only an Enable AI button is left                                |
 | Battery       | Pause below                     | Off, or 10–50%                                                                      |
 |               | Pause whenever unplugged        | strictest: on battery means resting                                                 |

@@ -5,7 +5,7 @@ short; link out for detail.
 
 **Last updated:** 2026-11-10 · by Claude Fable 5.2 (Windows session: v0.4.0 released; Claude, Check for updates, break reminder and CSV built, unreleased)
 **Release:** [v0.4.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.4.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
-**Repo state:** `main` is green (`npm run verify` on Windows: vitest 187, cargo test 240;
+**Repo state:** `main` is green (`npm run verify` on Windows: vitest 192, cargo test 246;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
 the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
@@ -205,6 +205,23 @@ on Windows is listed under **Where to start**.
   unchanged (`rest_after_mins`, `tell_the_sun`, `whisper_night`): only what
   is shown changed. Older specs still use the first names in places.
 
+## AI services and names, fourth round
+
+- AI is no longer only Claude: **Service** in Settings → AI chooses Claude,
+  OpenAI, or Other (any service in the OpenAI chat format, at an address
+  of one's own). Each has its own key. Tested with fakes on both sides;
+  **no real request to OpenAI or to another service has been made**, and
+  still no real answer from Claude either. The OpenAI shape is from its
+  reference (`max_completion_tokens`, a `developer` message, a strict
+  `json_schema`); its default model, `gpt-5.4-nano`, was marked deprecated
+  on OpenAI's own page with no successor named, so expect to change it.
+- Code is `core::ai` (one `Ask`, shaped per service) and `app::ai`
+  (`Assistant`); in the window `ai.ts`, `AiGroup`, `AiFeature`. The spec is
+  still `specs/claude-integration.md`.
+- Wording: facts are plain, the product's own names are back (Keep an
+  almanac, Ask the almanac, Tell the sun, Morning whisper), each with a
+  plain hint. See `design.md` → Copy.
+
 ## Claude: acceptance and decisions
 
 Spec: [`specs/claude-integration.md`](specs/claude-integration.md). (It is
@@ -214,11 +231,11 @@ name as a `CLAUDE.md` instructions file, and it was read as one.)
 | Acceptance (spec)                                             | Status                                                                                                                   |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | No key: both features locked, with Add a key                  | seen in the harness, both themes; the real app answers `Claude is locked: no API key…`                                   |
-| A key, Claude off: Claude is switched off, with Switch it on  | seen in the harness; the real app answers `Claude is switched off.`                                                      |
+| A key, Claude off: Claude is switched off, with Switch it on  | seen in the harness; the real app answers `AI is switched off.`                                                          |
 | Switched on: a week in words; a sentence understood           | **by hand, needs a real API key**: no successful answer from Anthropic has been seen yet                                 |
 | A wrong key says so                                           | done in the real app on Windows: a real request with a made-up key came back as `Anthropic did not accept that API key.` |
 | Each feature's switch turns only that feature off             | keeper and store tested                                                                                                  |
-| Use Claude off: no request by any path                        | tested (`unlock` refuses before a request is built)                                                                      |
+| Use AI off: no request by any path                            | tested (`unlock` refuses before a request is built)                                                                      |
 | The key is in the OS credential store, not in `settings.json` | done on Windows: stored, read back as `has_key`, removed; not in the settings file                                       |
 
 The one thing nobody has seen is a real answer. The request follows the
@@ -233,7 +250,7 @@ cap in `core/ai.rs`: they are tight on purpose.
 
 Second round, the same day: every request moved to the smallest model with
 thinking off and capped answers; two more features (**The day, in a
-line**, **Ask about this month**); features grouped under one chip
+line**, **Ask the almanac**); features grouped under one chip
 (`ClaudeGroup`, `ClaudeFeature`); answers remembered for the session by
 what was asked; and **Hide AI**, off by default. All tested and seen in the
 harness in both themes; none of it yet in the real window.
@@ -243,7 +260,7 @@ without a key, and a feature is shown in every state rather than hidden;
 the model is fixed (`claude-haiku-5-5`, the cheapest) and not a setting; requests go from
 Rust, so the webview's CSP and permissions are unchanged and the key never
 reaches it; the same HTTPS client as the updater; `keyring` is the one new
-crate; Plan in words never starts a plan without Start; while a plan is
+crate; Tell the sun never starts a plan without Start; while a plan is
 typed, Home's rows and doors step aside.
 
 For the Mac: `npm run verify`; the key goes into the Keychain (expect one
@@ -265,7 +282,7 @@ Second round, the same day (asked for once the first build was seen):
 | Today on Home: the strip under the scene, the figure by the word     | seen in the harness, Paper and Night, 380 × 600 and 340 × 520 (strip hidden); seen once in the real window, Night   |
 | Edit hours, Nobody here, Undo my edit                                | core, keeper and UI logic tested; clicked through in the harness; `fix_day` answered and refused in the real window |
 | Sleep when I'm away: asks at night after 30m, sets, rises at a touch | engine tested with fakes (six tests, including a wake in the night); **by hand**, needs a real night                |
-| Morning summary has a switch; a full day is whispered once           | store tested                                                                                                        |
+| Morning whisper has a switch; a full day is whispered once           | store tested                                                                                                        |
 
 Sleep when I'm away is **off by default** and is the one part of this that changes
 what the sun does; it deserves a real night on each machine before 0.4.0.

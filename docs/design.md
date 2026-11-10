@@ -132,10 +132,10 @@ The strips are positioned boxes, not an SVG: they stretch with the pane, and
 boxes stretch without bending their dots or their sun. Nothing in the pane
 is a chart with axes; the only labels are four hours under the day's strip.
 
-### Claude
+### AI
 
-A feature that depends on a choice shows the choice. Claude's features sit
-together in one frame: a small outlined `CLAUDE` chip in the eyebrow's
+A feature that depends on a choice shows the choice. AI's features sit
+together in one frame: a small outlined `AI` chip in the eyebrow's
 voice, which says once whether they can be used, and under it each feature
 as a row: its name, a line on what it does, and its own switch at the right,
 the same switch as everywhere else. The states differ in words, not colour:
@@ -143,13 +143,13 @@ the same switch as everywhere else. The states differ in words, not colour:
 | State       | The frame shows                                                              |
 | ----------- | ---------------------------------------------------------------------------- |
 | locked      | a lock in the chip; `Locked: needs an API key.` and a link to add one        |
-| off         | `Claude is switched off.` and a link that is the master switch               |
+| off         | `AI is switched off.` and a link that is the master switch                   |
 | feature off | that feature's line on what it would do                                      |
 | on          | the feature, and under it in small type what asking sends                    |
 | hidden      | nothing at all, anywhere; one row in Settings with one button brings it back |
 
-Locked and off, every feature is still named, so what Claude could do is
-seen before it is switched on. What Claude says back is set in italic
+Locked and off, every feature is still named, so what AI could do is
+seen before it is switched on. What comes back is set in italic
 Fraunces, like a whisper: it is the app speaking a sentence, not a control.
 There is no sparkle, no gradient and no second accent; the sun stays the
 only colour.
@@ -181,6 +181,12 @@ thing it switches, a line of detail gives the fact, a hint gives the
 consequence. `Started 9:02 am · ended 6:40 pm`, not first light; `Sleep
 when I'm away`, not set with me. If a line needs the metaphor explained to
 be understood, it is the wrong line.
+
+Between the two sit the product's own names, and those are kept: the
+Almanac, Ask the almanac, The day in a line, This week in words, Tell the
+sun, Morning whisper. A name may have character so long as a plain hint
+sits under it and nobody has to guess what it does. No service is named in
+the window unless it is the one chosen: the chip says `AI`.
 
 ## Hidden things
 

@@ -198,7 +198,7 @@ so the app lives in the tray.
 `app/almanac.rs` keeps the almanac beside the engine, not in it: who is at
 the machine is not a power decision, and has to be noted with the sun up or
 down alike. A thread, `keepmeawake-almanac`, reads the idle time once a
-minute while **Track my days** is on and blocks with no timeout while it
+minute while **Keep an almanac** is on and blocks with no timeout while it
 is off. Each reading goes to `core::almanac::Almanac::note`, which grows the
 newest span or opens a new one after ten quiet minutes. The almanac is saved
 as a span opens, two minutes after the keys go quiet, every quarter hour
@@ -219,13 +219,15 @@ The window does the rest (`lib/almanac.ts`, pure): days that turn over
 opposite the middle of the working hours, time over, nights as the quiet
 between two spans, leave. Nothing about a night is decided as it happens.
 
-`app/ai.rs` is Claude, and it is inert unless asked. `core::ai` builds the
+`app/ai.rs` is AI, by whichever service was chosen, and it is inert unless
+asked. `core::ai` builds the
 four request bodies (all to the smallest model, thinking off, the answer
-capped) and reads the answers with no network; `Claude::unlock`
-gives up the key only when one is stored, **Use Claude** is on and the
-feature's own switch is on; `Claude::ask` makes one POST to
-`api.anthropic.com/v1/messages` over the HTTPS client the updater already
-ships. There is no official Anthropic SDK for Rust, so it is the documented
+capped) and reads the answers with no network; `Assistant::unlock`
+gives up the chosen service's key only when one is stored, **Use AI** is on and the
+feature's own switch is on; `Assistant::ask` makes one POST to
+that service (`api.anthropic.com/v1/messages`, `api.openai.com/v1/chat/completions`,
+or the address given for another) over the HTTPS client the updater already
+ships. There is no official SDK for Rust from either, so each is the documented
 HTTP shape. The key lives in the OS credential store (`keyring`), is never
 logged, and never crosses to the window.
 
@@ -235,12 +237,12 @@ sequenceDiagram
     participant UI as Window
     participant A as app/ai.rs
     participant K as OS credential store
-    participant C as Anthropic
-    U->>UI: click "Summarise week"
+    participant C as The service chosen
+    U->>UI: click "Read this week"
     UI->>A: invoke ai_read_week {digest}
     A->>K: the key, if there is one
-    A->>A: Use Claude on? this feature on?
-    A->>C: POST /v1/messages (the digest, nothing else)
+    A->>A: Use AI on? this feature on?
+    A->>C: POST (the digest, nothing else)
     C-->>A: text
     A-->>UI: two or three sentences, or why not
 ```
@@ -355,8 +357,9 @@ where it last was.
   they run; the webview has no updater or process permission. Fonts and
   assets are bundled. Toasts go to the local notification centre; they are
   sent from Rust, so the webview has no notification permission.
-- With **Use Claude** on and a key added, a click on a Claude feature sends
-  one HTTPS request to `api.anthropic.com` carrying what that feature says
+- With **Use AI** on and a key added, a click on a Claude feature sends
+  one HTTPS request to the service chosen (Anthropic, OpenAI, or an address
+  of your own, which must be `https` unless it is this machine) carrying what that feature says
   it sends: a week of the almanac, or one typed sentence. Off (the default)
   or without a key, no such request is possible by any path, and none is
   ever made without a click. The key is in the OS credential store, not in
