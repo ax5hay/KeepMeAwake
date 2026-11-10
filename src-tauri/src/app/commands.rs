@@ -18,7 +18,9 @@ use crate::persistence;
 /// Current state. Also nudges the engine to re-read the battery, since this is
 /// called whenever the window opens.
 #[tauri::command]
-pub fn get_snapshot(state: State<'_, AppState>) -> Snapshot {
+pub fn get_snapshot(app: AppHandle, state: State<'_, AppState>) -> Snapshot {
+    // Someone is looking: a good moment to notice a new release.
+    super::update::check_on_open(&app);
     state.engine.refresh();
     state.engine.snapshot()
 }

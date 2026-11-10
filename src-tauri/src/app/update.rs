@@ -8,6 +8,7 @@
 //! before it is run.
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 
@@ -66,6 +67,45 @@ pub fn next_check_due(last_unix_ms: u64, now_unix_ms: u64) -> Duration {
     Duration::from_millis(due.saturating_sub(now_unix_ms))
 }
 
+/// When the window is opened, a check is made if the last one is at least
+/// this old. There is no way for a release to announce itself to the app
+/// (that would take a server pushing to it), so this is what makes a new
+/// release show up the next time someone looks, not a day later.
+pub const ON_OPEN_AFTER: Duration = Duration::from_secs(60 * 60);
+
+/// Whether opening the window should check now: the last check is at least
+/// [`ON_OPEN_AFTER`] old, or stamped in the future (the clock moved back).
+pub fn due_on_open(last_unix_ms: u64, now_unix_ms: u64) -> bool {
+    last_unix_ms > now_unix_ms || now_unix_ms - last_unix_ms >= millis(ON_OPEN_AFTER)
+}
+
+/// A check is running. Opening the window twice, or asking by hand while
+/// the daily check is out, must not make a second request.
+static CHECKING: AtomicBool = AtomicBool::new(false);
+
+/// Checks as the window opens, off its thread, if the switch is on, no
+/// newer release is already known and the last check is old enough.
+pub fn check_on_open(app: &AppHandle) {
+    let Some(state) = app.try_state::<AppState>() else {
+        return;
+    };
+    let settings = state.engine.settings();
+    let known = state.update.lock().is_some();
+    if !settings.check_for_updates
+        || known
+        || !due_on_open(settings.last_update_check_unix_ms, tray::now_unix_ms())
+    {
+        return;
+    }
+    let app = app.clone();
+    let spawned = thread::Builder::new()
+        .name("keepmeawake-update-open".into())
+        .spawn(move || check_and_record(&app));
+    if let Err(err) = spawned {
+        log::debug!("could not check for an update on open: {err}");
+    }
+}
+
 /// Whole percent of a download, when its size is known.
 pub fn percent(progress: Progress) -> Option<u8> {
     let total = progress.total.filter(|&t| t > 0)?;
@@ -113,7 +153,11 @@ pub fn start(app: &AppHandle) {
 /// window and the tray, and stamps the time so the next is a day away even
 /// if this one failed.
 pub(crate) fn check_and_record(app: &AppHandle) {
+    if CHECKING.swap(true, Ordering::SeqCst) {
+        return;
+    }
     let found = on_this_thread(check_now(app));
+    CHECKING.store(false, Ordering::SeqCst);
     let Some(state) = app.try_state::<AppState>() else {
         return;
     };
@@ -230,6 +274,14 @@ mod tests {
 
     const T0: u64 = 1_800_000_000_000;
     const HOUR_MS: u64 = 3_600_000;
+
+    #[test]
+    fn opening_the_window_checks_when_the_last_check_is_an_hour_old() {
+        assert!(due_on_open(0, T0), "never checked");
+        assert!(!due_on_open(T0, T0 + HOUR_MS - 1));
+        assert!(due_on_open(T0, T0 + HOUR_MS));
+        assert!(due_on_open(T0 + HOUR_MS, T0), "a check from the future");
+    }
 
     #[test]
     fn a_check_is_due_a_day_after_the_last() {
