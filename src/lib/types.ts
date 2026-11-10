@@ -84,7 +84,7 @@ export interface AlmanacSettings {
   end_minutes: number;
   /** A past working day with nothing in it reads as leave. */
   empty_days_are_leave: boolean;
-  /** Whisper the night once, on the first open after it. */
+  /** Morning summary once, on the first open after it. */
   whisper_night: boolean;
   /**
    * Minutes without input, inside the resting hours, after which an Always
@@ -154,7 +154,7 @@ export interface Snapshot {
   schedule: ScheduleState;
   /** While the overnight guard asks: when the session ends unless answered. */
   guard_rests_at_unix_ms: number | null;
-  /** The question is the night's (Set with me), not the guard's hours. */
+  /** The question is the night's (Sleep when I'm away), not the guard's hours. */
   guard_night: boolean;
   /** The sun set with the night and rises again at the next touch. */
   rises_on_touch: boolean;

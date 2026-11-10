@@ -100,11 +100,11 @@ describe('statusText and the night', () => {
       guard_night: true,
     };
     expect(statusText(asking, noon, 'en-US').detail).toBe(
-      'Quiet for the night. Setting at 3:12 am.',
+      'Away for the night. Sleeping at 3:12 am.',
     );
     const guardOff = { ...asking, settings: { ...asking.settings, overnight_guard_hours: null } };
     expect(statusText(guardOff, noon, 'en-US').detail).toBe(
-      'Quiet for the night. Setting at 3:12 am.',
+      'Away for the night. Sleeping at 3:12 am.',
     );
   });
 
@@ -112,7 +112,7 @@ describe('statusText and the night', () => {
     const down = { ...base, rises_on_touch: true };
     expect(statusText(down, noon)).toEqual({
       title: 'Resting',
-      detail: 'Set with the night. Up again at your first touch.',
+      detail: 'Asleep for the night. Always resumes when you return.',
     });
   });
 });

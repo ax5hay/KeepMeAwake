@@ -31,13 +31,13 @@ pub const SCHEDULE_ENDED_TITLE: &str = "Off schedule";
 /// Title when the overnight guard asks whether anyone is there.
 pub const OVERNIGHT_TITLE: &str = "Nobody around";
 
-/// Title of the toast when Set with me is about to set the sun for the night.
-pub const NIGHT_TITLE: &str = "Quiet for the night";
+/// Title of the toast when Sleep when I'm away is about to set the sun for the night.
+pub const NIGHT_TITLE: &str = "Away for the night";
 
 /// Title of the toast after a long stretch at the machine without a break.
 pub const BREAK_TITLE: &str = "Time for a break";
 
-/// The body of that toast: `90 minutes without one. The sun will keep.`
+/// The body of that toast: `90 minutes without a break.`
 pub fn break_body(minutes: u64) -> String {
     let length = if minutes.is_multiple_of(60) {
         let hours = minutes / 60;
@@ -45,7 +45,7 @@ pub fn break_body(minutes: u64) -> String {
     } else {
         format!("{minutes} minutes")
     };
-    format!("{length} without one. The sun will keep.")
+    format!("{length} without a break.")
 }
 
 /// Shows the break toast. Asked for in Settings, so it is shown even with
@@ -137,10 +137,12 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
         } if snapshot.guard_rests_at_unix_ms.is_some() => {
             let rests = tray::when(*rests_at_unix_ms, now_unix_ms);
             if snapshot.guard_night {
-                // Set with me: the keys went quiet in the resting hours.
+                // Sleep when I'm away: the keys went quiet in the resting hours.
                 return toast(
                     NIGHT_TITLE,
-                    format!("Setting at {rests} unless you're back. Up again at your first touch."),
+                    format!(
+                        "The laptop will sleep at {rests} unless you're back. Always resumes when you return."
+                    ),
                 );
             }
             let hours = snapshot
@@ -349,9 +351,9 @@ mod tests {
 
     #[test]
     fn the_break_toast_says_how_long_in_hours_when_it_is_whole_hours() {
-        assert_eq!(break_body(90), "90 minutes without one. The sun will keep.");
-        assert_eq!(break_body(60), "1 hour without one. The sun will keep.");
-        assert_eq!(break_body(120), "2 hours without one. The sun will keep.");
+        assert_eq!(break_body(90), "90 minutes without a break.");
+        assert_eq!(break_body(60), "1 hour without a break.");
+        assert_eq!(break_body(120), "2 hours without a break.");
     }
 
     #[test]
@@ -379,10 +381,10 @@ mod tests {
         assert_eq!(
             body_for(&ask, &asking, local_ms(3, 3, 2)).map(|t| (t.title, t.body)),
             Some((
-                "Quiet for the night",
-                "Setting at 3:12 am unless you're back. Up again at your first touch.".to_owned()
+                "Away for the night",
+                "The laptop will sleep at 3:12 am unless you're back. Always resumes when you return.".to_owned()
             )),
-            "Set with me says what it will do, and that it comes back"
+            "Sleep when I'm away says what it will do, and that it comes back"
         );
         let withdrawn = snapshot(Mode::Indefinite, ALL);
         assert_eq!(

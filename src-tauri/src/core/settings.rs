@@ -189,7 +189,7 @@ pub struct AlmanacSettings {
     pub end_minutes: u16,
     /// A past working day with nothing in it reads as leave.
     pub empty_days_are_leave: bool,
-    /// Whisper the night once, on the first open after it.
+    /// Morning summary once, on the first open after it.
     pub whisper_night: bool,
     /// Minutes without input, inside the resting hours, after which an
     /// Always session sets for the night and rises again at the next

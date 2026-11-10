@@ -83,7 +83,7 @@ pub struct Snapshot {
     /// session will end unless someone answers, Unix ms. `None` otherwise.
     pub guard_rests_at_unix_ms: Option<u64>,
     /// The question is being asked because the keys went quiet in the
-    /// resting hours (the almanac's Set with me), not for the guard's hours.
+    /// resting hours (the almanac's Sleep when I'm away), not for the guard's hours.
     pub guard_night: bool,
     /// The sun set with the night and rises again at the next touch.
     pub rises_on_touch: bool,

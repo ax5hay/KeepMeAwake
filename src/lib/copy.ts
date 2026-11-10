@@ -145,22 +145,22 @@ export function nobodyHere(hours: number, time: string): string {
 }
 
 /**
- * The status line while Set with me is about to set the sun: the keys went
- * quiet inside the resting hours. `Quiet for the night. Setting at 3:12 am.`
+ * The status line while Sleep when I'm away is about to set the sun: the keys went
+ * quiet inside the resting hours. `Away for the night. Sleeping at 3:12 am.`
  */
 export function quietForTheNight(time: string): string {
-  return `Quiet for the night. Setting at ${time}.`;
+  return `Away for the night. Sleeping at ${time}.`;
 }
 
 /** The resting line after the sun set with the night. */
-export const SET_WITH_THE_NIGHT = 'Set with the night. Up again at your first touch.';
+export const SET_WITH_THE_NIGHT = 'Asleep for the night. Always resumes when you return.';
 
-/** Settings → Almanac → Set with me. */
+/** Settings → Almanac → Sleep when I'm away. */
 export const SET_WITH_ME_HINT =
-  'Always sets when you go quiet at night, and rises at your first touch.';
+  "At night, lets the laptop sleep once you've been away this long, and turns Always back on when you return.";
 
-/** Settings → Almanac → Whisper the night. */
-export const WHISPER_NIGHT_HINT = 'Once, on the first open after it.';
+/** Settings → Almanac → Morning summary. */
+export const WHISPER_NIGHT_HINT = "Last night's time away, shown once when you open the app.";
 
 /** The action under the status line, and the tray item, while the guard asks. */
 export const KEEP_IT_UP = 'Keep it up';
@@ -188,7 +188,7 @@ export function updateWhisper(version: string): string {
 
 /** Settings → About, while a newer release waits. */
 export function updateAvailable(version: string): string {
-  return `${version} is available`;
+  return `Update available: ${version}`;
 }
 
 /** The link beside it. */
@@ -200,12 +200,12 @@ export function downloading(percent: number | null): string {
 }
 
 /** Settings → About: the link that checks now, while it does, and when nothing is newer. */
-export const CHECK_NOW = 'Check now';
+export const CHECK_NOW = 'Check for updates';
 export const CHECKING = 'Checking…';
-export const NEWEST = 'This is the newest.';
+export const NEWEST = "You're up to date.";
 
-/** Settings → About → Check for updates daily. */
-export const UPDATES_HINT = 'Once a day, from GitHub. Nothing else leaves this machine.';
+/** Settings → About → Check for updates automatically. */
+export const UPDATES_HINT = 'Once a day and when you open this window, from GitHub.';
 
 /** A Settings section Home can open directly. */
 export type SettingsSection =
@@ -264,22 +264,22 @@ export const ALMANAC_TITLE = 'Almanac: your days, hours and nights';
  * what was done with it: the keys went quiet, and that is all it knows.
  */
 export function quietNight(from: string, to: string): string {
-  return `A quiet night: ${from} to ${to}.`;
+  return `Away overnight: ${from} to ${to}.`;
 }
 
 /** The word a day reads as when it has no hours to show. */
 export const DAY_WORDS = {
   leave: 'Leave',
-  rest: 'Rest',
-  nothing: 'Nothing',
-  ahead: 'Ahead',
+  rest: 'Day off',
+  nothing: 'No activity',
+  ahead: 'Upcoming',
 } as const;
 
 /** What the detail line can be told about the selected day. */
 export interface DayFacts {
   kind: 'worked' | 'leave' | 'rest' | 'nothing' | 'ahead';
   today: boolean;
-  /** Still to come. */
+  /** In the future. */
   ahead: boolean;
   /** Marked by hand, either way. */
   marked: boolean;
@@ -301,28 +301,30 @@ export function dayDetail(day: DayFacts): string {
     const span = day.fixed
       ? `Set by you: ${day.first} – ${day.last}`
       : day.today
-        ? `First light ${day.first}`
-        : `First light ${day.first} · last ${day.last}`;
-    return day.over === null ? span : `${span} · ${day.over} over`;
+        ? `Started ${day.first}`
+        : `Started ${day.first} · ended ${day.last}`;
+    return day.over === null ? span : `${span} · ${day.over} extra`;
   }
-  if (day.fixed && day.kind !== 'leave') return 'Nobody here, set by you.';
+  if (day.fixed && day.kind !== 'leave') return 'Marked as away, by you.';
   switch (day.kind) {
     case 'leave':
-      if (day.ahead) return 'Leave, still to come.';
-      return day.marked ? 'A day off, marked by you.' : 'A working day with nothing in it.';
+      if (day.ahead) return 'Planned leave.';
+      return day.marked
+        ? 'Leave, marked by you.'
+        : 'No activity on a working day: counted as leave.';
     case 'rest':
       return 'Not a working day.';
     case 'ahead':
-      return 'Still to come.';
+      return 'In the future.';
     default:
-      if (day.today) return 'Nothing yet today.';
-      return day.marked ? 'Nothing here, and not a leave.' : 'Nothing was kept for this day.';
+      if (day.today) return 'No activity yet today.';
+      return day.marked ? 'No activity, and not leave.' : 'No activity recorded.';
   }
 }
 
 /** The night that led into a day: `Night 11:48 pm – 7:02 am · 7h 14m`. */
 export function nightLine(from: string, to: string, length: string): string {
-  return `Night ${from} – ${to} · ${length}`;
+  return `Away overnight ${from} – ${to} · ${length}`;
 }
 
 /** The link that marks the selected day as leave. */
@@ -332,13 +334,13 @@ export const MARK_LEAVE = 'Mark as leave';
 export const NOT_A_LEAVE = 'Not a leave';
 
 /** The link that opens a day's hours for correcting. */
-export const CORRECT_HOURS = 'Correct the hours';
+export const CORRECT_HOURS = 'Edit hours';
 
 /** In the editor: put back what was read from the keys. */
-export const USE_WHAT_WAS_READ = 'Use what was read';
+export const USE_WHAT_WAS_READ = 'Undo my edit';
 
 /** In the editor: say nobody was at the machine that day. */
-export const NOBODY_HERE = 'Nobody here';
+export const NOBODY_HERE = "I wasn't here";
 
 /** Home: the eyebrow over today's figure. */
 export const TODAY_SO_FAR = 'Today';
@@ -364,7 +366,7 @@ export function leavesTaken(count: number): string {
 
 /** Under the almanac, what it reads and where it stays. */
 export const ALMANAC_FOOT =
-  'Read from the keyboard and mouse, and kept on this machine. A break under ten minutes still counts.';
+  'Based on keyboard and mouse activity, stored only on this machine. Breaks under ten minutes still count.';
 
 /** The link from the Almanac into its settings. */
 export const ALMANAC_SETTINGS = 'Working days and hours…';
@@ -373,13 +375,13 @@ export const ALMANAC_SETTINGS = 'Working days and hours…';
 export const CLEAR_ALMANAC = 'Clear the almanac';
 
 /** The pane while the almanac is switched off. */
-export const ALMANAC_CLOSED = 'The almanac is closed. Nothing is being read.';
+export const ALMANAC_CLOSED = 'Tracking is off. Nothing is being recorded.';
 
 /** The pane on its first day, before there is anything to draw. */
-export const ALMANAC_BEGINS = 'The first day is being written.';
+export const ALMANAC_BEGINS = 'Tracking starts today.';
 
-/** Settings → Almanac → Keep an almanac. */
-export const ALMANAC_HINT = 'Days, hours and nights, from your input.';
+/** Settings → Almanac → Track my days. */
+export const ALMANAC_HINT = 'Your hours, leave and nights.';
 
 /** Settings → Almanac → Working hours. */
 export const WORK_HOURS_HINT = 'Past midnight is fine. Time outside them counts as over.';
@@ -388,7 +390,7 @@ export const WORK_HOURS_HINT = 'Past midnight is fine. Time outside them counts 
 export const EMPTY_LEAVE_HINT = 'Off on a machine you rarely use.';
 
 /** A Claude feature with no API key: said wherever the feature is. */
-export const AI_LOCKED = 'Locked: no API key yet.';
+export const AI_LOCKED = 'Locked: needs an API key.';
 
 /** The link beside it, into Settings → Claude. */
 export const AI_ADD_KEY = 'Add a key';
@@ -429,40 +431,40 @@ export const AI_HIDDEN_HINT = 'Nothing of it is shown, and nothing can be asked.
 export const AI_ENABLE = 'Enable AI';
 
 /** The Almanac's day, put into a line. */
-export const DAY_IN_A_LINE = 'The day, in a line';
-export const DAY_HINT = 'One sentence on the day being read.';
-export const DAY_READ = 'Read this day';
+export const DAY_IN_A_LINE = 'Summarise this day';
+export const DAY_HINT = 'One sentence about the selected day.';
+export const DAY_READ = 'Summarise day';
 export const DAY_SENDS = 'Sends this one day to Anthropic, when you ask.';
 
 /** A question, answered from the month in view. */
-export const ASK_THE_ALMANAC = 'Ask the almanac';
-export const ASK_HINT = 'A question about the month in view, answered in a sentence.';
+export const ASK_THE_ALMANAC = 'Ask about this month';
+export const ASK_HINT = 'Ask a question about the month shown.';
 export const ASK_PLACEHOLDER = 'how many hours last week?';
 export const ASK_SENDS = 'Sends your question and this month of days to Anthropic.';
 
 /** The Almanac's week, put into words. */
-export const WEEK_IN_WORDS = 'This week, in words';
+export const WEEK_IN_WORDS = 'Summarise this week';
 
 /** What it does, shown while its switch is off. */
-export const WEEK_HINT = 'Two or three sentences on the week being read.';
+export const WEEK_HINT = 'Two or three sentences about the selected week.';
 
 /** The link that asks. */
-export const WEEK_READ = 'Read this week';
+export const WEEK_READ = 'Summarise week';
 
 /** While it is being read. */
-export const WEEK_READING = 'Reading…';
+export const WEEK_READING = 'Working…';
 
 /** What asking sends. */
 export const WEEK_SENDS = 'Sends this week of hours and nights to Anthropic, when you ask.';
 
 /** Home's plan in a sentence. */
-export const TELL_THE_SUN = 'Tell the sun';
+export const TELL_THE_SUN = 'Plan in words';
 
 /** What it does, shown while its switch is off. */
-export const TELL_HINT = 'Say the plan in words instead of picking a stop.';
+export const TELL_HINT = 'Type how long to stay awake instead of picking a time.';
 
 /** Shown in the empty field. */
-export const TELL_PLACEHOLDER = 'two hours, or until half six';
+export const TELL_PLACEHOLDER = 'for 2 hours, or until 6:30 pm';
 
 /** The button that asks, and what it says while waiting. */
 export const TELL_ASK = 'Ask';

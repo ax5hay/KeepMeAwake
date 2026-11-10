@@ -327,10 +327,10 @@
 
     <section id="settings-almanac">
       <h2 class="eyebrow">Almanac</h2>
-      <Row label="Keep an almanac" hint={ALMANAC_HINT}>
+      <Row label="Track my days" hint={ALMANAC_HINT}>
         <Switch
           checked={settings.almanac.enabled}
-          label="Keep an almanac"
+          label="Track my days"
           onchange={(v) => setAlmanac({ enabled: v })}
         />
       </Row>
@@ -368,10 +368,10 @@
             onchange={(v) => setAlmanac({ empty_days_are_leave: v })}
           />
         </Row>
-        <Row label="Whisper the night" hint={WHISPER_NIGHT_HINT}>
+        <Row label="Morning summary" hint={WHISPER_NIGHT_HINT}>
           <Switch
             checked={settings.almanac.whisper_night}
-            label="Whisper the night"
+            label="Morning summary"
             onchange={(v) => setAlmanac({ whisper_night: v })}
           />
         </Row>
@@ -385,13 +385,13 @@
             onchange={(v) => setAlmanac({ break_after_mins: v === 'off' ? null : Number(v) })}
           />
         </Row>
-        <Row label="Set with me" hint={SET_WITH_ME_HINT}>
+        <Row label="Sleep when I'm away" hint={SET_WITH_ME_HINT}>
           <Segmented
             options={withCurrent(nightOptions, settings.almanac.rest_after_mins, 'm')}
             value={settings.almanac.rest_after_mins === null
               ? 'off'
               : String(settings.almanac.rest_after_mins)}
-            label="Set with me"
+            label="Sleep when I'm away"
             onchange={(v) => setAlmanac({ rest_after_mins: v === 'off' ? null : Number(v) })}
           />
         </Row>
@@ -610,21 +610,21 @@
         </p>
       {/if}
       {#if store.installing === null && !store.update}
-        <p class="update">
-          {#if store.checked === 'newest'}{NEWEST}<span class="sep">·</span>{/if}
+        <p class="update check">
           <button
             type="button"
-            class="install"
+            class="outline"
             disabled={store.checked === 'checking'}
             onclick={() => void store.checkForUpdate()}
             >{store.checked === 'checking' ? CHECKING : CHECK_NOW}</button
           >
+          {#if store.checked === 'newest'}<span class="said">{NEWEST}</span>{/if}
         </p>
       {/if}
-      <Row label="Check for updates daily" hint={UPDATES_HINT}>
+      <Row label="Check for updates automatically" hint={UPDATES_HINT}>
         <Switch
           checked={settings.check_for_updates}
-          label="Check for updates daily"
+          label="Check for updates automatically"
           onchange={(v) => void store.updateSettings({ check_for_updates: v })}
         />
       </Row>
@@ -769,6 +769,34 @@
     margin: 6px 0 0;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* A button that does not shout: checking is not the main thing here. */
+  .outline {
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 0 0 1px var(--hair-strong);
+    font-size: 12px;
+    color: var(--ink);
+    transition: background-color var(--t-fast) var(--ease);
+  }
+
+  .outline:hover:not(:disabled) {
+    background: var(--hair);
+  }
+
+  .outline:disabled {
+    color: var(--ink-3);
+  }
+
+  .said {
+    color: var(--ink-2);
   }
 
   .install {

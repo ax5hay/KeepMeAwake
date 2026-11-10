@@ -556,7 +556,7 @@ describe('AppStore and the almanac', () => {
   it('whispers the night once, on the first open after it', async () => {
     const first = new AppStore(fakeApi(base, null, slept).api);
     await first.init();
-    expect(first.whisper).toBe('A quiet night: 11:48 pm to 7:02 am.');
+    expect(first.whisper).toBe('Away overnight: 11:48 pm to 7:02 am.');
     first.dispose();
 
     const again = new AppStore(fakeApi(base, null, slept).api);

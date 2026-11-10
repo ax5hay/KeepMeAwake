@@ -191,7 +191,7 @@ describe('doors', () => {
 describe('update copy', () => {
   it('names the version, the action and the progress', () => {
     expect(updateWhisper('0.3.1')).toBe('A new version is up: 0.3.1.');
-    expect(updateAvailable('0.3.1')).toBe('0.3.1 is available');
+    expect(updateAvailable('0.3.1')).toBe('Update available: 0.3.1');
     expect(downloading(42)).toBe('Downloading… 42%');
     expect(downloading(null)).toBe('Downloading…');
   });
@@ -210,7 +210,7 @@ describe('update copy', () => {
 
 describe('Claude copy', () => {
   it('says locked and off differently, each with its way out', () => {
-    expect(AI_LOCKED).toBe('Locked: no API key yet.');
+    expect(AI_LOCKED).toBe('Locked: needs an API key.');
     expect(AI_ADD_KEY).toBe('Add a key');
     expect(AI_OFF).toBe('Claude is switched off.');
     expect(AI_SWITCH_ON).toBe('Switch it on');
@@ -245,45 +245,47 @@ describe('almanac copy', () => {
   } as const;
 
   it('names the first and last touch, and what ran over', () => {
-    expect(dayDetail(day)).toBe('First light 9:02 am · last 6:40 pm');
-    expect(dayDetail({ ...day, over: '40m' })).toBe(
-      'First light 9:02 am · last 6:40 pm · 40m over',
-    );
-    expect(dayDetail({ ...day, today: true, over: '40m' })).toBe('First light 9:02 am · 40m over');
+    expect(dayDetail(day)).toBe('Started 9:02 am · ended 6:40 pm');
+    expect(dayDetail({ ...day, over: '40m' })).toBe('Started 9:02 am · ended 6:40 pm · 40m extra');
+    expect(dayDetail({ ...day, today: true, over: '40m' })).toBe('Started 9:02 am · 40m extra');
   });
 
   it('says when the hours were entered by hand', () => {
     expect(dayDetail({ ...day, fixed: true })).toBe('Set by you: 9:02 am – 6:40 pm');
     expect(dayDetail({ ...day, fixed: true, over: '40m' })).toBe(
-      'Set by you: 9:02 am – 6:40 pm · 40m over',
+      'Set by you: 9:02 am – 6:40 pm · 40m extra',
     );
     expect(dayDetail({ ...day, kind: 'nothing', first: null, last: null, fixed: true })).toBe(
-      'Nobody here, set by you.',
+      'Marked as away, by you.',
     );
     expect(fullDay('9h 02m')).toBe('A full day: 9h 02m.');
   });
 
   it('says why a day has no hours', () => {
     const empty = { ...day, first: null, last: null };
-    expect(dayDetail({ ...empty, kind: 'leave' })).toBe('A working day with nothing in it.');
-    expect(dayDetail({ ...empty, kind: 'leave', marked: true })).toBe('A day off, marked by you.');
+    expect(dayDetail({ ...empty, kind: 'leave' })).toBe(
+      'No activity on a working day: counted as leave.',
+    );
+    expect(dayDetail({ ...empty, kind: 'leave', marked: true })).toBe('Leave, marked by you.');
     expect(dayDetail({ ...empty, kind: 'leave', marked: true, ahead: true })).toBe(
-      'Leave, still to come.',
+      'Planned leave.',
     );
     expect(dayDetail({ ...day, kind: 'leave', marked: true, today: true })).toBe(
-      'A day off, marked by you.',
+      'Leave, marked by you.',
     );
     expect(dayDetail({ ...empty, kind: 'rest' })).toBe('Not a working day.');
-    expect(dayDetail({ ...empty, kind: 'ahead', ahead: true })).toBe('Still to come.');
-    expect(dayDetail({ ...empty, kind: 'nothing', today: true })).toBe('Nothing yet today.');
+    expect(dayDetail({ ...empty, kind: 'ahead', ahead: true })).toBe('In the future.');
+    expect(dayDetail({ ...empty, kind: 'nothing', today: true })).toBe('No activity yet today.');
     expect(dayDetail({ ...empty, kind: 'nothing', marked: true })).toBe(
-      'Nothing here, and not a leave.',
+      'No activity, and not leave.',
     );
   });
 
   it('names the quiet and never says anyone slept', () => {
-    expect(quietNight('11:48 pm', '7:02 am')).toBe('A quiet night: 11:48 pm to 7:02 am.');
-    expect(nightLine('11:48 pm', '7:02 am', '7h 14m')).toBe('Night 11:48 pm – 7:02 am · 7h 14m');
+    expect(quietNight('11:48 pm', '7:02 am')).toBe('Away overnight: 11:48 pm to 7:02 am.');
+    expect(nightLine('11:48 pm', '7:02 am', '7h 14m')).toBe(
+      'Away overnight 11:48 pm – 7:02 am · 7h 14m',
+    );
     for (const text of [quietNight('a', 'b'), nightLine('a', 'b', 'c'), ALMANAC_FOOT]) {
       expect(text).not.toMatch(/sle[e]?pt?|asleep/i);
     }

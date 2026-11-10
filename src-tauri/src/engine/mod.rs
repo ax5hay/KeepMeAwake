@@ -155,7 +155,7 @@ struct State {
 enum Question {
     /// Nobody has touched the machine for the guard's hours.
     Hours,
-    /// Set with me: the keys went quiet inside the resting hours.
+    /// Sleep when I'm away: the keys went quiet inside the resting hours.
     Night,
 }
 
@@ -568,7 +568,7 @@ fn guard_watches(st: &State) -> bool {
 }
 
 /// How long the keys must be quiet in the resting hours before an Always
-/// session sets for the night, if the almanac's Set with me is on.
+/// session sets for the night, if the almanac's Sleep when I'm away is on.
 fn night_rest(settings: &Settings) -> Option<Duration> {
     settings
         .almanac
@@ -632,7 +632,7 @@ fn overnight_guard(
         .overnight_guard_hours
         .filter(|_| watching)
         .map(|hours| Duration::from_secs(u64::from(hours) * 3600));
-    // Inside the resting hours, Set with me asks much sooner than the guard.
+    // Inside the resting hours, Sleep when I'm away asks much sooner than the guard.
     let night =
         night_rest(&st.settings).filter(|_| watching && resting_now(&st.settings, unix_now));
     let limit = [hours, night].into_iter().flatten().min();

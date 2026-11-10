@@ -261,7 +261,7 @@
   function totalOf(d: Day): string {
     if (d.kind === 'worked') return formatWorked(d.worked_ms);
     if (d.kind === 'leave') return 'leave';
-    return d.kind === 'rest' ? 'rest' : '–';
+    return d.kind === 'rest' ? 'off' : '–';
   }
 
   /** What a week or a month adds up to; nothing at all before there is anything. */
@@ -300,10 +300,10 @@
 <div class="scroll">
   {#if settings && !settings.enabled}
     <p class="aside">{ALMANAC_CLOSED}</p>
-    <Row label="Keep an almanac" hint={ALMANAC_HINT}>
+    <Row label="Track my days" hint={ALMANAC_HINT}>
       <Switch
         checked={false}
-        label="Keep an almanac"
+        label="Track my days"
         onchange={(v) => {
           if (!settings) return;
           void store

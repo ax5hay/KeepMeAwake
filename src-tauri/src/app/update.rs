@@ -2,7 +2,7 @@
 //! on request.
 //!
 //! The check is the app's only outbound request. It is off with the switch
-//! (Settings → About → Check for updates daily), and a failure is logged at
+//! (Settings → About → Check for updates automatically), and a failure is logged at
 //! debug and forgotten: an offline laptop is not an error. Whatever is
 //! downloaded is verified against the public key in `tauri.conf.json`
 //! before it is run.
