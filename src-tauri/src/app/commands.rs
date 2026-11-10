@@ -190,6 +190,36 @@ pub async fn ai_read_week(state: State<'_, AppState>, digest: String) -> Result<
     read.await.map_err(|err| err.sentence())
 }
 
+/// Asks Claude to put one day of the almanac into a line. `digest` is that
+/// day as the window laid it out, and is all that is sent.
+#[tauri::command]
+pub async fn ai_read_day(state: State<'_, AppState>, digest: String) -> Result<String, String> {
+    let settings = state.engine.settings().ai;
+    let read = async {
+        let key = state.ai.unlock(&settings, Feature::DayInALine)?;
+        let body = ai::day_request(&digest)?;
+        ai::text_of(&state.ai.ask(&key, &body).await?)
+    };
+    read.await.map_err(|err| err.sentence())
+}
+
+/// Asks Claude a question about the days in `digest`, which with the
+/// question is all that is sent.
+#[tauri::command]
+pub async fn ai_ask(
+    state: State<'_, AppState>,
+    question: String,
+    digest: String,
+) -> Result<String, String> {
+    let settings = state.engine.settings().ai;
+    let read = async {
+        let key = state.ai.unlock(&settings, Feature::AskTheAlmanac)?;
+        let body = ai::ask_request(&question, &digest)?;
+        ai::text_of(&state.ai.ask(&key, &body).await?)
+    };
+    read.await.map_err(|err| err.sentence())
+}
+
 /// Asks Claude what plan a sentence means. Nothing is started here: the
 /// window shows what was understood and asks first. `now` is the local
 /// date and time as the window has it.

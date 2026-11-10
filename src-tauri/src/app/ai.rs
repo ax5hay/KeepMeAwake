@@ -21,9 +21,9 @@ const ENDPOINT: &str = "https://api.anthropic.com/v1/messages";
 const SERVICE: &str = "dev.bajpai.keepmeawake";
 const ACCOUNT: &str = "anthropic-api-key";
 
-/// How long one request may take. Thinking is always on, and a busy day at
-/// Anthropic is slow rather than failed.
-const TIMEOUT: Duration = Duration::from_secs(120);
+/// How long one request may take. The answers are a few sentences from the
+/// smallest model, so this is for a slow network, not a slow answer.
+const TIMEOUT: Duration = Duration::from_secs(45);
 
 /// What the window may know about the key: whether there is one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,6 +76,10 @@ pub enum Feature {
     WeekInWords,
     /// Home's sentence, turned into a plan.
     TellTheSun,
+    /// The Almanac's day, in a line.
+    DayInALine,
+    /// A question about the days in view.
+    AskTheAlmanac,
 }
 
 /// The key and the client that asks.
@@ -109,14 +113,17 @@ impl Claude {
     }
 
     /// The key, if all three locks are open for `feature`: a key is stored,
-    /// Claude is switched on, and so is the feature.
+    /// Claude is switched on, and so is the feature. Hidden, Claude is off
+    /// whatever else is set: what cannot be seen cannot be asked.
     pub fn unlock(&self, settings: &AiSettings, feature: Feature) -> Result<String, AiError> {
         let key = self.keys.get().ok_or(AiError::NoKey)?;
         let feature_on = match feature {
             Feature::WeekInWords => settings.week_in_words,
             Feature::TellTheSun => settings.tell_the_sun,
+            Feature::DayInALine => settings.day_in_a_line,
+            Feature::AskTheAlmanac => settings.ask_the_almanac,
         };
-        if settings.enabled && feature_on {
+        if settings.enabled && feature_on && !settings.hidden {
             Ok(key)
         } else {
             Err(AiError::Off)
@@ -148,7 +155,6 @@ impl Claude {
             .post(ENDPOINT)
             .header("x-api-key", key)
             .header("anthropic-version", ai::API_VERSION)
-            .header("anthropic-beta", ai::FALLBACK_BETA)
             .json(body)
             .send()
             .await
@@ -241,6 +247,25 @@ mod tests {
             claude.unlock(&settings, Feature::TellTheSun),
             Err(AiError::Off)
         );
+    }
+
+    #[test]
+    fn hidden_nothing_can_be_asked_whatever_else_is_on() {
+        let claude = claude();
+        claude.set_key(Some("sk-ant-test")).unwrap();
+        let hidden = AiSettings {
+            hidden: true,
+            ..on()
+        };
+        for feature in [
+            Feature::WeekInWords,
+            Feature::TellTheSun,
+            Feature::DayInALine,
+            Feature::AskTheAlmanac,
+        ] {
+            assert_eq!(claude.unlock(&hidden, feature), Err(AiError::Off));
+            assert!(claude.unlock(&on(), feature).is_ok());
+        }
     }
 
     #[test]

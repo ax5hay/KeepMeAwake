@@ -142,6 +142,7 @@ pub struct Schedule {
 /// where the feature is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "snake_case")]
+#[allow(clippy::struct_excessive_bools)] // independent switches, one per feature, as in Settings
 pub struct AiSettings {
     /// Claude may be asked at all.
     pub enabled: bool,
@@ -149,6 +150,13 @@ pub struct AiSettings {
     pub week_in_words: bool,
     /// Home can turn a sentence into a plan.
     pub tell_the_sun: bool,
+    /// The Almanac can put the day being read into a line.
+    pub day_in_a_line: bool,
+    /// The Almanac can answer a question about the month in view.
+    pub ask_the_almanac: bool,
+    /// Everything of Claude's is kept out of sight, but for one button in
+    /// Settings that brings it back. Hidden, nothing can be asked either.
+    pub hidden: bool,
 }
 
 impl Default for AiSettings {
@@ -157,6 +165,9 @@ impl Default for AiSettings {
             enabled: false,
             week_in_words: true,
             tell_the_sun: true,
+            day_in_a_line: true,
+            ask_the_almanac: true,
+            hidden: false,
         }
     }
 }
@@ -483,6 +494,8 @@ mod tests {
         let ai = Settings::default().ai;
         assert!(!ai.enabled, "a choice, never a default");
         assert!(ai.week_in_words && ai.tell_the_sun, "ready once it is on");
+        assert!(ai.day_in_a_line && ai.ask_the_almanac);
+        assert!(!ai.hidden, "shown, locked, until someone hides it");
         let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
         assert_eq!(old.ai, AiSettings::default(), "older files gain it, off");
         let json = serde_json::to_value(Settings::default()).unwrap();

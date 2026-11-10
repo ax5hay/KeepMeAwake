@@ -9,23 +9,30 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-/// The model asked. Thinking is always on for it, so depth is set by effort.
-pub const MODEL: &str = "claude-opus-5-5";
+/// The model asked: the smallest and cheapest there is. Everything asked of
+/// it here is a sentence or two from a few lines, which is its kind of work.
+pub const MODEL: &str = "claude-haiku-5-5";
 
 /// The Messages API version sent with every request.
 pub const API_VERSION: &str = "2026-10-21";
 
-/// The beta that lets a request declined by the model's safety classifiers
-/// be answered by Anthropic's recommended fallback model in the same call.
-pub const FALLBACK_BETA: &str = "server-side-fallback-2026-07-01";
-
-/// Room for the answer and the thinking before it; both are small here.
-pub const MAX_TOKENS: u32 = 16_000;
+/// The most a request may be answered with, per kind of answer. Thinking is
+/// switched off, so this is all the output there can be, and so all it can
+/// cost: a line, a few sentences, or one small JSON object.
+pub const MAX_TOKENS_LINE: u32 = 120;
+/// See [`MAX_TOKENS_LINE`].
+pub const MAX_TOKENS_WORDS: u32 = 300;
+/// See [`MAX_TOKENS_LINE`].
+pub const MAX_TOKENS_PLAN: u32 = 200;
 
 /// The longest digest or sentence sent. Longer is refused, never cut: a
-/// week of days is a few hundred characters, so more means something is
-/// wrong, and half a week would be read as a whole one.
-pub const MAX_INPUT_CHARS: usize = 12_000;
+/// month of days is about three thousand characters, so more means
+/// something is wrong, and half a month would be read as a whole one. It is
+/// also the ceiling on what one request can cost to send.
+pub const MAX_INPUT_CHARS: usize = 6_000;
+
+/// The longest question or sentence someone may type.
+pub const MAX_QUESTION_CHARS: usize = 300;
 
 /// Why Claude gave no answer, in terms a person can act on.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,61 +101,93 @@ unclear. In `say`, give the plan back in a few plain words, as the app would say
 'Awake for 2 hours' or 'Awake until 6:30 pm'; for unclear, say in a few words what was not \
 understood.";
 
+/// How one day is to be put into a line.
+const DAY_SYSTEM: &str = "You read one day from a personal almanac kept by a small desktop app: \
+its hours at the keyboard, the first and last touch, the time outside working hours, and the \
+night that led into it. Say what the day was in one plain sentence of at most twenty words, to \
+the person whose day it is, addressed as you. Use the times and figures given and no others. \
+Say night or quiet, never that they slept. No advice, no judgement, no preamble.";
+
+/// How a question about the almanac is to be answered.
+const ASK_SYSTEM: &str = "You answer one question about a personal almanac kept by a small desktop \
+app. You are given some days, one line each: hours at the keyboard, first and last touch, time \
+outside working hours, the night that led into the day, and whether it was leave. Answer from \
+those lines only, in one or two plain sentences, addressed as you, working out any totals or \
+averages yourself. If the lines do not hold the answer, say so in a few words. Say night or \
+quiet, never that they slept. No advice, no preamble.";
+
+/// The body every request shares: the smallest model, thinking off and
+/// effort low so that no token is spent on anything but the answer, and a
+/// hard cap on the answer's length.
+fn body(system: &str, content: &str, max_tokens: u32) -> Value {
+    json!({
+        "model": MODEL,
+        "max_tokens": max_tokens,
+        "thinking": { "type": "disabled" },
+        "output_config": { "effort": "low" },
+        "system": system,
+        "messages": [{ "role": "user", "content": content }],
+    })
+}
+
 /// The request that puts a week into words. `digest` is the week as the
 /// window lays it out, one day a line.
 pub fn week_request(digest: &str) -> Result<Value, AiError> {
-    fits(digest)?;
-    Ok(json!({
-        "model": MODEL,
-        "max_tokens": MAX_TOKENS,
-        "fallbacks": "default",
-        "output_config": { "effort": "low" },
-        "system": WEEK_SYSTEM,
-        "messages": [{ "role": "user", "content": digest }],
-    }))
+    fits(digest, MAX_INPUT_CHARS)?;
+    Ok(body(WEEK_SYSTEM, digest, MAX_TOKENS_WORDS))
+}
+
+/// The request that puts one day into a line. `digest` is that day's line.
+pub fn day_request(digest: &str) -> Result<Value, AiError> {
+    fits(digest, MAX_INPUT_CHARS)?;
+    Ok(body(DAY_SYSTEM, digest, MAX_TOKENS_LINE))
+}
+
+/// The request that answers `question` from `digest`, the days in view.
+pub fn ask_request(question: &str, digest: &str) -> Result<Value, AiError> {
+    fits(question, MAX_QUESTION_CHARS)?;
+    fits(digest, MAX_INPUT_CHARS)?;
+    Ok(body(
+        ASK_SYSTEM,
+        &format!("{digest}\n\nQuestion: {question}"),
+        MAX_TOKENS_WORDS,
+    ))
 }
 
 /// The request that turns `sentence` into a plan. `now_local` is the local
 /// date and time as the window has it, `Tue 10 Nov 2026, 18:42`.
 pub fn plan_request(sentence: &str, now_local: &str) -> Result<Value, AiError> {
-    fits(sentence)?;
-    Ok(json!({
-        "model": MODEL,
-        "max_tokens": MAX_TOKENS,
-        "fallbacks": "default",
-        "output_config": {
-            "effort": "low",
-            "format": {
-                "type": "json_schema",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "kind": {
-                            "type": "string",
-                            "enum": ["for", "until", "indefinite", "off", "unclear"],
-                        },
-                        "minutes": { "type": "integer" },
-                        "time": { "type": "string" },
-                        "say": { "type": "string" },
-                    },
-                    "required": ["kind", "minutes", "time", "say"],
-                    "additionalProperties": false,
+    fits(sentence, MAX_QUESTION_CHARS)?;
+    let mut body = body(
+        PLAN_SYSTEM,
+        &format!("It is now {now_local}.\n\n{sentence}"),
+        MAX_TOKENS_PLAN,
+    );
+    body["output_config"]["format"] = json!({
+        "type": "json_schema",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "type": "string",
+                    "enum": ["for", "until", "indefinite", "off", "unclear"],
                 },
+                "minutes": { "type": "integer" },
+                "time": { "type": "string" },
+                "say": { "type": "string" },
             },
+            "required": ["kind", "minutes", "time", "say"],
+            "additionalProperties": false,
         },
-        "system": PLAN_SYSTEM,
-        "messages": [{
-            "role": "user",
-            "content": format!("It is now {now_local}.\n\n{sentence}"),
-        }],
-    }))
+    });
+    Ok(body)
 }
 
-fn fits(text: &str) -> Result<(), AiError> {
+fn fits(text: &str, most: usize) -> Result<(), AiError> {
     if text.trim().is_empty() {
         return Err(AiError::Empty);
     }
-    if text.chars().count() > MAX_INPUT_CHARS {
+    if text.chars().count() > most {
         return Err(AiError::TooLong);
     }
     Ok(())
@@ -267,17 +306,41 @@ mod tests {
     }
 
     #[test]
-    fn the_week_request_names_the_model_and_asks_for_little_effort() {
+    fn every_request_is_as_cheap_as_a_request_can_be() {
+        let bodies = [
+            (
+                week_request("Mon 9 Nov: 10h 56m").unwrap(),
+                MAX_TOKENS_WORDS,
+            ),
+            (day_request("Mon 9 Nov: 10h 56m").unwrap(), MAX_TOKENS_LINE),
+            (
+                ask_request("How long?", "Mon 9 Nov: 10h 56m").unwrap(),
+                MAX_TOKENS_WORDS,
+            ),
+            (plan_request("two hours", "now").unwrap(), MAX_TOKENS_PLAN),
+        ];
+        for (body, cap) in &bodies {
+            assert_eq!(body["model"], "claude-haiku-5-5", "the smallest model");
+            assert_eq!(
+                body["thinking"]["type"], "disabled",
+                "nothing spent thinking"
+            );
+            assert_eq!(body["output_config"]["effort"], "low");
+            assert_eq!(body["max_tokens"], *cap);
+            assert!(*cap <= 300, "an answer is a few sentences at most");
+            assert!(body.get("temperature").is_none(), "rejected by this model");
+            assert!(
+                body.get("fallbacks").is_none(),
+                "no second model, no second bill"
+            );
+            assert!(body.get("tools").is_none());
+        }
+    }
+
+    #[test]
+    fn the_week_request_carries_the_digest_and_how_to_speak_of_it() {
         let body = week_request("Mon 9 Nov: 10h 56m").unwrap();
-        assert_eq!(body["model"], "claude-opus-5-5");
-        assert_eq!(body["output_config"]["effort"], "low");
-        assert_eq!(body["fallbacks"], "default");
         assert_eq!(body["messages"][0]["content"], "Mon 9 Nov: 10h 56m");
-        assert!(
-            body.get("thinking").is_none(),
-            "always on; never configured"
-        );
-        assert!(body.get("temperature").is_none(), "rejected by this model");
         let system = body["system"].as_str().unwrap();
         assert!(
             system.contains("never that they"),
@@ -305,8 +368,24 @@ mod tests {
         assert_eq!(week_request("  "), Err(AiError::Empty));
         let long = "x".repeat(MAX_INPUT_CHARS + 1);
         assert_eq!(week_request(&long), Err(AiError::TooLong));
-        assert_eq!(plan_request(&long, "now"), Err(AiError::TooLong));
+        assert_eq!(day_request(&long), Err(AiError::TooLong));
         assert!(week_request(&"x".repeat(MAX_INPUT_CHARS)).is_ok());
+        let wordy = "x".repeat(MAX_QUESTION_CHARS + 1);
+        assert_eq!(plan_request(&wordy, "now"), Err(AiError::TooLong));
+        assert_eq!(ask_request(&wordy, "Mon: 8h"), Err(AiError::TooLong));
+        assert_eq!(ask_request("How long?", &long), Err(AiError::TooLong));
+        assert_eq!(ask_request(" ", "Mon: 8h"), Err(AiError::Empty));
+    }
+
+    #[test]
+    fn a_question_is_sent_under_the_days_it_is_about() {
+        let body = ask_request("How many hours?", "Mon 9 Nov: 8h\nTue 10 Nov: 7h").unwrap();
+        assert_eq!(
+            body["messages"][0]["content"],
+            "Mon 9 Nov: 8h\nTue 10 Nov: 7h\n\nQuestion: How many hours?"
+        );
+        let system = body["system"].as_str().unwrap();
+        assert!(system.contains("those lines only"));
     }
 
     #[test]

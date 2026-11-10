@@ -49,6 +49,10 @@ export interface AiSettings {
   enabled: boolean;
   week_in_words: boolean;
   tell_the_sun: boolean;
+  day_in_a_line: boolean;
+  ask_the_almanac: boolean;
+  /** Everything of Claude's is out of sight, but for one button in Settings. */
+  hidden: boolean;
 }
 
 /** Whether an API key is stored. Mirrors `app::ai::AiStatus`. */

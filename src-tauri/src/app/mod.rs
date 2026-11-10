@@ -99,6 +99,8 @@ pub fn run() {
             commands::ai_status,
             commands::set_ai_key,
             commands::ai_read_week,
+            commands::ai_read_day,
+            commands::ai_ask,
             commands::ai_plan,
             commands::get_update,
             commands::check_for_update,
