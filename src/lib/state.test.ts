@@ -432,6 +432,43 @@ describe('AppStore and the almanac', () => {
     store.dispose();
   });
 
+  it('keeps today fresh from the engine, no more than once a minute', async () => {
+    const { api, push } = fakeApi(base, null, slept);
+    const store = new AppStore(api);
+    await store.init();
+    expect(store.reading?.today.key).toBe('2026-11-10');
+    expect(api.getAlmanac).toHaveBeenCalledTimes(1);
+    push({ ...base, mode: 'indefinite' });
+    expect(api.getAlmanac).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(morning + 60_000);
+    push({ ...base, mode: 'indefinite' });
+    expect(api.getAlmanac).toHaveBeenCalledTimes(2);
+    store.dispose();
+  });
+
+  it('calls a day full once, when it reaches the length of its working hours', async () => {
+    const long: Almanac = {
+      ...slept,
+      spans: [
+        {
+          from_unix_ms: new Date(2026, 10, 10, 9, 0).getTime(),
+          to_unix_ms: new Date(2026, 10, 10, 18, 2).getTime(),
+        },
+      ],
+    };
+    vi.setSystemTime(new Date(2026, 10, 10, 18, 2));
+    const { api } = fakeApi(base, null, long);
+    const store = new AppStore(api);
+    await store.init();
+    expect(store.whisper).toBeNull();
+    await store.loadAlmanac();
+    expect(store.whisper).toBe('A full day: 9h 02m.');
+    store.whisper = null;
+    await store.loadAlmanac();
+    expect(store.whisper).toBeNull();
+    store.dispose();
+  });
+
   it('opens the Almanac, marks a day, takes the mark away and clears', async () => {
     const { api } = fakeApi(base, null, slept);
     const store = new AppStore(api);

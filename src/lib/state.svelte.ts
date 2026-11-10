@@ -5,9 +5,9 @@
  * status detail (tips, easter eggs). Everything derived is computed from pure
  * helpers in format.ts.
  */
-import { read } from './almanac';
+import { formatWorked, hoursLength, read, type Reading } from './almanac';
 import { api, type Api } from './api';
-import { quietNight, updateWhisper, type SettingsSection } from './copy';
+import { fullDay, quietNight, updateWhisper, type SettingsSection } from './copy';
 import {
   downloadPercent,
   formatClock,
@@ -49,6 +49,12 @@ function remember(key: string, value: string): void {
     // Storage off: the whisper may come again next time. Harmless.
   }
 }
+
+/** Where the day last called full is remembered: its key. */
+const FULL_DAY_KEY = 'keepmeawake.full-day';
+
+/** The almanac is not asked for again sooner than this from Home. */
+const ALMANAC_FRESH_MS = 55_000;
 
 export type View = 'home' | 'settings' | 'almanac';
 
@@ -95,6 +101,7 @@ export class AppStore {
     ]);
     this.#accept(await this.#api.getSnapshot());
     document.addEventListener('visibilitychange', this.#syncTicker);
+    document.addEventListener('visibilitychange', this.#freshen);
     try {
       const info = await this.#api.getUpdate();
       if (info) this.#foundUpdate(info);
@@ -148,6 +155,7 @@ export class AppStore {
     for (const stop of this.#unlisten) stop();
     this.#unlisten = [];
     document.removeEventListener('visibilitychange', this.#syncTicker);
+    document.removeEventListener('visibilitychange', this.#freshen);
     this.#stopTicker();
     if (this.#whisperTimer !== undefined) clearTimeout(this.#whisperTimer);
   }
@@ -187,6 +195,37 @@ export class AppStore {
     this.view = 'settings';
   }
 
+  /** The almanac read as it stood when it was last fetched, or `null` while it is off or not yet in. */
+  get reading(): Reading | null {
+    const settings = this.settings?.almanac;
+    if (!this.almanac || !settings?.enabled) return null;
+    return read(this.almanac, settings, this.almanacAt);
+  }
+
+  /**
+   * Home shows today's hours, so the almanac is kept fresh while the window
+   * is in view, without a timer of its own: it is asked for again when the
+   * engine reports (every half minute while the sun is up) and when the
+   * window comes back into view, and never more than once a minute.
+   */
+  #freshen = (): void => {
+    if (!this.settings?.almanac.enabled || this.almanac === null) return;
+    if (document.visibilityState !== 'visible') return;
+    if (Date.now() - this.almanacAt < ALMANAC_FRESH_MS) return;
+    void this.loadAlmanac();
+  };
+
+  /** Said once a day, as the day reaches the length of its working hours. */
+  #celebrate(): void {
+    const settings = this.settings?.almanac;
+    const today = this.reading?.today;
+    if (!settings || !today || today.kind !== 'worked') return;
+    if (today.worked_ms < hoursLength(settings) * 60_000) return;
+    if (remembered(FULL_DAY_KEY) === today.key) return;
+    remember(FULL_DAY_KEY, today.key);
+    this.say(fullDay(formatWorked(today.worked_ms)));
+  }
+
   /** Opens the Almanac and reads it afresh. */
   openAlmanac(): void {
     this.view = 'almanac';
@@ -198,6 +237,7 @@ export class AppStore {
     try {
       this.almanac = await this.#api.getAlmanac();
       this.almanacAt = Date.now();
+      this.#celebrate();
     } catch (err) {
       this.error = err instanceof Error ? err.message : String(err);
     }
@@ -314,6 +354,7 @@ export class AppStore {
     this.snapshot = snapshot;
     this.now = Date.now();
     this.#syncTicker();
+    this.#freshen();
   }
 
   #syncTicker = (): void => {

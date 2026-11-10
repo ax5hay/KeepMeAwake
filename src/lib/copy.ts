@@ -277,6 +277,8 @@ export interface DayFacts {
   ahead: boolean;
   /** Marked by hand, either way. */
   marked: boolean;
+  /** Its hours were entered by hand. */
+  fixed: boolean;
   /** First and last touch, already as clock times. */
   first: string | null;
   last: string | null;
@@ -288,12 +290,16 @@ export interface DayFacts {
 export function dayDetail(day: DayFacts): string {
   const hasHours = day.kind === 'worked' || (day.today && day.kind !== 'leave');
   if (day.first !== null && day.last !== null && hasHours) {
-    // Today the last touch is now: saying so would only repeat the clock.
-    const span = day.today
-      ? `First light ${day.first}`
-      : `First light ${day.first} · last ${day.last}`;
+    // By hand, it says so first; today the last touch is now, and saying so
+    // would only repeat the clock.
+    const span = day.fixed
+      ? `Set by you: ${day.first} – ${day.last}`
+      : day.today
+        ? `First light ${day.first}`
+        : `First light ${day.first} · last ${day.last}`;
     return day.over === null ? span : `${span} · ${day.over} over`;
   }
+  if (day.fixed && day.kind !== 'leave') return 'Nobody here, set by you.';
   switch (day.kind) {
     case 'leave':
       if (day.ahead) return 'Leave, still to come.';
@@ -318,6 +324,26 @@ export const MARK_LEAVE = 'Mark as leave';
 
 /** The same link on a day that reads as leave. */
 export const NOT_A_LEAVE = 'Not a leave';
+
+/** The link that opens a day's hours for correcting. */
+export const CORRECT_HOURS = 'Correct the hours';
+
+/** In the editor: put back what was read from the keys. */
+export const USE_WHAT_WAS_READ = 'Use what was read';
+
+/** In the editor: say nobody was at the machine that day. */
+export const NOBODY_HERE = 'Nobody here';
+
+/** Home: the eyebrow over today's figure. */
+export const TODAY_SO_FAR = 'Today';
+
+/** Home: what the day's figure and strip open. */
+export const OPEN_ALMANAC = 'Open the Almanac';
+
+/** Whispered once, the first time a day reaches the length of its working hours. */
+export function fullDay(worked: string): string {
+  return `A full day: ${worked}.`;
+}
 
 /** `1 day`, `4 days`. */
 export function daysWorked(count: number): string {

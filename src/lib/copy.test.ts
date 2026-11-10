@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ALMANAC_BEGINS,
+  fullDay,
   ALMANAC_CLOSED,
   ALMANAC_FOOT,
   ALMANAC_HINT,
@@ -204,6 +205,7 @@ describe('almanac copy', () => {
     today: false,
     ahead: false,
     marked: false,
+    fixed: false,
     first: '9:02 am',
     last: '6:40 pm',
     over: null,
@@ -215,6 +217,17 @@ describe('almanac copy', () => {
       'First light 9:02 am · last 6:40 pm · 40m over',
     );
     expect(dayDetail({ ...day, today: true, over: '40m' })).toBe('First light 9:02 am · 40m over');
+  });
+
+  it('says when the hours were entered by hand', () => {
+    expect(dayDetail({ ...day, fixed: true })).toBe('Set by you: 9:02 am – 6:40 pm');
+    expect(dayDetail({ ...day, fixed: true, over: '40m' })).toBe(
+      'Set by you: 9:02 am – 6:40 pm · 40m over',
+    );
+    expect(dayDetail({ ...day, kind: 'nothing', first: null, last: null, fixed: true })).toBe(
+      'Nobody here, set by you.',
+    );
+    expect(fullDay('9h 02m')).toBe('A full day: 9h 02m.');
   });
 
   it('says why a day has no hours', () => {

@@ -17,6 +17,7 @@
     monthOf,
     read,
     startOfKey,
+    stretchOn,
     stripOf,
     tally,
     usualNight,
@@ -32,15 +33,18 @@
     ALMANAC_HINT,
     ALMANAC_SETTINGS,
     CLEAR_ALMANAC,
+    CORRECT_HOURS,
     DAY_WORDS,
     MARK_LEAVE,
+    NOBODY_HERE,
     NOT_A_LEAVE,
+    USE_WHAT_WAS_READ,
     dayDetail,
     daysWorked,
     leavesTaken,
     nightLine,
   } from '$lib/copy';
-  import { formatClock } from '$lib/format';
+  import { formatClock, minutesToTime, timeToMinutes } from '$lib/format';
   import { store } from '$lib/state.svelte';
 
   const settings = $derived(store.settings?.almanac ?? null);
@@ -70,13 +74,59 @@
   const year = $derived(reading ? tally(yearOf(reading, shown.year)) : null);
   const usual = $derived(reading ? usualNight(reading.nights, reading.turn) : null);
 
+  /** The hours being entered for the day being read; `null` while not correcting. */
+  let editing = $state<{ from: string; until: string } | null>(null);
+
   // Left and come back: it opens on today again.
   $effect(() => {
     if (store.view !== 'almanac') {
       chosen = null;
       stepped = null;
+      editing = null;
     }
   });
+
+  const minutesOf = (ms: number) => {
+    const d = new Date(ms);
+    return d.getHours() * 60 + d.getMinutes();
+  };
+
+  /** Opens the editor on what the day has, or on the working hours. */
+  function correct(d: Day) {
+    if (!settings) return;
+    editing = {
+      from: minutesToTime(d.first === null ? settings.start_minutes : minutesOf(d.first)),
+      until: minutesToTime(d.last === null ? settings.end_minutes : minutesOf(d.last)),
+    };
+  }
+
+  function saveHours(event: Event, d: Day) {
+    event.preventDefault();
+    if (!editing) return;
+    const from = timeToMinutes(editing.from);
+    const until = timeToMinutes(editing.until);
+    if (from === null || until === null) return;
+    void store.fixDay(d.key, stretchOn(d, from, until));
+    editing = null;
+  }
+
+  /** Nobody was here: a correction of no length. */
+  function emptyDay(d: Day) {
+    void store.fixDay(d.key, { from_unix_ms: d.start, to_unix_ms: d.start });
+    editing = null;
+  }
+
+  function uncorrect(d: Day) {
+    void store.fixDay(d.key, null);
+    editing = null;
+  }
+
+  // Esc leaves the editor, not the pane.
+  function onEditorKey(event: KeyboardEvent) {
+    if (event.key !== 'Escape') return;
+    event.stopPropagation();
+    editing = null;
+  }
 
   // Today's figure grows while the pane is on screen: one read a minute,
   // and none once it is closed or the window is hidden.
@@ -115,6 +165,7 @@
       today: d.today,
       ahead: reading !== null && d.start > reading.today.start,
       marked: d.mark !== null,
+      fixed: d.fixed,
       first: d.first === null ? null : formatClock(d.first),
       last: d.last === null ? null : formatClock(d.last),
       over: d.over_ms >= 60_000 ? formatWorked(d.over_ms) : null,
@@ -152,6 +203,7 @@
   function select(d: Day) {
     chosen = d.today ? null : d.key;
     stepped = null;
+    editing = null;
   }
 
   function step(by: number) {
@@ -211,9 +263,36 @@
           )}
         />
       </div>
-      <button type="button" class="link" onclick={() => toggleLeave(day)}>
-        {day.kind === 'leave' ? NOT_A_LEAVE : MARK_LEAVE}
-      </button>
+      {#if editing}
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <form class="hours" onsubmit={(e) => saveHours(e, day)} onkeydown={onEditorKey}>
+          <label>
+            <span>From</span>
+            <input type="time" required bind:value={editing.from} />
+          </label>
+          <label>
+            <span>Until</span>
+            <input type="time" required bind:value={editing.until} />
+          </label>
+          <button type="submit" class="save">Save</button>
+        </form>
+        <p class="links">
+          <button type="button" class="link" onclick={() => emptyDay(day)}>{NOBODY_HERE}</button>
+          {#if day.fixed}
+            <button type="button" class="link" onclick={() => uncorrect(day)}>
+              {USE_WHAT_WAS_READ}
+            </button>
+          {/if}
+          <button type="button" class="link" onclick={() => (editing = null)}>Cancel</button>
+        </p>
+      {:else}
+        <p class="links">
+          <button type="button" class="link" onclick={() => toggleLeave(day)}>
+            {day.kind === 'leave' ? NOT_A_LEAVE : MARK_LEAVE}
+          </button>
+          <button type="button" class="link" onclick={() => correct(day)}>{CORRECT_HOURS}</button>
+        </p>
+      {/if}
       {#if store.almanac?.spans.length === 0}
         <p class="aside">{ALMANAC_BEGINS}</p>
       {/if}
@@ -388,6 +467,34 @@
     text-decoration-color: var(--ink);
   }
 
+  /* Correcting a day: two times and a word, where the links were. */
+  .hours {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .hours label {
+    display: grid;
+    gap: 2px;
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+
+  .hours input {
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  .save {
+    margin-left: auto;
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 12px;
+  }
+
   .aside {
     margin: 10px 0 0;
     font-family: var(--font-display);
@@ -517,6 +624,15 @@
   .links {
     display: flex;
     justify-content: space-between;
+    gap: 12px;
     margin: 6px 0 0;
+  }
+
+  .day .links {
+    margin-top: 0;
+  }
+
+  .day .hours + .links {
+    margin-top: 6px;
   }
 </style>

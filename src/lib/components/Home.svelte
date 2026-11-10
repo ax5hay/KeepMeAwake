@@ -1,9 +1,20 @@
 <script lang="ts">
+  import DayStrip from './DayStrip.svelte';
   import DurationRule from './DurationRule.svelte';
   import Row from './Row.svelte';
   import Scene from './Scene.svelte';
   import Switch from './Switch.svelte';
-  import { EXTEND_LABEL, EXTENDED, KEEP_IT_UP, KEPT_UP, doors } from '$lib/copy';
+  import { formatWorked, stripOf } from '$lib/almanac';
+  import {
+    DAY_WORDS,
+    EXTEND_LABEL,
+    EXTENDED,
+    KEEP_IT_UP,
+    KEPT_UP,
+    OPEN_ALMANAC,
+    TODAY_SO_FAR,
+    doors,
+  } from '$lib/copy';
   import { batteryText } from '$lib/format';
   import { displayAccelerator } from '$lib/hotkey';
   import { isMac } from '$lib/platform';
@@ -25,14 +36,47 @@
       store.update?.version ?? null,
     ),
   );
+  // Your day beside the laptop's: today's hours, and the day as a horizon.
+  const reading = $derived(store.reading);
+  const today = $derived(reading?.today ?? null);
+  const figure = $derived(
+    today === null ? '' : today.kind === 'leave' ? DAY_WORDS.leave : formatWorked(today.worked_ms),
+  );
   // Paused, the line says why it holds off; offering more time there reads oddly.
   const offerExtend = $derived(store.sunsetSoon && snapshot?.paused === null);
 </script>
 
 <Scene />
 
+<!-- The day as a small horizon, under the big one. -->
+{#if reading && today}
+  <button
+    type="button"
+    class="day"
+    title={OPEN_ALMANAC}
+    aria-label={OPEN_ALMANAC}
+    onclick={() => store.openAlmanac()}
+  >
+    <DayStrip strip={stripOf(reading, today)} size="row" label="" />
+  </button>
+{/if}
+
 <section class="status" aria-live="polite">
-  <h1>{store.status.title}</h1>
+  <div class="head">
+    <h1>{store.status.title}</h1>
+    {#if today}
+      <button
+        type="button"
+        class="today"
+        title={OPEN_ALMANAC}
+        aria-label="{TODAY_SO_FAR}: {figure}. {OPEN_ALMANAC}"
+        onclick={() => store.openAlmanac()}
+      >
+        <span class="eyebrow">{TODAY_SO_FAR}</span>
+        <span class="figure">{figure}</span>
+      </button>
+    {/if}
+  </div>
   {#key store.whisper}
     <p class:whisper={store.whisper !== null}>
       {store.whisper ?? store.status.detail}
@@ -96,6 +140,57 @@
   .status {
     padding: 14px 24px 6px;
     min-height: 84px;
+  }
+
+  .head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  /* Your day, beside the laptop's: quiet until looked for, and a way in. */
+  .today {
+    display: grid;
+    justify-items: end;
+    gap: 1px;
+    padding: 2px 6px 1px;
+    margin-right: -6px;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--t-fast) var(--ease);
+  }
+
+  .today .eyebrow {
+    font-size: 10px;
+  }
+
+  .figure {
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 1.15;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    font-variation-settings:
+      'opsz' 72,
+      'SOFT' 50;
+  }
+
+  .today:hover,
+  .day:hover {
+    background: var(--hair);
+  }
+
+  /* The day as a horizon, under the big one: the picture, then its ledger. */
+  .day {
+    display: block;
+    margin: 8px 18px 0;
+    padding: 5px 6px 3px;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--t-fast) var(--ease);
+  }
+
+  .day + .status {
+    padding-top: 6px;
   }
 
   h1 {
@@ -199,7 +294,8 @@
 
   /* At the minimum height the two rows need the room. */
   @media (max-height: 560px) {
-    .doors {
+    .doors,
+    .day {
       display: none;
     }
   }
