@@ -77,6 +77,8 @@ pub struct Settings {
     /// Always session asks once, then lets the laptop sleep. `None` turns
     /// the overnight guard off.
     pub overnight_guard_hours: Option<u8>,
+    /// The almanac: whether presence is kept, and what a working day is.
+    pub almanac: AlmanacSettings,
     /// Ask GitHub once a day whether a newer release exists.
     pub check_for_updates: bool,
     /// When that was last asked, Unix ms; 0 for never. Written by the app,
@@ -130,6 +132,47 @@ pub struct Schedule {
     pub end_minutes: u16,
 }
 
+/// What the almanac keeps and how it reads a day. The hours are when work
+/// is meant to happen, not when it may: time outside them still counts, and
+/// is shown as over. An `end_minutes` at or before `start_minutes` runs
+/// past midnight, and equal ones mean the whole day.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "snake_case")]
+pub struct AlmanacSettings {
+    /// Keep the almanac at all. Off, the idle time is never read for it.
+    pub enabled: bool,
+    /// Which weekdays are working days, Monday first.
+    pub work_days: [bool; 7],
+    /// Start of working hours, minutes after local midnight.
+    pub start_minutes: u16,
+    /// End of working hours, minutes after local midnight.
+    pub end_minutes: u16,
+    /// A past working day with nothing in it reads as leave.
+    pub empty_days_are_leave: bool,
+}
+
+impl Default for AlmanacSettings {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            work_days: [true, true, true, true, true, false, false],
+            start_minutes: 9 * 60,
+            end_minutes: 18 * 60,
+            empty_days_are_leave: true,
+        }
+    }
+}
+
+impl AlmanacSettings {
+    /// Clamps the hours into a day.
+    #[must_use]
+    pub fn sanitized(mut self) -> Self {
+        self.start_minutes = self.start_minutes.min(LAST_MINUTE);
+        self.end_minutes = self.end_minutes.min(LAST_MINUTE);
+        self
+    }
+}
+
 /// Last minute of a day, as minutes after midnight.
 pub const LAST_MINUTE: u16 = 24 * 60 - 1;
 
@@ -176,6 +219,7 @@ impl Default for Settings {
             hotkey: Some(DEFAULT_HOTKEY.to_owned()),
             sunset_warning_mins: Some(5),
             overnight_guard_hours: Some(6),
+            almanac: AlmanacSettings::default(),
             check_for_updates: true,
             last_update_check_unix_ms: 0,
         }
@@ -202,6 +246,7 @@ impl Settings {
             self.overnight_guard_hours = Some(hours.clamp(1, 24));
         }
         self.schedule = self.schedule.sanitized();
+        self.almanac = self.almanac.sanitized();
         self
     }
 }
@@ -286,6 +331,51 @@ mod tests {
             };
             assert_eq!(s.sanitized().overnight_guard_hours, Some(clamped));
         }
+    }
+
+    #[test]
+    fn the_almanac_defaults_on_with_weekday_office_hours() {
+        let a = Settings::default().almanac;
+        assert!(a.enabled);
+        assert_eq!(a.work_days, [true, true, true, true, true, false, false]);
+        assert_eq!((a.start_minutes, a.end_minutes), (540, 1080));
+        assert!(a.empty_days_are_leave);
+        let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
+        assert_eq!(
+            old.almanac,
+            AlmanacSettings::default(),
+            "older files gain it"
+        );
+        let json = serde_json::to_value(Settings::default()).unwrap();
+        assert_eq!(json["almanac"]["enabled"], true);
+        assert_eq!(json["almanac"]["start_minutes"], 540);
+        assert_eq!(json["almanac"]["empty_days_are_leave"], true);
+        assert_eq!(
+            json["almanac"]["work_days"].as_array().map(Vec::len),
+            Some(7)
+        );
+    }
+
+    #[test]
+    fn almanac_hours_are_clamped_and_may_run_past_midnight() {
+        let late: Settings = serde_json::from_str(
+            r#"{"almanac":{"start_minutes":900,"end_minutes":0,"enabled":false}}"#,
+        )
+        .unwrap();
+        let late = late.sanitized().almanac;
+        assert_eq!((late.start_minutes, late.end_minutes), (900, 0));
+        assert!(!late.enabled);
+        assert!(late.empty_days_are_leave, "a missing field defaults");
+        let wild = AlmanacSettings {
+            start_minutes: 5000,
+            end_minutes: 2000,
+            ..AlmanacSettings::default()
+        }
+        .sanitized();
+        assert_eq!(
+            (wild.start_minutes, wild.end_minutes),
+            (LAST_MINUTE, LAST_MINUTE)
+        );
     }
 
     #[test]

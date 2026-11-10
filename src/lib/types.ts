@@ -32,10 +32,26 @@ export interface Settings {
   sunset_warning_mins: number | null;
   /** Hours without input after which an Always session asks, then rests; `null` is off. */
   overnight_guard_hours: number | null;
+  almanac: AlmanacSettings;
   /** Ask GitHub once a day for a newer release. */
   check_for_updates: boolean;
   /** When it last asked, Unix ms; 0 for never. Written by the app, not the UI. */
   last_update_check_unix_ms: number;
+}
+
+/**
+ * What the almanac keeps and how it reads a day. The hours are when work is
+ * meant to happen; `end_minutes` at or before `start_minutes` runs past
+ * midnight, and equal ones mean the whole day.
+ */
+export interface AlmanacSettings {
+  enabled: boolean;
+  /** Monday first, seven entries. */
+  work_days: boolean[];
+  start_minutes: number;
+  end_minutes: number;
+  /** A past working day with nothing in it reads as leave. */
+  empty_days_are_leave: boolean;
 }
 
 /** A newer release found by the daily check. Mirrors `app::update::UpdateInfo`. */
@@ -136,4 +152,22 @@ export interface HistoryEntry {
 export interface History {
   version: number;
   entries: HistoryEntry[];
+}
+
+/** A stretch someone was at the keyboard, mouse or trackpad. Mirrors `core::almanac::Span`. */
+export interface Span {
+  from_unix_ms: number;
+  to_unix_ms: number;
+}
+
+/** What someone said about a day: leave, or not a leave. Mirrors `core::almanac::Mark`. */
+export type Mark = 'leave' | 'clear';
+
+/** Presence and marked days. Mirrors `core::almanac::Almanac`. */
+export interface Almanac {
+  version: number;
+  /** Oldest first, never overlapping. */
+  spans: Span[];
+  /** By local date, `2026-11-10`. */
+  marks: Record<string, Mark>;
 }
