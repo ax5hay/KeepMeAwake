@@ -472,6 +472,26 @@ const dateOf = (ms: number, locale = 'en-GB') =>
  * put the week into words, and nothing more than the pane already shows.
  */
 export function weekDigest(reading: Reading, week: readonly Day[]): string {
+  return digestOf(reading, week);
+}
+
+/** One day as Claude is sent it: the same line, under the same heading. */
+export function dayDigest(reading: Reading, day: Day): string {
+  return digestOf(reading, [day]);
+}
+
+/**
+ * A month as Claude is sent it. Days still to come say nothing unless they
+ * are leave, so they are left out: fewer lines, fewer tokens.
+ */
+export function monthDigest(reading: Reading, month: readonly Day[]): string {
+  return digestOf(
+    reading,
+    month.filter((day) => day.start <= reading.today.start || day.kind === 'leave'),
+  );
+}
+
+function digestOf(reading: Reading, week: readonly Day[]): string {
   const hours = week.find((day) => day.working)?.hours ?? week[0]?.hours;
   const head = hours
     ? `Working hours: ${clockOf(hours.from)} to ${clockOf(hours.to)}. Times are local, 24-hour.`

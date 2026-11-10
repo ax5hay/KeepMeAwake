@@ -7,7 +7,7 @@
  */
 import { formatWorked, hoursLength, read, type Reading } from './almanac';
 import { api, type Api } from './api';
-import { gateOf, type AiFeature, type Gate } from './claude';
+import { gateOf, stateOf, type AiFeature, type AiState, type Gate } from './claude';
 import { fullDay, quietNight, updateWhisper, type SettingsSection } from './copy';
 import {
   downloadPercent,
@@ -128,6 +128,49 @@ export class AppStore {
     return gateOf(this.ai, this.settings?.ai ?? null, feature);
   }
 
+  /** Where Claude as a whole stands: hidden, locked, off or on. */
+  get aiState(): AiState {
+    return stateOf(this.ai, this.settings?.ai ?? null);
+  }
+
+  /** Hide AI: everything of Claude's out of sight, or back. */
+  async setAiHidden(hidden: boolean): Promise<void> {
+    const ai = this.settings?.ai;
+    if (ai) await this.updateSettings({ ai: { ...ai, hidden } });
+  }
+
+  /**
+   * What Claude has already said this session, by what it was asked. The
+   * same question about the same days is answered from here: asking twice
+   * costs nothing the second time.
+   */
+  // A plain cache, read only inside this class: nothing renders from it.
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
+  #answers = new Map<string, string>();
+
+  async #asked(key: string, ask: () => Promise<string>): Promise<string | null> {
+    const known = this.#answers.get(key);
+    if (known !== undefined) return known;
+    try {
+      const answer = await ask();
+      this.#answers.set(key, answer);
+      return answer;
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+      return null;
+    }
+  }
+
+  /** Asks Claude to put a day into a line. */
+  readDay(digest: string): Promise<string | null> {
+    return this.#asked(`day\n${digest}`, () => this.#api.aiReadDay(digest));
+  }
+
+  /** Asks Claude a question about the days in `digest`. */
+  askAlmanac(question: string, digest: string): Promise<string | null> {
+    return this.#asked(`ask\n${question}\n${digest}`, () => this.#api.aiAsk(question, digest));
+  }
+
   /** The master switch: off, nothing is ever sent. */
   async setAiEnabled(enabled: boolean): Promise<void> {
     const ai = this.settings?.ai;
@@ -152,13 +195,8 @@ export class AppStore {
   }
 
   /** Asks Claude to put a week into words; `null`, with the reason shown, if it could not. */
-  async readWeek(digest: string): Promise<string | null> {
-    try {
-      return await this.#api.aiReadWeek(digest);
-    } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
-      return null;
-    }
+  readWeek(digest: string): Promise<string | null> {
+    return this.#asked(`week\n${digest}`, () => this.#api.aiReadWeek(digest));
   }
 
   /** Asks Claude what plan a sentence means. Nothing is started. */

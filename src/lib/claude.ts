@@ -7,14 +7,27 @@ import { nextOccurrence } from './format';
 import type { AiSettings, AiStatus, PlanRequest, Understood } from './types';
 
 /** A feature Claude powers; each has a switch of its own in the settings. */
-export type AiFeature = 'week_in_words' | 'tell_the_sun';
+export type AiFeature = 'week_in_words' | 'tell_the_sun' | 'day_in_a_line' | 'ask_the_almanac';
 
 /**
  * Where a feature stands, outermost lock first:
- * `locked` no API key; `off` a key, but Claude is switched off;
+ * `hidden` Hide AI is on; `locked` no API key; `off` a key, but Claude is switched off;
  * `feature-off` Claude is on but this feature is not; `on` ready when asked.
  */
-export type Gate = 'locked' | 'off' | 'feature-off' | 'on';
+export type Gate = 'hidden' | 'locked' | 'off' | 'feature-off' | 'on';
+
+/** Where Claude as a whole stands, before any one feature's own switch. */
+export type AiState = 'hidden' | 'locked' | 'off' | 'on';
+
+/**
+ * Claude as a whole. `hidden` comes first: with Hide AI on, nothing of it
+ * is shown at all, key or no key.
+ */
+export function stateOf(status: AiStatus | null, settings: AiSettings | null): AiState {
+  if (settings?.hidden) return 'hidden';
+  if (!status?.has_key) return 'locked';
+  return settings?.enabled ? 'on' : 'off';
+}
 
 /** The gate for `feature`. With the status not yet in, it reads as locked. */
 export function gateOf(
@@ -22,9 +35,9 @@ export function gateOf(
   settings: AiSettings | null,
   feature: AiFeature,
 ): Gate {
-  if (!status?.has_key) return 'locked';
-  if (!settings?.enabled) return 'off';
-  return settings[feature] ? 'on' : 'feature-off';
+  const state = stateOf(status, settings);
+  if (state !== 'on') return state;
+  return settings?.[feature] ? 'on' : 'feature-off';
 }
 
 /** The plan a sentence was understood as, or `null` when there is nothing to start. */

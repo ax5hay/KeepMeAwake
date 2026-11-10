@@ -56,7 +56,14 @@ const base: Snapshot = {
       rest_after_mins: null,
       break_after_mins: null,
     },
-    ai: { enabled: false, week_in_words: true, tell_the_sun: true },
+    ai: {
+      enabled: false,
+      week_in_words: true,
+      tell_the_sun: true,
+      day_in_a_line: true,
+      ask_the_almanac: true,
+      hidden: false,
+    },
     check_for_updates: true,
     last_update_check_unix_ms: 0,
   },
@@ -148,6 +155,8 @@ function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Alm
       return key;
     }),
     aiReadWeek: vi.fn(async () => 'A long Monday, and a short night after it.'),
+    aiReadDay: vi.fn(async () => 'A long day that ran past midnight.'),
+    aiAsk: vi.fn(async () => 'About 22 hours across three days.'),
     aiPlan: vi.fn(async () => ({
       kind: 'for' as const,
       minutes: 120,
@@ -459,8 +468,58 @@ describe('AppStore and Claude', () => {
     api.aiReadWeek = vi.fn(async () => {
       throw new Error('Claude is switched off.');
     });
-    expect(await store.readWeek('Mon 9 Nov: 8h')).toBeNull();
+    // A different week: the one above is remembered, and is not asked again.
+    expect(await store.readWeek('Mon 16 Nov: 8h')).toBeNull();
     expect(store.error).toBe('Claude is switched off.');
+    store.dispose();
+  });
+});
+
+describe('AppStore, Claude and cost', () => {
+  it('answers the same question about the same days from memory, not from the API', async () => {
+    const { api } = fakeApi(base);
+    const store = new AppStore(api);
+    await store.init();
+    expect(await store.readDay('Mon 9 Nov: 8h')).toBe('A long day that ran past midnight.');
+    expect(await store.readDay('Mon 9 Nov: 8h')).toBe('A long day that ran past midnight.');
+    expect(api.aiReadDay).toHaveBeenCalledTimes(1);
+    await store.readDay('Tue 10 Nov: 7h');
+    expect(api.aiReadDay).toHaveBeenCalledTimes(2);
+
+    await store.askAlmanac('How many hours?', 'Mon 9 Nov: 8h');
+    await store.askAlmanac('How many hours?', 'Mon 9 Nov: 8h');
+    expect(api.aiAsk).toHaveBeenCalledTimes(1);
+    await store.readWeek('Mon 9 Nov: 8h');
+    await store.readWeek('Mon 9 Nov: 8h');
+    expect(api.aiReadWeek).toHaveBeenCalledTimes(1);
+    store.dispose();
+  });
+
+  it('does not remember a failure, so it can be asked again', async () => {
+    const { api } = fakeApi(base);
+    let calls = 0;
+    api.aiReadDay = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) throw new Error('Claude is busy just now. Try again in a minute.');
+      return 'A quiet day.';
+    });
+    const store = new AppStore(api);
+    await store.init();
+    expect(await store.readDay('Mon: 8h')).toBeNull();
+    expect(await store.readDay('Mon: 8h')).toBe('A quiet day.');
+    store.dispose();
+  });
+
+  it('hides everything of Claude with one setting, and brings it back with one', async () => {
+    const { api } = fakeApi(base);
+    const store = new AppStore(api);
+    await store.init();
+    expect(store.aiState).toBe('locked');
+    await store.setAiHidden(true);
+    expect(store.aiState).toBe('hidden');
+    expect(store.gate('tell_the_sun')).toBe('hidden');
+    await store.setAiHidden(false);
+    expect(store.aiState).toBe('locked');
     store.dispose();
   });
 });

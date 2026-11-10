@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   barLength,
+  dayDigest,
+  monthDigest,
+  monthOf,
   daysCsv,
   dayKey,
   dayStart,
@@ -52,6 +55,7 @@ const book = (
 ): Almanac => ({ version: 1, spans, marks, fixes });
 
 const HOUR = 3_600_000;
+const NEWLINE = String.fromCharCode(10);
 const MIN = 60_000;
 
 describe('the turn of the day', () => {
@@ -386,6 +390,17 @@ describe('a week, as Claude is sent it', () => {
     );
     expect(lines[3]).toBe('Wed 11 Nov: still to come.');
     expect(lines[5]).toBe('Fri 13 Nov: still to come, leave planned.');
+  });
+
+  it('sends one day as its own line, and a month without the days still to come', () => {
+    const day = dayDigest(reading, reading.dayAt(at(9, 12))).split(NEWLINE);
+    expect(day).toHaveLength(2);
+    expect(day[1]).toMatch(/^Mon 9 Nov: 14h 46m at the keyboard/);
+    const month = monthDigest(reading, monthOf(reading, 2026, 10)).split(NEWLINE);
+    // The heading, the ten days so far, and the one leave still ahead.
+    expect(month).toHaveLength(12);
+    expect(month[month.length - 1]).toBe('Fri 13 Nov: still to come, leave planned.');
+    expect(monthDigest(reading, monthOf(reading, 2026, 10)).length).toBeLessThan(6000);
   });
 
   it('is short: a week is a few hundred characters', () => {

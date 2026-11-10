@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { gateOf, nowLocal, planOf } from './claude';
+import { gateOf, nowLocal, planOf, stateOf } from './claude';
 import type { AiSettings, Understood } from './types';
 
-const on: AiSettings = { enabled: true, week_in_words: true, tell_the_sun: true };
+const on: AiSettings = {
+  enabled: true,
+  week_in_words: true,
+  tell_the_sun: true,
+  day_in_a_line: true,
+  ask_the_almanac: true,
+  hidden: false,
+};
 
 describe('gateOf', () => {
   it('is locked without a key, whatever the switches say', () => {
@@ -20,6 +27,24 @@ describe('gateOf', () => {
     const settings = { ...on, tell_the_sun: false };
     expect(gateOf({ has_key: true }, settings, 'tell_the_sun')).toBe('feature-off');
     expect(gateOf({ has_key: true }, settings, 'week_in_words')).toBe('on');
+  });
+});
+
+describe('Hide AI', () => {
+  it('comes before everything: with it on nothing is shown, key or no key', () => {
+    const hidden = { ...on, hidden: true };
+    expect(stateOf({ has_key: true }, hidden)).toBe('hidden');
+    expect(stateOf({ has_key: false }, hidden)).toBe('hidden');
+    const features = ['week_in_words', 'tell_the_sun', 'day_in_a_line', 'ask_the_almanac'] as const;
+    for (const feature of features) {
+      expect(gateOf({ has_key: true }, hidden, feature)).toBe('hidden');
+    }
+  });
+
+  it('is off by default, so a new install sees the features, locked', () => {
+    expect(stateOf({ has_key: false }, on)).toBe('locked');
+    expect(stateOf({ has_key: true }, { ...on, enabled: false })).toBe('off');
+    expect(stateOf({ has_key: true }, on)).toBe('on');
   });
 });
 

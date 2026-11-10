@@ -415,6 +415,31 @@ export const AI_KEY_SAVED = 'A key is saved.';
 export const AI_PROMISE =
   'Claude is asked only when you click something that says so, and is sent only what that says.';
 
+/** Settings → Claude: what it costs to ask. */
+export const AI_CHEAP =
+  'Uses Claude Haiku, the smallest model, for a line or two at a time: asking costs a small fraction of a cent.';
+
+/** Settings → Claude → Hide AI. */
+export const AI_HIDE_HINT =
+  'Takes every AI feature out of sight. One button here brings them back.';
+
+/** Settings → Claude, while hidden: all that is left of it. */
+export const AI_HIDDEN = 'AI is hidden';
+export const AI_HIDDEN_HINT = 'Nothing of it is shown, and nothing can be asked.';
+export const AI_ENABLE = 'Enable AI';
+
+/** The Almanac's day, put into a line. */
+export const DAY_IN_A_LINE = 'The day, in a line';
+export const DAY_HINT = 'One sentence on the day being read.';
+export const DAY_READ = 'Read this day';
+export const DAY_SENDS = 'Sends this one day to Anthropic, when you ask.';
+
+/** A question, answered from the month in view. */
+export const ASK_THE_ALMANAC = 'Ask the almanac';
+export const ASK_HINT = 'A question about the month in view, answered in a sentence.';
+export const ASK_PLACEHOLDER = 'how many hours last week?';
+export const ASK_SENDS = 'Sends your question and this month of days to Anthropic.';
+
 /** The Almanac's week, put into words. */
 export const WEEK_IN_WORDS = 'This week, in words';
 

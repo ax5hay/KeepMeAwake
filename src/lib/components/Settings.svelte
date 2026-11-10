@@ -11,7 +11,16 @@
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
   import {
+    AI_CHEAP,
+    AI_ENABLE,
+    AI_HIDDEN,
+    AI_HIDDEN_HINT,
+    AI_HIDE_HINT,
     AI_KEY_SAVED,
+    ASK_HINT,
+    ASK_THE_ALMANAC,
+    DAY_HINT,
+    DAY_IN_A_LINE,
     CHECKING,
     CHECK_NOW,
     NEWEST,
@@ -391,58 +400,85 @@
 
     <section id="settings-ai">
       <h2 class="eyebrow">Claude</h2>
-      <Row label="Use Claude" hint={hasKey ? AI_MASTER_HINT : AI_MASTER_LOCKED}>
-        <Switch
-          checked={hasKey && settings.ai.enabled}
-          disabled={!hasKey}
-          label="Use Claude"
-          onchange={(v) => void store.setAiEnabled(v)}
-        />
-      </Row>
-      <div class="key">
-        <div class="label">API key</div>
-        {#if hasKey}
-          <p class="hint">
-            {AI_KEY_SAVED}
-            {PLATFORM_COPY.keyKept}
-            <button type="button" class="quit" onclick={() => void store.setAiKey(null)}>
-              Remove it
-            </button>
-          </p>
-        {:else}
-          <form class="keyform" onsubmit={saveKey}>
-            <input
-              type="password"
-              aria-label="Anthropic API key"
-              placeholder="sk-ant-…"
-              autocomplete="off"
-              spellcheck="false"
-              bind:value={keyDraft}
+      {#if settings.ai.hidden}
+        <Row label={AI_HIDDEN} hint={AI_HIDDEN_HINT}>
+          <button type="button" class="save" onclick={() => void store.setAiHidden(false)}>
+            {AI_ENABLE}
+          </button>
+        </Row>
+      {:else}
+        <Row label="Use Claude" hint={hasKey ? AI_MASTER_HINT : AI_MASTER_LOCKED}>
+          <Switch
+            checked={hasKey && settings.ai.enabled}
+            disabled={!hasKey}
+            label="Use Claude"
+            onchange={(v) => void store.setAiEnabled(v)}
+          />
+        </Row>
+        <div class="key">
+          <div class="label">API key</div>
+          {#if hasKey}
+            <p class="hint">
+              {AI_KEY_SAVED}
+              {PLATFORM_COPY.keyKept}
+              <button type="button" class="quit" onclick={() => void store.setAiKey(null)}>
+                Remove it
+              </button>
+            </p>
+          {:else}
+            <form class="keyform" onsubmit={saveKey}>
+              <input
+                type="password"
+                aria-label="Anthropic API key"
+                placeholder="sk-ant-…"
+                autocomplete="off"
+                spellcheck="false"
+                bind:value={keyDraft}
+              />
+              <button type="submit" class="save" disabled={keyDraft.trim() === ''}>Save</button>
+            </form>
+            <p class="hint">{AI_KEY_WHY} {PLATFORM_COPY.keyKept}</p>
+          {/if}
+        </div>
+        <div class="dependent" class:off={!hasKey || !settings.ai.enabled}>
+          <Row label={WEEK_IN_WORDS} hint={WEEK_HINT}>
+            <Switch
+              checked={settings.ai.week_in_words}
+              disabled={!hasKey || !settings.ai.enabled}
+              label={WEEK_IN_WORDS}
+              onchange={(v) => void store.setAiFeature('week_in_words', v)}
             />
-            <button type="submit" class="save" disabled={keyDraft.trim() === ''}>Save</button>
-          </form>
-          <p class="hint">{AI_KEY_WHY} {PLATFORM_COPY.keyKept}</p>
-        {/if}
-      </div>
-      <div class="dependent" class:off={!hasKey || !settings.ai.enabled}>
-        <Row label={WEEK_IN_WORDS} hint={WEEK_HINT}>
-          <Switch
-            checked={settings.ai.week_in_words}
-            disabled={!hasKey || !settings.ai.enabled}
-            label={WEEK_IN_WORDS}
-            onchange={(v) => void store.setAiFeature('week_in_words', v)}
-          />
+          </Row>
+          <Row label={TELL_THE_SUN} hint={TELL_HINT}>
+            <Switch
+              checked={settings.ai.tell_the_sun}
+              disabled={!hasKey || !settings.ai.enabled}
+              label={TELL_THE_SUN}
+              onchange={(v) => void store.setAiFeature('tell_the_sun', v)}
+            />
+          </Row>
+          <Row label={DAY_IN_A_LINE} hint={DAY_HINT}>
+            <Switch
+              checked={settings.ai.day_in_a_line}
+              disabled={!hasKey || !settings.ai.enabled}
+              label={DAY_IN_A_LINE}
+              onchange={(v) => void store.setAiFeature('day_in_a_line', v)}
+            />
+          </Row>
+          <Row label={ASK_THE_ALMANAC} hint={ASK_HINT}>
+            <Switch
+              checked={settings.ai.ask_the_almanac}
+              disabled={!hasKey || !settings.ai.enabled}
+              label={ASK_THE_ALMANAC}
+              onchange={(v) => void store.setAiFeature('ask_the_almanac', v)}
+            />
+          </Row>
+        </div>
+        <Row label="Hide AI" hint={AI_HIDE_HINT}>
+          <Switch checked={false} label="Hide AI" onchange={(v) => void store.setAiHidden(v)} />
         </Row>
-        <Row label={TELL_THE_SUN} hint={TELL_HINT}>
-          <Switch
-            checked={settings.ai.tell_the_sun}
-            disabled={!hasKey || !settings.ai.enabled}
-            label={TELL_THE_SUN}
-            onchange={(v) => void store.setAiFeature('tell_the_sun', v)}
-          />
-        </Row>
-      </div>
-      <p class="hint promise">{AI_PROMISE}</p>
+        <p class="hint promise">{AI_PROMISE} {AI_CHEAP}</p>
+      {/if}
     </section>
 
     <section>

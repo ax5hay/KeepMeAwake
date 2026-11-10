@@ -4,7 +4,8 @@
    * Claude reads the sentence; the sun does nothing until what it understood
    * has been shown and agreed to.
    */
-  import ClaudeGate from './ClaudeGate.svelte';
+  import ClaudeFeature from './ClaudeFeature.svelte';
+  import ClaudeGroup from './ClaudeGroup.svelte';
   import { nowLocal, planOf } from '$lib/claude';
   import {
     TELL_ASK,
@@ -55,37 +56,41 @@
   }
 </script>
 
-<div class="tell">
-  <ClaudeGate feature="tell_the_sun" title={TELL_THE_SUN} hint={TELL_HINT}>
-    {#if understood}
-      <p class="said" role="status">
-        <span class="words">{understood.say}</span>
-        {#if plan}
-          <button type="button" class="go" onclick={() => void start()}>{TELL_START}</button>
+{#if store.aiState !== 'hidden'}
+  <div class="tell">
+    <ClaudeGroup>
+      <ClaudeFeature feature="tell_the_sun" title={TELL_THE_SUN} hint={TELL_HINT}>
+        {#if understood}
+          <p class="said" role="status">
+            <span class="words">{understood.say}</span>
+            {#if plan}
+              <button type="button" class="go" onclick={() => void start()}>{TELL_START}</button>
+            {/if}
+            <button type="button" class="link" onclick={() => (understood = null)}>
+              {plan ? 'No' : 'Again'}
+            </button>
+          </p>
+        {:else}
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <form onsubmit={ask} onkeydown={onKey}>
+            <input
+              type="text"
+              aria-label={TELL_THE_SUN}
+              placeholder={TELL_PLACEHOLDER}
+              maxlength="200"
+              bind:value={sentence}
+              disabled={asking}
+            />
+            <button type="submit" class="go" disabled={asking || sentence.trim() === ''}>
+              {asking ? TELL_THINKING : TELL_ASK}
+            </button>
+          </form>
+          <p class="sends">{TELL_SENDS}</p>
         {/if}
-        <button type="button" class="link" onclick={() => (understood = null)}>
-          {plan ? 'No' : 'Again'}
-        </button>
-      </p>
-    {:else}
-      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-      <form onsubmit={ask} onkeydown={onKey}>
-        <input
-          type="text"
-          aria-label={TELL_THE_SUN}
-          placeholder={TELL_PLACEHOLDER}
-          maxlength="200"
-          bind:value={sentence}
-          disabled={asking}
-        />
-        <button type="submit" class="go" disabled={asking || sentence.trim() === ''}>
-          {asking ? TELL_THINKING : TELL_ASK}
-        </button>
-      </form>
-      <p class="sends">{TELL_SENDS}</p>
-    {/if}
-  </ClaudeGate>
-</div>
+      </ClaudeFeature>
+    </ClaudeGroup>
+  </div>
+{/if}
 
 <style>
   .tell {

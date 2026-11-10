@@ -5,16 +5,19 @@
    * up to. Everything here is derived from the spans the app keeps; the pane
    * holds only which day is being read and which month is open.
    */
-  import ClaudeGate from './ClaudeGate.svelte';
+  import ClaudeFeature from './ClaudeFeature.svelte';
+  import ClaudeGroup from './ClaudeGroup.svelte';
   import DayStrip from './DayStrip.svelte';
   import MonthGrid from './MonthGrid.svelte';
   import Row from './Row.svelte';
   import Switch from './Switch.svelte';
   import {
     WORKED_FROM_MS,
+    dayDigest,
     daysCsv,
     formatTotal,
     formatWorked,
+    monthDigest,
     monthGrid,
     monthOf,
     read,
@@ -35,14 +38,24 @@
     ALMANAC_FOOT,
     ALMANAC_HINT,
     ALMANAC_SETTINGS,
+    ASK_HINT,
+    ASK_PLACEHOLDER,
+    ASK_SENDS,
+    ASK_THE_ALMANAC,
     CLEAR_ALMANAC,
     COPIED,
     COPY_MONTH,
     CORRECT_HOURS,
+    DAY_HINT,
+    DAY_IN_A_LINE,
+    DAY_READ,
+    DAY_SENDS,
     DAY_WORDS,
     MARK_LEAVE,
     NOBODY_HERE,
     NOT_A_LEAVE,
+    TELL_ASK,
+    TELL_THINKING,
     USE_WHAT_WAS_READ,
     WEEK_HINT,
     WEEK_IN_WORDS,
@@ -84,18 +97,42 @@
   const year = $derived(reading ? tally(yearOf(reading, shown.year)) : null);
   const usual = $derived(reading ? usualNight(reading.nights, reading.turn) : null);
 
-  /** The week put into words, and the week it is of, so another week starts clean. */
+  /** What Claude said, and what of, so another day, week or month starts clean. */
+  let line = $state<{ of: string; text: string } | null>(null);
   let words = $state<{ of: string; text: string } | null>(null);
-  let reading_week = $state(false);
+  let answer = $state<{ of: string; text: string } | null>(null);
+  let question = $state('');
+  /** Which of Claude's three is being asked just now; one at a time. */
+  let busy = $state<'day' | 'week' | 'ask' | null>(null);
   const weekKey = $derived(week[0]?.key ?? '');
+  const monthKey = $derived(`${shown.year}-${shown.month}`);
+
+  async function readDay() {
+    if (!reading || !day || busy) return;
+    busy = 'day';
+    const of = day.key;
+    const text = await store.readDay(dayDigest(reading, day));
+    if (text !== null) line = { of, text };
+    busy = null;
+  }
 
   async function readWeek() {
-    if (!reading || reading_week) return;
-    reading_week = true;
+    if (!reading || busy) return;
+    busy = 'week';
     const of = weekKey;
     const text = await store.readWeek(weekDigest(reading, week));
     if (text !== null) words = { of, text };
-    reading_week = false;
+    busy = null;
+  }
+
+  async function ask(event: Event) {
+    event.preventDefault();
+    if (!reading || busy || question.trim() === '') return;
+    busy = 'ask';
+    const of = monthKey;
+    const text = await store.askAlmanac(question.trim(), monthDigest(reading, month));
+    if (text !== null) answer = { of, text };
+    busy = null;
   }
 
   /** The open month, copied as CSV for a timesheet. */
@@ -363,25 +400,6 @@
     </section>
 
     <section>
-      <ClaudeGate feature="week_in_words" title={WEEK_IN_WORDS} hint={WEEK_HINT}>
-        {#if words && words.of === weekKey}
-          <p class="words">{words.text}</p>
-        {/if}
-        <p class="links ask">
-          <button
-            type="button"
-            class="link"
-            disabled={reading_week}
-            onclick={() => void readWeek()}
-          >
-            {reading_week ? WEEK_READING : WEEK_READ}
-          </button>
-          <span class="sends">{WEEK_SENDS}</span>
-        </p>
-      </ClaudeGate>
-    </section>
-
-    <section>
       <div class="over">
         <div class="pager">
           <button type="button" aria-label="Previous month" onclick={() => step(-1)}>
@@ -401,6 +419,68 @@
       </div>
       <MonthGrid {rows} selected={day.key} {describe} onselect={select} />
     </section>
+
+    {#if store.aiState !== 'hidden'}
+      <section>
+        <ClaudeGroup>
+          <ClaudeFeature feature="day_in_a_line" title={DAY_IN_A_LINE} hint={DAY_HINT}>
+            {#if line && line.of === day.key}
+              <p class="words">{line.text}</p>
+            {/if}
+            <p class="links ask">
+              <button
+                type="button"
+                class="link"
+                disabled={busy === 'day'}
+                onclick={() => void readDay()}
+              >
+                {busy === 'day' ? WEEK_READING : DAY_READ}
+              </button>
+              <span class="sends">{DAY_SENDS}</span>
+            </p>
+          </ClaudeFeature>
+          <ClaudeFeature feature="week_in_words" title={WEEK_IN_WORDS} hint={WEEK_HINT}>
+            {#if words && words.of === weekKey}
+              <p class="words">{words.text}</p>
+            {/if}
+            <p class="links ask">
+              <button
+                type="button"
+                class="link"
+                disabled={busy === 'week'}
+                onclick={() => void readWeek()}
+              >
+                {busy === 'week' ? WEEK_READING : WEEK_READ}
+              </button>
+              <span class="sends">{WEEK_SENDS}</span>
+            </p>
+          </ClaudeFeature>
+          <ClaudeFeature feature="ask_the_almanac" title={ASK_THE_ALMANAC} hint={ASK_HINT}>
+            {#if answer && answer.of === monthKey}
+              <p class="words">{answer.text}</p>
+            {/if}
+            <form class="question" onsubmit={ask}>
+              <input
+                type="text"
+                aria-label={ASK_THE_ALMANAC}
+                placeholder={ASK_PLACEHOLDER}
+                maxlength="300"
+                bind:value={question}
+                disabled={busy === 'ask'}
+              />
+              <button
+                type="submit"
+                class="save"
+                disabled={busy === 'ask' || question.trim() === ''}
+              >
+                {busy === 'ask' ? TELL_THINKING : TELL_ASK}
+              </button>
+            </form>
+            <p class="sends">{ASK_SENDS}</p>
+          </ClaudeFeature>
+        </ClaudeGroup>
+      </section>
+    {/if}
 
     <section>
       <dl class="tally">
@@ -568,7 +648,35 @@
     cursor: text;
   }
 
-  .ask {
+  .question {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .question input {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 8px;
+    border: 1px solid var(--hair-strong);
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    font-size: 12px;
+  }
+
+  .question input::placeholder {
+    color: var(--ink-3);
+  }
+
+  .save:disabled {
+    opacity: 0.4;
+  }
+
+  p.sends {
+    margin: 4px 0 0;
+  }
+
+  .links.ask {
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
