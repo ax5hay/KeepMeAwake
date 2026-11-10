@@ -11,6 +11,8 @@ const settings: AlmanacSettings = {
   start_minutes: 540,
   end_minutes: 1080,
   empty_days_are_leave: true,
+  whisper_night: true,
+  rest_after_mins: null,
 };
 
 const at = (date: number, hour: number) => new Date(2026, 10, date, hour).getTime();

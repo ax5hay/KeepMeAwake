@@ -117,6 +117,7 @@ export class AppStore {
     } catch {
       return;
     }
+    if (!settings.almanac.whisper_night) return;
     const night = read(this.almanac, settings.almanac, this.almanacAt).today.night;
     if (night === null || remembered(NIGHT_KEY) === String(night.to)) return;
     remember(NIGHT_KEY, String(night.to));

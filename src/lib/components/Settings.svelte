@@ -18,7 +18,9 @@
     OVERNIGHT_GUARD_HINT,
     PLATFORM_COPY,
     SCHEDULE_HOURS_HINT,
+    SET_WITH_ME_HINT,
     UPDATES_HINT,
+    WHISPER_NIGHT_HINT,
     WORK_HOURS_HINT,
     downloading,
     tipsWith,
@@ -150,6 +152,13 @@
     { value: '4', label: '4h' },
     { value: '6', label: '6h' },
     { value: '8', label: '8h' },
+  ];
+
+  const nightOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: 'off', label: 'Off' },
+    { value: '30', label: '30m' },
+    { value: '60', label: '1h' },
+    { value: '120', label: '2h' },
   ];
 
   const themeOptions: ReadonlyArray<{ value: Theme; label: string }> = [
@@ -318,6 +327,23 @@
             checked={settings.almanac.empty_days_are_leave}
             label="Empty working days are leave"
             onchange={(v) => setAlmanac({ empty_days_are_leave: v })}
+          />
+        </Row>
+        <Row label="Whisper the night" hint={WHISPER_NIGHT_HINT}>
+          <Switch
+            checked={settings.almanac.whisper_night}
+            label="Whisper the night"
+            onchange={(v) => setAlmanac({ whisper_night: v })}
+          />
+        </Row>
+        <Row label="Set with me" hint={SET_WITH_ME_HINT}>
+          <Segmented
+            options={withCurrent(nightOptions, settings.almanac.rest_after_mins, 'm')}
+            value={settings.almanac.rest_after_mins === null
+              ? 'off'
+              : String(settings.almanac.rest_after_mins)}
+            label="Set with me"
+            onchange={(v) => setAlmanac({ rest_after_mins: v === 'off' ? null : Number(v) })}
           />
         </Row>
       </div>

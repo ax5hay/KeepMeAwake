@@ -22,6 +22,8 @@ const base: Snapshot = {
     next_start_unix_ms: null,
   },
   guard_rests_at_unix_ms: null,
+  guard_night: false,
+  rises_on_touch: false,
   guard_watching: false,
   settings: {
     version: 1,
@@ -50,6 +52,8 @@ const base: Snapshot = {
       start_minutes: 540,
       end_minutes: 1080,
       empty_days_are_leave: true,
+      whisper_night: true,
+      rest_after_mins: null,
     },
     check_for_updates: true,
     last_update_check_unix_ms: 0,
@@ -414,6 +418,17 @@ describe('AppStore and the almanac', () => {
     await store.init();
     expect(api.getAlmanac).not.toHaveBeenCalled();
     expect(store.whisper).toBeNull();
+    store.dispose();
+  });
+
+  it('keeps the night to itself with the whisper switched off', async () => {
+    const hushed = { ...base, settings: { ...base.settings } };
+    hushed.settings.almanac = { ...base.settings.almanac, whisper_night: false };
+    const { api } = fakeApi(hushed, null, slept);
+    const store = new AppStore(api);
+    await store.init();
+    expect(store.whisper).toBeNull();
+    expect(store.almanac).toEqual(slept);
     store.dispose();
   });
 

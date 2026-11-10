@@ -29,6 +29,8 @@ const office: AlmanacSettings = {
   start_minutes: 9 * 60,
   end_minutes: 18 * 60,
   empty_days_are_leave: true,
+  whisper_night: true,
+  rest_after_mins: null,
 };
 
 /** 3 pm to midnight: the day turns at 7 am. */

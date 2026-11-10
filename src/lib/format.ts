@@ -4,11 +4,13 @@
 import {
   BACK_ON_SCHEDULE,
   LATE_NIGHT,
+  SET_WITH_THE_NIGHT,
   awakeAgain,
   isLate,
   nobodyHere,
   onSchedule,
   platformCopy,
+  quietForTheNight,
   skippedUntil,
   skipping,
   sunsetIn,
@@ -119,6 +121,8 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
         detail: skipping(formatClock(schedule.window_end_unix_ms, locale)),
       };
     }
+    // Down for the night, and waiting: it comes back without being asked.
+    if (snapshot.rises_on_touch) return { title: 'Resting', detail: SET_WITH_THE_NIGHT };
     const resting = 'Your laptop sleeps as usual.';
     if (schedule.enabled && schedule.next_start_unix_ms !== null) {
       const when = formatWhen(schedule.next_start_unix_ms, nowMs, locale);
@@ -129,6 +133,12 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
   // The guard's question outranks the rest: the session ends unless answered.
   const rests = snapshot.guard_rests_at_unix_ms;
   const hours = snapshot.settings.overnight_guard_hours;
+  if (rests !== null && snapshot.guard_night) {
+    return {
+      title: snapshot.paused ? 'Paused' : 'Awake',
+      detail: quietForTheNight(formatClock(rests, locale)),
+    };
+  }
   if (rests !== null && hours !== null) {
     return {
       title: snapshot.paused ? 'Paused' : 'Awake',

@@ -82,6 +82,11 @@ pub struct Snapshot {
     /// While the overnight guard is asking whether anyone is there: when the
     /// session will end unless someone answers, Unix ms. `None` otherwise.
     pub guard_rests_at_unix_ms: Option<u64>,
+    /// The question is being asked because the keys went quiet in the
+    /// resting hours (the almanac's Set with me), not for the guard's hours.
+    pub guard_night: bool,
+    /// The sun set with the night and rises again at the next touch.
+    pub rises_on_touch: bool,
     /// The overnight guard is watching this session: an Always session,
     /// the guard on, and nobody said Keep it up for it.
     pub guard_watching: bool,
@@ -114,6 +119,8 @@ mod tests {
             battery: BatteryState::default(),
             schedule: ScheduleState::default(),
             guard_rests_at_unix_ms: None,
+            guard_night: false,
+            rises_on_touch: false,
             guard_watching: false,
             settings: Settings::default(),
             app_version: "0.0.0".into(),
@@ -151,6 +158,8 @@ mod tests {
         assert_eq!(json["mode"], "off");
         assert!(json["guard_rests_at_unix_ms"].is_null());
         assert_eq!(json["guard_watching"], false);
+        assert_eq!(json["guard_night"], false);
+        assert_eq!(json["rises_on_touch"], false);
         assert_eq!(json["settings"]["overnight_guard_hours"], 6);
     }
 }

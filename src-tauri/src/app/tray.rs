@@ -433,6 +433,8 @@ mod tests {
             battery: BatteryState::default(),
             schedule: ScheduleState::default(),
             guard_rests_at_unix_ms: None,
+            guard_night: false,
+            rises_on_touch: false,
             guard_watching: false,
             settings: Settings::default(),
             app_version: String::new(),

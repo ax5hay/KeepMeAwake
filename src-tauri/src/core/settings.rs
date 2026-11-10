@@ -150,7 +150,19 @@ pub struct AlmanacSettings {
     pub end_minutes: u16,
     /// A past working day with nothing in it reads as leave.
     pub empty_days_are_leave: bool,
+    /// Whisper the night once, on the first open after it.
+    pub whisper_night: bool,
+    /// Minutes without input, inside the resting hours, after which an
+    /// Always session sets for the night and rises again at the next
+    /// touch. `None` leaves the sun to the overnight guard alone.
+    pub rest_after_mins: Option<u16>,
 }
+
+/// Minutes in a day.
+const DAY_MINUTES: u16 = 24 * 60;
+
+/// How far the resting hours reach either side of the turn of the day.
+pub const REST_REACH_MINUTES: u16 = 5 * 60;
 
 impl Default for AlmanacSettings {
     fn default() -> Self {
@@ -160,17 +172,43 @@ impl Default for AlmanacSettings {
             start_minutes: 9 * 60,
             end_minutes: 18 * 60,
             empty_days_are_leave: true,
+            whisper_night: true,
+            rest_after_mins: None,
         }
     }
 }
 
 impl AlmanacSettings {
-    /// Clamps the hours into a day.
+    /// Clamps the hours into a day, and the wait for the night to between
+    /// ten minutes and four hours.
     #[must_use]
     pub fn sanitized(mut self) -> Self {
         self.start_minutes = self.start_minutes.min(LAST_MINUTE);
         self.end_minutes = self.end_minutes.min(LAST_MINUTE);
+        if let Some(mins) = self.rest_after_mins {
+            self.rest_after_mins = Some(mins.clamp(10, 240));
+        }
         self
+    }
+
+    /// The hour at which a day turns over: opposite the middle of the
+    /// working hours, on the hour. 9 am to 6 pm turns at 1; 3 pm to
+    /// midnight at 7. The window reads days the same way.
+    pub fn turn_hour(&self) -> u16 {
+        let length = match (self.end_minutes + DAY_MINUTES - self.start_minutes) % DAY_MINUTES {
+            0 => DAY_MINUTES,
+            length => length,
+        };
+        let middle = self.start_minutes + length / 2;
+        ((middle + DAY_MINUTES / 2) % DAY_MINUTES) / 60
+    }
+
+    /// Whether `minute` of the day falls in the resting hours: the ten
+    /// hours centred on the turn of the day.
+    pub fn is_resting(&self, minute: u16) -> bool {
+        let turn = self.turn_hour() * 60;
+        let apart = (minute % DAY_MINUTES).abs_diff(turn);
+        apart.min(DAY_MINUTES - apart) <= REST_REACH_MINUTES
     }
 }
 
@@ -339,6 +377,8 @@ mod tests {
         assert_eq!(a.work_days, [true, true, true, true, true, false, false]);
         assert_eq!((a.start_minutes, a.end_minutes), (540, 1080));
         assert!(a.empty_days_are_leave);
+        assert!(a.whisper_night);
+        assert_eq!(a.rest_after_mins, None, "the sun follows nobody unasked");
         let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
         assert_eq!(
             old.almanac,
@@ -375,6 +415,42 @@ mod tests {
             (wild.start_minutes, wild.end_minutes),
             (LAST_MINUTE, LAST_MINUTE)
         );
+    }
+
+    #[test]
+    fn the_resting_hours_sit_opposite_the_working_hours() {
+        let office = AlmanacSettings::default();
+        assert_eq!(office.turn_hour(), 1);
+        assert!(office.is_resting(23 * 60));
+        assert!(office.is_resting(3 * 60));
+        assert!(office.is_resting(6 * 60));
+        assert!(!office.is_resting(6 * 60 + 1));
+        assert!(!office.is_resting(14 * 60));
+        let evening = AlmanacSettings {
+            start_minutes: 15 * 60,
+            end_minutes: 0,
+            ..AlmanacSettings::default()
+        };
+        assert_eq!(evening.turn_hour(), 7);
+        assert!(evening.is_resting(3 * 60));
+        assert!(!evening.is_resting(23 * 60), "still at work");
+        let whole = AlmanacSettings {
+            start_minutes: 600,
+            end_minutes: 600,
+            ..AlmanacSettings::default()
+        };
+        assert_eq!(whole.turn_hour(), 10);
+    }
+
+    #[test]
+    fn the_wait_for_the_night_is_clamped() {
+        for (wild, clamped) in [(0, 10), (5, 10), (60, 60), (900, 240)] {
+            let a = AlmanacSettings {
+                rest_after_mins: Some(wild),
+                ..AlmanacSettings::default()
+            };
+            assert_eq!(a.sanitized().rest_after_mins, Some(clamped));
+        }
     }
 
     #[test]

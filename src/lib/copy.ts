@@ -144,6 +144,24 @@ export function nobodyHere(hours: number, time: string): string {
   return `Nobody here for ${hours} hour${hours === 1 ? '' : 's'}. Resting at ${time}.`;
 }
 
+/**
+ * The status line while Set with me is about to set the sun: the keys went
+ * quiet inside the resting hours. `Quiet for the night. Setting at 3:12 am.`
+ */
+export function quietForTheNight(time: string): string {
+  return `Quiet for the night. Setting at ${time}.`;
+}
+
+/** The resting line after the sun set with the night. */
+export const SET_WITH_THE_NIGHT = 'Set with the night. Up again at your first touch.';
+
+/** Settings → Almanac → Set with me. */
+export const SET_WITH_ME_HINT =
+  'Always sets when you go quiet at night, and rises at your first touch.';
+
+/** Settings → Almanac → Whisper the night. */
+export const WHISPER_NIGHT_HINT = 'Once, on the first open after it.';
+
 /** The action under the status line, and the tray item, while the guard asks. */
 export const KEEP_IT_UP = 'Keep it up';
 

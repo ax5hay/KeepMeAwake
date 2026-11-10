@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use chrono::{DateTime, Local, TimeZone};
+use chrono::{DateTime, Local, TimeZone, Timelike};
 use parking_lot::{Condvar, Mutex, MutexGuard};
 
 use crate::core::history::Ended;
@@ -143,8 +143,38 @@ struct State {
     /// The start of the session someone said Keep it up for; the guard
     /// leaves that session alone.
     guard_dismissed_for: Option<Instant>,
+    /// Whose question is pending: the guard's hours, or the night's.
+    guard_question: Question,
+    /// The sun set with the night and is waiting for the next touch.
+    rise: Option<Rise>,
     shutdown: bool,
 }
+
+/// Why the overnight guard is asking.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Question {
+    /// Nobody has touched the machine for the guard's hours.
+    Hours,
+    /// Set with me: the keys went quiet inside the resting hours.
+    Night,
+}
+
+/// A session that set with the night, waiting to rise at the next touch.
+#[derive(Debug, Clone, Copy)]
+struct Rise {
+    /// When it set, Unix ms.
+    since: u64,
+    /// The last look for a touch: when, and the idle time read then.
+    at: Instant,
+    idle: Duration,
+}
+
+/// How long a session that set with the night waits for a touch. Past
+/// this nobody came back the next day, and it stays down.
+const RISE_WITHIN_MS: u64 = 24 * 60 * 60 * 1000;
+
+/// Idle readings this close to "nothing new" count as nothing new.
+const TOUCH_SLACK: Duration = Duration::from_secs(1);
 
 struct Shared {
     state: Mutex<State>,
@@ -198,6 +228,8 @@ impl Engine {
                 warned_for: None,
                 guard_rests_at: None,
                 guard_dismissed_for: None,
+                guard_question: Question::Hours,
+                rise: None,
                 shutdown: false,
             }),
             wake: Condvar::new(),
@@ -239,6 +271,8 @@ impl Engine {
         let request = request.resolve(self.shared.clock.unix_ms());
         let now = self.shared.clock.now();
         self.mutate(|st| {
+            // Said by hand, either way: the night has no say after that.
+            st.rise = None;
             st.session.apply(request, now);
         })
     }
@@ -250,6 +284,7 @@ impl Engine {
         let now = self.shared.clock.now();
         let unix_now = self.shared.clock.unix_ms();
         self.mutate(|st| {
+            st.rise = None;
             if st.session.is_active() {
                 st.session.apply(PlanRequest::Off, now);
                 return;
@@ -292,6 +327,7 @@ impl Engine {
             if st.session.mode() == Mode::Indefinite {
                 st.guard_dismissed_for = st.session.started_at();
                 st.guard_rests_at = None;
+                st.guard_question = Question::Hours;
             }
         })
     }
@@ -339,6 +375,7 @@ impl Engine {
         // hand the new session the old one's deadline.
         if st.session.started_at() != started {
             st.guard_rests_at = None;
+            st.guard_question = Question::Hours;
         }
         st.dirty = true;
         // Wake the worker so it applies the change on its own thread.
@@ -510,7 +547,9 @@ fn next_wake(st: &State, now: Instant, unix_now: u64) -> Option<Instant> {
     let guard = st
         .guard_rests_at
         .map(|at| now + Duration::from_millis(at.saturating_sub(unix_now)));
-    [usual, warning, guard].into_iter().flatten().min()
+    // Waiting for a touch: the sun is down, so nothing else would look.
+    let touch = st.rise.map(|_| now + policy::BATTERY_POLL);
+    [usual, warning, guard, touch].into_iter().flatten().min()
 }
 
 /// What the worker reads from the machine on each step.
@@ -520,12 +559,58 @@ struct Probes<'a> {
     idle: &'a dyn IdleProbe,
 }
 
-/// The guard is watching the current session: Always, the guard on, and
-/// nobody said Keep it up for this session.
+/// The guard is watching the current session: Always, the guard or Set
+/// with me on, and nobody said Keep it up for this session.
 fn guard_watches(st: &State) -> bool {
     st.session.mode() == Mode::Indefinite
-        && st.settings.overnight_guard_hours.is_some()
+        && (st.settings.overnight_guard_hours.is_some() || night_rest(&st.settings).is_some())
         && st.guard_dismissed_for != st.session.started_at()
+}
+
+/// How long the keys must be quiet in the resting hours before an Always
+/// session sets for the night, if the almanac's Set with me is on.
+fn night_rest(settings: &Settings) -> Option<Duration> {
+    settings
+        .almanac
+        .rest_after_mins
+        .filter(|_| settings.almanac.enabled)
+        .map(|mins| Duration::from_secs(u64::from(mins) * 60))
+}
+
+/// Whether `unix_now` falls in the almanac's resting hours, local time.
+fn resting_now(settings: &Settings, unix_now: u64) -> bool {
+    local_time(unix_now).is_some_and(|at| {
+        let minute = u16::try_from(at.hour() * 60 + at.minute()).unwrap_or(0);
+        settings.almanac.is_resting(minute)
+    })
+}
+
+/// A session that set with the night rises at the next touch. Whether
+/// anyone touched anything is judged on the monotonic clock, as the almanac
+/// judges it: with no input the idle time grows by at least the time that
+/// passed, so a machine that wakes itself in the night raises nothing.
+fn rise_on_touch(st: &mut State, idle: &dyn IdleProbe, now: Instant, unix_now: u64) {
+    let Some(rise) = st.rise else {
+        return;
+    };
+    if st.session.is_active() || unix_now.saturating_sub(rise.since) > RISE_WITHIN_MS {
+        st.rise = None;
+        return;
+    }
+    let Some(reading) = idle.idle() else {
+        return;
+    };
+    let untouched = rise.idle + now.saturating_duration_since(rise.at);
+    if reading + TOUCH_SLACK < untouched {
+        st.rise = None;
+        st.session.apply(PlanRequest::Indefinite, now);
+    } else {
+        st.rise = Some(Rise {
+            at: now,
+            idle: reading,
+            ..rise
+        });
+    }
 }
 
 /// The overnight guard, for one step. While an Always session runs, the
@@ -541,28 +626,41 @@ fn overnight_guard(
     unix_now: u64,
     events: &mut Vec<EngineEvent>,
 ) -> Option<u64> {
-    let limit = st
+    let watching = guard_watches(st);
+    let hours = st
         .settings
         .overnight_guard_hours
-        .filter(|_| guard_watches(st))
+        .filter(|_| watching)
         .map(|hours| Duration::from_secs(u64::from(hours) * 3600));
+    // Inside the resting hours, Set with me asks much sooner than the guard.
+    let night =
+        night_rest(&st.settings).filter(|_| watching && resting_now(&st.settings, unix_now));
+    let limit = [hours, night].into_iter().flatten().min();
     // Read only while it can matter. No reading means nobody can say, and
     // the guard never acts on that.
     let reading = limit.and_then(|_| idle.idle());
     let (Some(limit), Some(idle)) = (limit, reading) else {
         st.guard_rests_at = None;
+        st.guard_question = Question::Hours;
         return None;
     };
     if idle < limit {
         // Someone is here, or has been recently: the clock starts again
         // from their last input.
         st.guard_rests_at = None;
+        st.guard_question = Question::Hours;
         return None;
     }
     match st.guard_rests_at {
         None => {
             let rests_at = unix_now.saturating_add(millis(policy::GUARD_GRACE));
             st.guard_rests_at = Some(rests_at);
+            // The night's question, unless the guard's own hours are up too.
+            st.guard_question = if hours.is_none_or(|hours| idle < hours) {
+                Question::Night
+            } else {
+                Question::Hours
+            };
             events.push(EngineEvent::OvernightAsk {
                 idle_secs: idle.as_secs(),
                 rests_at_unix_ms: rests_at,
@@ -571,6 +669,14 @@ fn overnight_guard(
         }
         Some(rests_at) if unix_now >= rests_at => {
             st.guard_rests_at = None;
+            if std::mem::replace(&mut st.guard_question, Question::Hours) == Question::Night {
+                // Set with the night: up again at the next touch.
+                st.rise = Some(Rise {
+                    since: rests_at,
+                    at: now,
+                    idle,
+                });
+            }
             st.session.apply(PlanRequest::Off, now);
             Some(rests_at)
         }
@@ -605,6 +711,7 @@ fn step(
     shared: &Shared,
 ) -> Vec<EngineEvent> {
     let mut events = Vec::new();
+    rise_on_touch(st, probes.idle, now, unix_now);
     let was_due = st.due_end_unix;
     let was_active = st.session.is_active() || st.phase == Phase::Holding;
     let plan_secs = st.session.plan_duration().map_or(0, |d| d.as_secs());
@@ -767,6 +874,10 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
         guard_rests_at_unix_ms: st
             .guard_rests_at
             .filter(|_| st.session.mode() == Mode::Indefinite),
+        guard_night: st.guard_question == Question::Night
+            && st.guard_rests_at.is_some()
+            && st.session.mode() == Mode::Indefinite,
+        rises_on_touch: st.rise.is_some() && !st.session.is_active(),
         guard_watching: guard_watches(st),
         settings: st.settings.clone(),
         app_version: shared.app_version.clone(),
@@ -1416,6 +1527,142 @@ mod tests {
         seen.extend(events);
         assert_eq!(snap.mode, Mode::Indefinite, "no reading");
         assert!(!seen.iter().any(is_ask), "no reading: {seen:?}");
+    }
+
+    /// Office hours, so the resting hours are 8 pm to 6 am, and Set with
+    /// me after half an hour.
+    fn set_with_me() -> Settings {
+        let mut settings = Settings::default();
+        settings.almanac.rest_after_mins = Some(30);
+        settings
+    }
+
+    #[test]
+    fn sets_for_the_night_after_a_short_quiet_in_the_resting_hours() {
+        let r = rig_at(set_with_me(), 2, 2, 0);
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::Indefinite);
+        r.idle.set(Some(Duration::from_secs(30 * 60 - 1)));
+        let (snap, _) = look(&r, 50);
+        assert_eq!(snap.guard_rests_at_unix_ms, None, "not yet");
+        assert!(snap.guard_watching);
+
+        r.idle.set(Some(HOUR / 2));
+        let (snap, _) = look(&r, 51);
+        assert_eq!(snap.guard_rests_at_unix_ms, Some(t0 + GRACE_MS));
+        assert!(
+            snap.guard_night,
+            "the night is asking, not the guard's six hours"
+        );
+
+        r.clock.advance(HOUR / 4);
+        r.idle.set(Some(HOUR * 3 / 4));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g == GuardState::default());
+        assert_eq!(
+            sessions(&events_until(&r, is_ended)).last(),
+            Some(&ended(Ended::Idle, t0 + GRACE_MS))
+        );
+        let snap = r.engine.snapshot();
+        assert_eq!(snap.mode, Mode::Off);
+        assert!(snap.rises_on_touch);
+    }
+
+    /// Always, set for the night at two in the morning, the worker settled.
+    fn set_for_the_night(r: &Rig) {
+        r.engine.set_plan(PlanRequest::Indefinite);
+        r.idle.set(Some(HOUR / 2));
+        look(r, 50);
+        r.clock.advance(HOUR / 4);
+        r.idle.set(Some(HOUR * 3 / 4));
+        r.engine.refresh();
+        wait_for_guard(r, |g| g == GuardState::default());
+        events_until(r, is_ended);
+    }
+
+    #[test]
+    fn rises_at_the_next_touch_and_not_before() {
+        let r = rig_at(set_with_me(), 2, 2, 0);
+        set_for_the_night(&r);
+        assert_eq!(
+            r.engine.next_wake(),
+            Some(r.clock.now() + policy::BATTERY_POLL),
+            "it looks for a touch though the sun is down"
+        );
+
+        // Six hours on, nobody has touched anything.
+        r.clock.advance(6 * HOUR);
+        r.idle.set(Some(6 * HOUR + HOUR * 3 / 4));
+        let (snap, _) = look(&r, 51);
+        assert_eq!(snap.mode, Mode::Off);
+        assert!(snap.rises_on_touch);
+
+        // A key.
+        r.clock.advance(Duration::from_secs(30));
+        r.idle.set(Some(Duration::from_secs(2)));
+        r.engine.refresh();
+        wait_for_guard(&r, |g| g.system);
+        let snap = r.engine.snapshot();
+        assert_eq!(snap.mode, Mode::Indefinite);
+        assert!(!snap.rises_on_touch);
+    }
+
+    #[test]
+    fn a_wake_in_the_night_raises_nothing_when_the_idle_clock_stood_still() {
+        let r = rig_at(set_with_me(), 2, 2, 0);
+        set_for_the_night(&r);
+        // The machine slept three hours and woke itself for twenty
+        // seconds; its idle clock counted only the twenty seconds.
+        r.clock.advance(Duration::from_secs(20));
+        r.idle.set(Some(HOUR * 3 / 4 + Duration::from_secs(20)));
+        let (snap, _) = look(&r, 51);
+        assert_eq!(snap.mode, Mode::Off, "nobody came");
+        assert!(snap.rises_on_touch);
+    }
+
+    #[test]
+    fn switching_it_by_hand_cancels_the_rise() {
+        let r = rig_at(set_with_me(), 2, 2, 0);
+        set_for_the_night(&r);
+        let snap = r.engine.set_plan(PlanRequest::Off);
+        assert!(!snap.rises_on_touch);
+        r.clock.advance(Duration::from_secs(30));
+        r.idle.set(Some(Duration::from_secs(2)));
+        let (snap, _) = look(&r, 51);
+        assert_eq!(snap.mode, Mode::Off, "off by hand stays off");
+    }
+
+    #[test]
+    fn outside_the_resting_hours_or_switched_off_it_leaves_always_to_the_guard() {
+        let afternoon = rig_at(set_with_me(), 2, 14, 0);
+        afternoon.engine.set_plan(PlanRequest::Indefinite);
+        afternoon.idle.set(Some(2 * HOUR));
+        let (snap, _) = look(&afternoon, 50);
+        assert_eq!(snap.guard_rests_at_unix_ms, None, "an afternoon out");
+
+        let unasked = rig_at(Settings::default(), 2, 2, 0);
+        unasked.engine.set_plan(PlanRequest::Indefinite);
+        unasked.idle.set(Some(2 * HOUR));
+        let (snap, _) = look(&unasked, 50);
+        assert_eq!(snap.guard_rests_at_unix_ms, None, "off by default");
+
+        let mut closed = set_with_me();
+        closed.almanac.enabled = false;
+        let closed = rig_at(closed, 2, 2, 0);
+        closed.engine.set_plan(PlanRequest::Indefinite);
+        closed.idle.set(Some(2 * HOUR));
+        let (snap, _) = look(&closed, 50);
+        assert_eq!(snap.guard_rests_at_unix_ms, None, "no almanac, no night");
+    }
+
+    #[test]
+    fn the_guards_own_hours_are_the_guards_question_and_raise_nothing() {
+        let r = rig_at(set_with_me(), 2, 2, 0);
+        r.engine.set_plan(PlanRequest::Indefinite);
+        r.idle.set(Some(6 * HOUR));
+        let (snap, _) = look(&r, 50);
+        assert!(snap.guard_rests_at_unix_ms.is_some());
+        assert!(!snap.guard_night, "six hours untouched is the guard's");
     }
 
     #[test]

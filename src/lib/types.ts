@@ -52,6 +52,13 @@ export interface AlmanacSettings {
   end_minutes: number;
   /** A past working day with nothing in it reads as leave. */
   empty_days_are_leave: boolean;
+  /** Whisper the night once, on the first open after it. */
+  whisper_night: boolean;
+  /**
+   * Minutes without input, inside the resting hours, after which an Always
+   * session sets for the night and rises at the next touch; `null` is off.
+   */
+  rest_after_mins: number | null;
 }
 
 /** A newer release found by the daily check. Mirrors `app::update::UpdateInfo`. */
@@ -113,6 +120,10 @@ export interface Snapshot {
   schedule: ScheduleState;
   /** While the overnight guard asks: when the session ends unless answered. */
   guard_rests_at_unix_ms: number | null;
+  /** The question is the night's (Set with me), not the guard's hours. */
+  guard_night: boolean;
+  /** The sun set with the night and rises again at the next touch. */
+  rises_on_touch: boolean;
   /** The overnight guard watches this session: Always, guard on, not kept up. */
   guard_watching: boolean;
   settings: Settings;

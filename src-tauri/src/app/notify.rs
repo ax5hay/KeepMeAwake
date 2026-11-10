@@ -31,6 +31,9 @@ pub const SCHEDULE_ENDED_TITLE: &str = "Off schedule";
 /// Title when the overnight guard asks whether anyone is there.
 pub const OVERNIGHT_TITLE: &str = "Nobody around";
 
+/// Title of the toast when Set with me is about to set the sun for the night.
+pub const NIGHT_TITLE: &str = "Quiet for the night";
+
 /// One toast, ready to show.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Toast {
@@ -111,6 +114,14 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
             idle_secs,
             rests_at_unix_ms,
         } if snapshot.guard_rests_at_unix_ms.is_some() => {
+            let rests = tray::when(*rests_at_unix_ms, now_unix_ms);
+            if snapshot.guard_night {
+                // Set with me: the keys went quiet in the resting hours.
+                return toast(
+                    NIGHT_TITLE,
+                    format!("Setting at {rests} unless you're back. Up again at your first touch."),
+                );
+            }
             let hours = snapshot
                 .settings
                 .overnight_guard_hours
@@ -118,10 +129,7 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
             let unit = if hours == 1 { "hour" } else { "hours" };
             toast(
                 OVERNIGHT_TITLE,
-                format!(
-                    "No input for {hours} {unit}. Resting at {} unless you're back.",
-                    tray::when(*rests_at_unix_ms, now_unix_ms)
-                ),
+                format!("No input for {hours} {unit}. Resting at {rests} unless you're back."),
             )
         }
         _ => None,
@@ -185,6 +193,8 @@ mod tests {
             },
             schedule: ScheduleState::default(),
             guard_rests_at_unix_ms: None,
+            guard_night: false,
+            rises_on_touch: false,
             guard_watching: false,
             settings: Settings {
                 notifications: switches,
@@ -336,6 +346,15 @@ mod tests {
         assert!(
             body_for(&ask, &asking, local_ms(3, 3, 2))
                 .is_some_and(|t| t.body.starts_with("No input for 1 hour."))
+        );
+        asking.guard_night = true;
+        assert_eq!(
+            body_for(&ask, &asking, local_ms(3, 3, 2)).map(|t| (t.title, t.body)),
+            Some((
+                "Quiet for the night",
+                "Setting at 3:12 am unless you're back. Up again at your first touch.".to_owned()
+            )),
+            "Set with me says what it will do, and that it comes back"
         );
         let withdrawn = snapshot(Mode::Indefinite, ALL);
         assert_eq!(

@@ -38,6 +38,8 @@ const base: Snapshot = {
     next_start_unix_ms: null,
   },
   guard_rests_at_unix_ms: null,
+  guard_night: false,
+  rises_on_touch: false,
   guard_watching: false,
   settings: {
     version: 1,
@@ -66,6 +68,8 @@ const base: Snapshot = {
       start_minutes: 540,
       end_minutes: 1080,
       empty_days_are_leave: true,
+      whisper_night: true,
+      rest_after_mins: null,
     },
     check_for_updates: true,
     last_update_check_unix_ms: 0,
@@ -74,6 +78,35 @@ const base: Snapshot = {
 };
 
 const NOW = Date.UTC(2026, 0, 1, 12, 0, 0);
+
+describe('statusText and the night', () => {
+  const noon = new Date(2026, 0, 5, 12, 0).getTime();
+  const rests = new Date(2026, 0, 5, 3, 12).getTime();
+
+  it('says the sun is about to set with the night, guard hours on or off', () => {
+    const asking = {
+      ...base,
+      mode: 'indefinite' as const,
+      guard_rests_at_unix_ms: rests,
+      guard_night: true,
+    };
+    expect(statusText(asking, noon, 'en-US').detail).toBe(
+      'Quiet for the night. Setting at 3:12 am.',
+    );
+    const guardOff = { ...asking, settings: { ...asking.settings, overnight_guard_hours: null } };
+    expect(statusText(guardOff, noon, 'en-US').detail).toBe(
+      'Quiet for the night. Setting at 3:12 am.',
+    );
+  });
+
+  it('says it will be up again at the first touch once it has set', () => {
+    const down = { ...base, rises_on_touch: true };
+    expect(statusText(down, noon)).toEqual({
+      title: 'Resting',
+      detail: 'Set with the night. Up again at your first touch.',
+    });
+  });
+});
 
 describe('formatDuration', () => {
   it('matches the Rust formatter', () => {
