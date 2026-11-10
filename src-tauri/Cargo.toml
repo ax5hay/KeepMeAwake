@@ -35,6 +35,13 @@ parking_lot = "0.13"
 # one thread of its own instead of waking a runtime worker per core.
 tokio = { version = "1", features = ["rt", "net", "time"] }
 tauri-plugin-updater = "2"
+# The Claude API key lives in the OS credential store (Credential Manager,
+# Keychain), never in a file of ours.
+keyring = "4"
+# Both are already built for the updater, with these same features; named
+# here so Claude can be asked over the same HTTPS client and TLS.
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = [

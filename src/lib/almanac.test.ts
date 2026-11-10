@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   barLength,
+  daysCsv,
   dayKey,
   dayStart,
   dayTurn,
@@ -17,6 +18,7 @@ import {
   stripOf,
   tally,
   usualNight,
+  weekDigest,
   weekOf,
   yearOf,
 } from './almanac';
@@ -31,6 +33,7 @@ const office: AlmanacSettings = {
   empty_days_are_leave: true,
   whisper_night: true,
   rest_after_mins: null,
+  break_after_mins: null,
 };
 
 /** 3 pm to midnight: the day turns at 7 am. */
@@ -363,6 +366,46 @@ describe('a strip', () => {
     const monday = stripOf(reading, reading.dayAt(at(9, 12)));
     expect(monday.quiet[0]?.left).toBeCloseTo(22 / 24);
     expect(monday.sun).toBeNull();
+  });
+});
+
+describe('a week, as Claude is sent it', () => {
+  const spans = [span(at(9, 9, 2), at(9, 23, 48)), span(at(10, 7, 2), at(10, 12))];
+  const reading = read(book(spans, { '2026-11-13': 'leave' }), office, at(10, 12));
+  const digest = weekDigest(reading, weekOf(reading, reading.today));
+
+  it('is one line a day under the working hours, with nothing the pane does not show', () => {
+    const lines = digest.split('\n');
+    expect(lines).toHaveLength(8);
+    expect(lines[0]).toBe('Working hours: 09:00 to 18:00. Times are local, 24-hour.');
+    expect(lines[1]).toBe(
+      'Mon 9 Nov: 14h 46m at the keyboard; first touch 09:02, last 23:48; 5h 48m outside working hours.',
+    );
+    expect(lines[2]).toBe(
+      'Tue 10 Nov: 4h 58m at the keyboard; first touch 07:02, last 12:00; 1h 58m outside working hours; the night before ran 23:48 to 07:02 (7h 14m); today, not over yet.',
+    );
+    expect(lines[3]).toBe('Wed 11 Nov: still to come.');
+    expect(lines[5]).toBe('Fri 13 Nov: still to come, leave planned.');
+  });
+
+  it('is short: a week is a few hundred characters', () => {
+    expect(digest.length).toBeLessThan(900);
+  });
+});
+
+describe('days as CSV', () => {
+  const spans = [span(at(9, 9, 2), at(9, 23, 48)), span(at(10, 7, 2), at(10, 12))];
+  const reading = read(book(spans, { '2026-11-12': 'leave' }), office, at(13, 12));
+  const csv = daysCsv(weekOf(reading, reading.dayAt(at(10, 12)))).split('\n');
+
+  it('has a header and a row a day', () => {
+    expect(csv).toHaveLength(8);
+    expect(csv[0]).toBe(
+      'date,weekday,day,worked_minutes,over_minutes,first_touch,last_touch,night_from,night_to,by_hand',
+    );
+    expect(csv[1]).toBe('2026-11-09,Mon,worked,886,348,09:02,23:48,,,no');
+    expect(csv[2]).toBe('2026-11-10,Tue,worked,298,118,07:02,12:00,23:48,07:02,no');
+    expect(csv[4]).toBe('2026-11-12,Thu,leave,0,0,,,,,no');
   });
 });
 

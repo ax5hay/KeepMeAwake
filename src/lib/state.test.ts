@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Api } from './api';
 import { AppStore } from './state.svelte';
-import type { Almanac, History, Snapshot, UpdateInfo, UpdateProgress } from './types';
+import type { AiStatus, Almanac, History, Snapshot, UpdateInfo, UpdateProgress } from './types';
 
 const base: Snapshot = {
   mode: 'off',
@@ -54,7 +54,9 @@ const base: Snapshot = {
       empty_days_are_leave: true,
       whisper_night: true,
       rest_after_mins: null,
+      break_after_mins: null,
     },
+    ai: { enabled: false, week_in_words: true, tell_the_sun: true },
     check_for_updates: true,
     last_update_check_unix_ms: 0,
   },
@@ -79,6 +81,7 @@ const blank: Almanac = { version: 1, spans: [], marks: {}, fixes: {} };
 function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Almanac = blank) {
   let current = initial;
   let almanac = kept;
+  let key: AiStatus = { has_key: false };
   let push: ((s: Snapshot) => void) | undefined;
   let announce: ((u: UpdateInfo) => void) | undefined;
   let report: ((p: UpdateProgress) => void) | undefined;
@@ -139,6 +142,18 @@ function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Alm
         push = undefined;
       };
     }),
+    aiStatus: vi.fn(async () => key),
+    setAiKey: vi.fn(async (value) => {
+      key = { has_key: value !== null && value.trim() !== '' };
+      return key;
+    }),
+    aiReadWeek: vi.fn(async () => 'A long Monday, and a short night after it.'),
+    aiPlan: vi.fn(async () => ({
+      kind: 'for' as const,
+      minutes: 120,
+      time: '',
+      say: 'Awake for 2 hours',
+    })),
     getUpdate: vi.fn(async () => waiting),
     installUpdate: vi.fn(async () => {
       throw new Error('The update could not be installed: offline');
@@ -360,6 +375,71 @@ describe('AppStore', () => {
     await store.keepItUp();
     expect(api.keepItUp).toHaveBeenCalledOnce();
     expect(store.guardAsking).toBe(false);
+    store.dispose();
+  });
+});
+
+describe('AppStore and Claude', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 1, 12, 0, 0));
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('starts locked, then off with a key, then on by choice', async () => {
+    const { api } = fakeApi(base);
+    const store = new AppStore(api);
+    await store.init();
+    expect(store.gate('week_in_words')).toBe('locked');
+
+    expect(await store.setAiKey('sk-ant-test')).toBe(true);
+    expect(store.gate('week_in_words')).toBe('off');
+    expect(api.setAiKey).toHaveBeenCalledWith('sk-ant-test');
+
+    await store.setAiEnabled(true);
+    expect(store.gate('week_in_words')).toBe('on');
+    expect(store.gate('tell_the_sun')).toBe('on');
+
+    await store.setAiFeature('tell_the_sun', false);
+    expect(store.gate('tell_the_sun')).toBe('feature-off');
+    expect(store.gate('week_in_words')).toBe('on');
+
+    await store.setAiKey(null);
+    expect(store.gate('week_in_words')).toBe('locked');
+    store.dispose();
+  });
+
+  it('never holds the key: only whether there is one', async () => {
+    const { api } = fakeApi(base);
+    const store = new AppStore(api);
+    await store.init();
+    await store.setAiKey('sk-ant-secret');
+    expect(JSON.stringify(store.ai)).toBe('{"has_key":true}');
+    expect(JSON.stringify(store.snapshot)).not.toContain('sk-ant-secret');
+    store.dispose();
+  });
+
+  it('asks only when asked, and says why when it cannot', async () => {
+    const { api } = fakeApi(base);
+    const store = new AppStore(api);
+    await store.init();
+    expect(api.aiReadWeek).not.toHaveBeenCalled();
+    expect(api.aiPlan).not.toHaveBeenCalled();
+
+    expect(await store.readWeek('Mon 9 Nov: 8h')).toBe(
+      'A long Monday, and a short night after it.',
+    );
+    expect((await store.askPlan('two hours', 'now'))?.say).toBe('Awake for 2 hours');
+
+    api.aiReadWeek = vi.fn(async () => {
+      throw new Error('Claude is switched off.');
+    });
+    expect(await store.readWeek('Mon 9 Nov: 8h')).toBeNull();
+    expect(store.error).toBe('Claude is switched off.');
     store.dispose();
   });
 });

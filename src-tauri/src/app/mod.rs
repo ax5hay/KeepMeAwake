@@ -2,6 +2,7 @@
 //! Kept thin on purpose; nothing here is worth unit testing beyond the pure
 //! helpers in [`tray`].
 
+pub mod ai;
 pub mod almanac;
 pub mod commands;
 pub mod history;
@@ -45,6 +46,8 @@ pub struct AppState {
     pub history_path: PathBuf,
     /// The almanac and the thread that keeps it.
     pub almanac: Arc<almanac::Keeper>,
+    /// Claude: the key and the client. Asks nothing unless asked.
+    pub ai: ai::Claude,
     /// Light or dark taskbar, for the tray icon set.
     pub taskbar: Box<dyn TaskbarTheme>,
     /// A newer release, as last found by the daily check.
@@ -93,6 +96,10 @@ pub fn run() {
             commands::mark_day,
             commands::fix_day,
             commands::clear_almanac,
+            commands::ai_status,
+            commands::set_ai_key,
+            commands::ai_read_week,
+            commands::ai_plan,
             commands::get_update,
             commands::install_update,
         ])
@@ -174,7 +181,11 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         Arc::new(SystemClock),
         settings.almanac.enabled,
     ));
-    keeper.start();
+    keeper.set_break_after(settings.almanac.break_after_mins);
+    {
+        let handle = app.clone();
+        keeper.start(Box::new(move |minutes| notify::break_due(&handle, minutes)));
+    }
 
     app.manage(AppState {
         engine: Arc::clone(&engine),
@@ -182,6 +193,7 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         history,
         history_path,
         almanac: keeper,
+        ai: ai::Claude::new(Box::new(ai::OsKeyStore)),
         taskbar: make_taskbar(),
         update: Mutex::new(None),
     });

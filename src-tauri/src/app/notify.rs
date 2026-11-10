@@ -34,6 +34,27 @@ pub const OVERNIGHT_TITLE: &str = "Nobody around";
 /// Title of the toast when Set with me is about to set the sun for the night.
 pub const NIGHT_TITLE: &str = "Quiet for the night";
 
+/// Title of the toast after a long stretch at the machine without a break.
+pub const BREAK_TITLE: &str = "Time for a break";
+
+/// The body of that toast: `90 minutes without one. The sun will keep.`
+pub fn break_body(minutes: u64) -> String {
+    let length = if minutes.is_multiple_of(60) {
+        let hours = minutes / 60;
+        format!("{hours} hour{}", if hours == 1 { "" } else { "s" })
+    } else {
+        format!("{minutes} minutes")
+    };
+    format!("{length} without one. The sun will keep.")
+}
+
+/// Shows the break toast. Asked for in Settings, so it is shown even with
+/// the window in front.
+pub fn break_due(app: &AppHandle, minutes: u64) {
+    log::info!("{minutes} minutes without a break");
+    send(app, BREAK_TITLE, &break_body(minutes));
+}
+
 /// One toast, ready to show.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Toast {
@@ -324,6 +345,13 @@ mod tests {
         );
         // A manual session outlasting the window: nothing changed for you.
         assert_eq!(body(&ended, &snapshot(Mode::Timed, ALL)), None);
+    }
+
+    #[test]
+    fn the_break_toast_says_how_long_in_hours_when_it_is_whole_hours() {
+        assert_eq!(break_body(90), "90 minutes without one. The sun will keep.");
+        assert_eq!(break_body(60), "1 hour without one. The sun will keep.");
+        assert_eq!(break_body(120), "2 hours without one. The sun will keep.");
     }
 
     #[test]

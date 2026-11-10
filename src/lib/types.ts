@@ -33,10 +33,38 @@ export interface Settings {
   /** Hours without input after which an Always session asks, then rests; `null` is off. */
   overnight_guard_hours: number | null;
   almanac: AlmanacSettings;
+  ai: AiSettings;
   /** Ask GitHub once a day for a newer release. */
   check_for_updates: boolean;
   /** When it last asked, Unix ms; 0 for never. Written by the app, not the UI. */
   last_update_check_unix_ms: number;
+}
+
+/**
+ * Claude's switches. `enabled` is the master and is off until someone turns
+ * it on; each feature has its own. The API key is not a setting: it lives
+ * in the OS credential store, and the window only learns whether there is one.
+ */
+export interface AiSettings {
+  enabled: boolean;
+  week_in_words: boolean;
+  tell_the_sun: boolean;
+}
+
+/** Whether an API key is stored. Mirrors `app::ai::AiStatus`. */
+export interface AiStatus {
+  has_key: boolean;
+}
+
+/** A sentence, understood as a plan. Mirrors `core::ai::Understood`. */
+export interface Understood {
+  kind: 'for' | 'until' | 'indefinite' | 'off' | 'unclear';
+  /** For `for`: minutes. Zero otherwise. */
+  minutes: number;
+  /** For `until`: local `HH:MM`. Empty otherwise. */
+  time: string;
+  /** The plan in a few plain words, or what was not understood. */
+  say: string;
 }
 
 /**
@@ -59,6 +87,8 @@ export interface AlmanacSettings {
    * session sets for the night and rises at the next touch; `null` is off.
    */
   rest_after_mins: number | null;
+  /** Minutes without a five-minute break before a toast says so; `null` never. */
+  break_after_mins: number | null;
 }
 
 /** A newer release found by the daily check. Mirrors `app::update::UpdateInfo`. */

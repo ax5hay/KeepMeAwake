@@ -1,5 +1,6 @@
 //! Pure domain logic. Nothing in this module performs I/O or talks to the OS.
 
+pub mod ai;
 pub mod almanac;
 pub mod history;
 pub mod placement;
@@ -11,5 +12,5 @@ pub mod snapshot;
 
 pub use plan::PlanRequest;
 pub use session::{Mode, Session, SessionEvent};
-pub use settings::{AlmanacSettings, Schedule, Settings};
+pub use settings::{AiSettings, AlmanacSettings, Schedule, Settings};
 pub use snapshot::{BatteryState, GuardState, PauseReason, ScheduleState, Snapshot};

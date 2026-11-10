@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AI_ADD_KEY,
+  AI_KEY_WHY,
+  AI_LOCKED,
+  AI_MASTER_HINT,
+  AI_OFF,
+  AI_PROMISE,
+  AI_SWITCH_ON,
   ALMANAC_BEGINS,
+  TELL_SENDS,
+  WEEK_SENDS,
   fullDay,
   ALMANAC_CLOSED,
   ALMANAC_FOOT,
@@ -196,6 +205,30 @@ describe('update copy', () => {
     });
     expect(line.map((d) => d.section)).toEqual(['about', 'schedule', 'waking', 'history']);
     expect(doors('Ctrl+Alt+K', 6)).toHaveLength(4);
+  });
+});
+
+describe('Claude copy', () => {
+  it('says locked and off differently, each with its way out', () => {
+    expect(AI_LOCKED).toBe('Locked: no API key yet.');
+    expect(AI_ADD_KEY).toBe('Add a key');
+    expect(AI_OFF).toBe('Claude is switched off.');
+    expect(AI_SWITCH_ON).toBe('Switch it on');
+    expect(`${AI_LOCKED} ${AI_ADD_KEY}`.length).toBeLessThanOrEqual(44);
+    expect(`${AI_OFF} ${AI_SWITCH_ON}`.length).toBeLessThanOrEqual(44);
+  });
+
+  it('says what is sent, where it goes, and that nothing goes unasked', () => {
+    for (const text of [WEEK_SENDS, TELL_SENDS, AI_MASTER_HINT]) {
+      expect(text).toMatch(/Anthropic/);
+    }
+    expect(AI_PROMISE).toMatch(/only when you click/);
+    expect(AI_KEY_WHY).toMatch(/billed/);
+  });
+
+  it("says where the key is kept, in each platform's own words", () => {
+    expect(platformCopy(false).keyKept).toBe('Kept in Windows Credential Manager, not in a file.');
+    expect(platformCopy(true).keyKept).toBe('Kept in the macOS Keychain, not in a file.');
   });
 });
 

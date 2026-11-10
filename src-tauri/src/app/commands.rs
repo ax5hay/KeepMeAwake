@@ -6,8 +6,10 @@
 
 use tauri::{AppHandle, State};
 
+use super::ai::{AiStatus, Feature};
 use super::update::UpdateInfo;
 use super::{AppState, hotkey};
+use crate::core::ai::{self, Understood};
 use crate::core::almanac::{Almanac, Mark, Span};
 use crate::core::history::History;
 use crate::core::{PlanRequest, Settings, Snapshot};
@@ -84,6 +86,9 @@ pub fn update_settings(
         hotkey_error = Some(err);
     }
     state.almanac.set_on(settings.almanac.enabled);
+    state
+        .almanac
+        .set_break_after(settings.almanac.break_after_mins);
     let snapshot = state.engine.update_settings(settings.clone());
     persistence::save(&state.settings_path, &settings).map_err(|err| {
         log::error!("could not save settings: {err}");
@@ -154,6 +159,53 @@ pub fn clear_almanac(state: State<'_, AppState>) -> Result<Almanac, String> {
         log::warn!("could not clear the almanac: {err}");
         format!("The almanac was cleared but could not be saved: {err}")
     })
+}
+
+/// Whether an API key for Claude is stored. The key itself never comes back.
+#[tauri::command]
+pub fn ai_status(state: State<'_, AppState>) -> AiStatus {
+    state.ai.status()
+}
+
+/// Stores the API key in the OS credential store, or removes it with
+/// `null`. Says only whether there is one now.
+#[tauri::command]
+pub fn set_ai_key(state: State<'_, AppState>, key: Option<String>) -> Result<AiStatus, String> {
+    state.ai.set_key(key.as_deref()).map_err(|err| {
+        log::warn!("could not store the API key: {err}");
+        format!("The key could not be stored: {err}")
+    })
+}
+
+/// Asks Claude to put a week of the almanac into words. `digest` is the
+/// week as the window laid it out, and is all that is sent.
+#[tauri::command]
+pub async fn ai_read_week(state: State<'_, AppState>, digest: String) -> Result<String, String> {
+    let settings = state.engine.settings().ai;
+    let read = async {
+        let key = state.ai.unlock(&settings, Feature::WeekInWords)?;
+        let body = ai::week_request(&digest)?;
+        ai::text_of(&state.ai.ask(&key, &body).await?)
+    };
+    read.await.map_err(|err| err.sentence())
+}
+
+/// Asks Claude what plan a sentence means. Nothing is started here: the
+/// window shows what was understood and asks first. `now` is the local
+/// date and time as the window has it.
+#[tauri::command]
+pub async fn ai_plan(
+    state: State<'_, AppState>,
+    sentence: String,
+    now: String,
+) -> Result<Understood, String> {
+    let settings = state.engine.settings().ai;
+    let read = async {
+        let key = state.ai.unlock(&settings, Feature::TellTheSun)?;
+        let body = ai::plan_request(&sentence, &now)?;
+        ai::understood(&state.ai.ask(&key, &body).await?)
+    };
+    read.await.map_err(|err| err.sentence())
 }
 
 /// The newer release the daily check found, if any.

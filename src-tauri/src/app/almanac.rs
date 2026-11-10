@@ -25,6 +25,13 @@ pub const LOOK_EVERY: Duration = Duration::from_secs(60);
 /// The longest a growing span goes unsaved while someone is here.
 pub const SAVE_EVERY_MS: u64 = 15 * 60 * 1000;
 
+/// Idle this long is a break: the count towards a break reminder starts
+/// again from the next touch.
+pub const BREAK: Duration = Duration::from_secs(5 * 60);
+
+/// Called with the minutes someone has been at the machine without a break.
+pub type OnBreakDue = Box<dyn Fn(u64) + Send + Sync>;
+
 /// Idle this long, whoever was here has stopped for now: what is unsaved is
 /// written, so the file is final soon after the last touch.
 pub const QUIET: Duration = Duration::from_secs(2 * 60);
@@ -39,6 +46,12 @@ struct Inner {
     saved_unix_ms: u64,
     /// The almanac is being kept.
     on: bool,
+    /// Say when someone has gone this long without a break; `None` never.
+    break_after: Option<Duration>,
+    /// When the stretch without a break began, Unix ms; `None` on a break.
+    streak_from: Option<u64>,
+    /// The reminder has been given for this stretch.
+    reminded: bool,
 }
 
 /// The almanac and the thread that keeps it.
@@ -67,6 +80,9 @@ impl Keeper {
                 dirty: false,
                 saved_unix_ms: clock.unix_ms(),
                 on,
+                break_after: None,
+                streak_from: None,
+                reminded: false,
             }),
             wake: Condvar::new(),
             path,
@@ -77,7 +93,8 @@ impl Keeper {
 
     /// Starts the thread that looks once every [`LOOK_EVERY`] while the
     /// almanac is on, and blocks without a timeout while it is off.
-    pub fn start(self: &Arc<Self>) {
+    /// `on_break_due` is told when a break reminder is due.
+    pub fn start(self: &Arc<Self>, on_break_due: OnBreakDue) {
         let keeper = Arc::clone(self);
         let spawned = thread::Builder::new()
             .name("keepmeawake-almanac".into())
@@ -90,7 +107,9 @@ impl Keeper {
                             continue;
                         }
                     }
-                    keeper.look();
+                    if let Some(minutes) = keeper.look() {
+                        on_break_due(minutes);
+                    }
                     let mut inner = keeper.inner.lock();
                     if inner.on {
                         keeper.wake.wait_for(&mut inner, LOOK_EVERY);
@@ -102,16 +121,24 @@ impl Keeper {
         }
     }
 
+    /// Says when someone has gone `minutes` without a break, or never.
+    pub fn set_break_after(&self, minutes: Option<u16>) {
+        let mut inner = self.inner.lock();
+        inner.break_after = minutes.map(|m| Duration::from_secs(u64::from(m) * 60));
+        // A new length is a new promise: it may be given again.
+        inner.reminded = false;
+    }
+
     /// Reads the idle time once and notes it, saving if it is time to.
-    /// Does nothing while the almanac is off or the OS cannot say.
-    pub fn look(&self) {
+    /// Does nothing while the almanac is off or the OS cannot say. Returns
+    /// the minutes at the machine without a break when a reminder is due,
+    /// which is once per stretch.
+    pub fn look(&self) -> Option<u64> {
         let mut inner = self.inner.lock();
         if !inner.on {
-            return;
+            return None;
         }
-        let Some(idle) = self.idle.lock().idle() else {
-            return;
-        };
+        let idle = self.idle.lock().idle()?;
         let look = Look {
             at_unix_ms: self.clock.unix_ms(),
             at: self.clock.now(),
@@ -120,11 +147,13 @@ impl Keeper {
         if observe(&mut inner, look) {
             self.save(&mut inner);
         }
+        break_due(&mut inner, look)
     }
 
     /// The almanac as it stands, after one fresh look.
     pub fn read(&self) -> Almanac {
-        self.look();
+        // A reminder that falls due on this look is left to the next one.
+        let _ = self.look();
         self.inner.lock().almanac.clone()
     }
 
@@ -180,7 +209,7 @@ impl Keeper {
 
     /// One last look and a save, for when the app is about to exit.
     pub fn flush(&self) {
-        self.look();
+        let _ = self.look();
         let mut inner = self.inner.lock();
         if inner.dirty {
             self.save(&mut inner);
@@ -211,6 +240,28 @@ fn observe(inner: &mut Inner, look: Look) -> bool {
     }
     let overdue = look.at_unix_ms.saturating_sub(inner.saved_unix_ms) >= SAVE_EVERY_MS;
     inner.dirty && (noted == Noted::Opened || look.idle >= QUIET || overdue)
+}
+
+/// The break reminder, for one look. A stretch runs from a touch until the
+/// keys have been idle for [`BREAK`]; when it reaches the chosen length the
+/// reminder is due, once. Returns the stretch's length in minutes then.
+fn break_due(inner: &mut Inner, look: Look) -> Option<u64> {
+    if look.idle >= BREAK {
+        inner.streak_from = None;
+        inner.reminded = false;
+        return None;
+    }
+    let idle_ms = u64::try_from(look.idle.as_millis()).unwrap_or(0);
+    let from = *inner
+        .streak_from
+        .get_or_insert(look.at_unix_ms.saturating_sub(idle_ms));
+    let after = inner.break_after?;
+    let length = Duration::from_millis(look.at_unix_ms.saturating_sub(from));
+    if inner.reminded || length < after {
+        return None;
+    }
+    inner.reminded = true;
+    Some(length.as_secs() / 60)
 }
 
 #[cfg(test)]
@@ -249,10 +300,10 @@ mod tests {
 
     impl Rig {
         /// Moves the clock on and looks, with `idle` since the last input.
-        fn after(&self, secs: u64, idle_secs: u64) {
+        fn after(&self, secs: u64, idle_secs: u64) -> Option<u64> {
             self.clock.advance(Duration::from_secs(secs));
             self.idle.set(Some(Duration::from_secs(idle_secs)));
-            self.keeper.look();
+            self.keeper.look()
         }
 
         fn spans(&self) -> usize {
@@ -307,7 +358,7 @@ mod tests {
     fn an_idle_time_the_os_cannot_give_notes_nothing() {
         let r = rig(true);
         r.idle.set(None);
-        r.keeper.look();
+        assert_eq!(r.keeper.look(), None);
         assert_eq!(r.spans(), 0);
     }
 
@@ -331,6 +382,45 @@ mod tests {
         let r = rig(false);
         r.after(0, 1);
         assert_eq!(r.spans(), 0);
+    }
+
+    #[test]
+    fn a_break_reminder_comes_once_after_the_chosen_time_without_one() {
+        let r = rig(true);
+        r.keeper.set_break_after(Some(30));
+        assert_eq!(r.after(0, 1), None);
+        for _ in 0..29 {
+            assert_eq!(r.after(60, 1), None);
+        }
+        assert_eq!(r.after(60, 1), Some(30), "thirty minutes at it");
+        assert_eq!(r.after(60, 1), None, "said once");
+        assert_eq!(r.after(600, 1), None, "and not again in the same stretch");
+    }
+
+    #[test]
+    fn five_idle_minutes_are_a_break_and_the_count_starts_again() {
+        let r = rig(true);
+        r.keeper.set_break_after(Some(30));
+        r.after(0, 1);
+        for _ in 0..20 {
+            r.after(60, 1);
+        }
+        // Away for six minutes.
+        assert_eq!(r.after(360, 360), None);
+        // The first look back starts the count; thirty minutes on, it is due.
+        for _ in 0..30 {
+            assert_eq!(r.after(60, 1), None, "counting from the return");
+        }
+        assert_eq!(r.after(60, 1), Some(30));
+    }
+
+    #[test]
+    fn no_reminder_unless_one_was_asked_for() {
+        let r = rig(true);
+        r.after(0, 1);
+        for _ in 0..200 {
+            assert_eq!(r.after(60, 1), None);
+        }
     }
 
     #[test]

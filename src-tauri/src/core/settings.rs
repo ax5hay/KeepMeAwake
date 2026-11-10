@@ -79,6 +79,8 @@ pub struct Settings {
     pub overnight_guard_hours: Option<u8>,
     /// The almanac: whether presence is kept, and what a working day is.
     pub almanac: AlmanacSettings,
+    /// Claude: the master switch and one switch per feature.
+    pub ai: AiSettings,
     /// Ask GitHub once a day whether a newer release exists.
     pub check_for_updates: bool,
     /// When that was last asked, Unix ms; 0 for never. Written by the app,
@@ -133,6 +135,32 @@ pub struct Schedule {
     pub end_minutes: u16,
 }
 
+/// Claude's switches. `enabled` is the master: off, nothing is ever sent,
+/// whatever the others say. It is off until someone turns it on, and it
+/// does nothing without an API key, which is kept in the OS credential
+/// store and not here. Each feature also has a switch of its own, shown
+/// where the feature is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "snake_case")]
+pub struct AiSettings {
+    /// Claude may be asked at all.
+    pub enabled: bool,
+    /// The Almanac can put a week into words.
+    pub week_in_words: bool,
+    /// Home can turn a sentence into a plan.
+    pub tell_the_sun: bool,
+}
+
+impl Default for AiSettings {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            week_in_words: true,
+            tell_the_sun: true,
+        }
+    }
+}
+
 /// What the almanac keeps and how it reads a day. The hours are when work
 /// is meant to happen, not when it may: time outside them still counts, and
 /// is shown as over. An `end_minutes` at or before `start_minutes` runs
@@ -156,6 +184,9 @@ pub struct AlmanacSettings {
     /// Always session sets for the night and rises again at the next
     /// touch. `None` leaves the sun to the overnight guard alone.
     pub rest_after_mins: Option<u16>,
+    /// Minutes at the machine without a break of five after which a toast
+    /// says so, once. `None` never says anything.
+    pub break_after_mins: Option<u16>,
 }
 
 /// Minutes in a day.
@@ -174,6 +205,7 @@ impl Default for AlmanacSettings {
             empty_days_are_leave: true,
             whisper_night: true,
             rest_after_mins: None,
+            break_after_mins: None,
         }
     }
 }
@@ -187,6 +219,9 @@ impl AlmanacSettings {
         self.end_minutes = self.end_minutes.min(LAST_MINUTE);
         if let Some(mins) = self.rest_after_mins {
             self.rest_after_mins = Some(mins.clamp(10, 240));
+        }
+        if let Some(mins) = self.break_after_mins {
+            self.break_after_mins = Some(mins.clamp(15, 480));
         }
         self
     }
@@ -257,6 +292,7 @@ impl Default for Settings {
             sunset_warning_mins: Some(5),
             overnight_guard_hours: Some(6),
             almanac: AlmanacSettings::default(),
+            ai: AiSettings::default(),
             check_for_updates: true,
             last_update_check_unix_ms: 0,
         }
@@ -440,6 +476,34 @@ mod tests {
             ..AlmanacSettings::default()
         };
         assert_eq!(whole.turn_hour(), 10);
+    }
+
+    #[test]
+    fn claude_is_off_until_someone_turns_it_on() {
+        let ai = Settings::default().ai;
+        assert!(!ai.enabled, "a choice, never a default");
+        assert!(ai.week_in_words && ai.tell_the_sun, "ready once it is on");
+        let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
+        assert_eq!(old.ai, AiSettings::default(), "older files gain it, off");
+        let json = serde_json::to_value(Settings::default()).unwrap();
+        assert_eq!(json["ai"]["enabled"], false);
+        assert_eq!(json["ai"]["week_in_words"], true);
+        assert!(
+            json["ai"].get("key").is_none(),
+            "the key is never a setting"
+        );
+    }
+
+    #[test]
+    fn the_break_reminder_is_off_by_default_and_clamped() {
+        assert_eq!(Settings::default().almanac.break_after_mins, None);
+        for (wild, clamped) in [(1, 15), (90, 90), (9000, 480)] {
+            let a = AlmanacSettings {
+                break_after_mins: Some(wild),
+                ..AlmanacSettings::default()
+            };
+            assert_eq!(a.sanitized().break_after_mins, Some(clamped));
+        }
     }
 
     #[test]
