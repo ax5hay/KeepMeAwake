@@ -76,6 +76,8 @@ export interface Day {
   kind: Kind;
   /** What was said about it, if anything. */
   mark: Mark | null;
+  /** Its hours were set by hand, in place of what was read. */
+  fixed: boolean;
   /** The night that led into it. */
   night: Night | null;
   today: boolean;
@@ -188,11 +190,64 @@ export function findNights(spans: readonly Span[], turn: number): Night[] {
   return [...byKey.values()].sort((a, b) => a.from - b.from);
 }
 
+/**
+ * The first moment at or after `notBefore` that the clock reads `minutes`
+ * after midnight.
+ */
+function nextAt(minutes: number, notBefore: number): number {
+  const d = new Date(notBefore);
+  const at = (days: number) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate() + days, 0, minutes).getTime();
+  return at(0) >= notBefore ? at(0) : at(1);
+}
+
+/**
+ * The stretch a day is corrected to when someone says they were here from
+ * one time of day until another: the first such time in the day, and the
+ * first `until` after it, never past the turn into the next day.
+ */
+export function stretchOn(
+  day: { start: number; end: number },
+  fromMinutes: number,
+  untilMinutes: number,
+): Span {
+  const from = nextAt(fromMinutes, day.start);
+  const to = Math.min(nextAt(untilMinutes, from), day.end);
+  return { from_unix_ms: from, to_unix_ms: Math.max(from, to) };
+}
+
+/**
+ * The spans as they stand once corrections are in: on a day set by hand,
+ * what was read gives way to the one stretch that was entered.
+ */
+export function corrected(almanac: Almanac, turn: number): Span[] {
+  const fixes = Object.entries(almanac.fixes ?? {});
+  if (fixes.length === 0) return almanac.spans;
+  const days = fixes
+    .map(([key, span]) => ({ start: startOfKey(key, turn), span }))
+    .filter((fix): fix is { start: number; span: Span } => fix.start !== null);
+  let spans = almanac.spans;
+  for (const { start } of days) {
+    const end = shiftDay(start, 1);
+    spans = spans.flatMap((span) => {
+      if (span.to_unix_ms <= start || span.from_unix_ms >= end) return [span];
+      const kept: Span[] = [];
+      if (span.from_unix_ms < start) kept.push({ ...span, to_unix_ms: start });
+      if (span.to_unix_ms > end) kept.push({ ...span, from_unix_ms: end });
+      return kept;
+    });
+  }
+  // A correction of no length says nobody was here: the day is left empty.
+  const entered = days.map((fix) => fix.span).filter((s) => s.to_unix_ms > s.from_unix_ms);
+  return [...spans, ...entered].sort((a, b) => a.from_unix_ms - b.from_unix_ms);
+}
+
 /** Reads `almanac` as it stands at `now`. */
 export function read(almanac: Almanac, settings: AlmanacSettings, now: number): Reading {
   const turn = dayTurn(settings);
+  const spans = corrected(almanac, turn);
   const stretches = new Map<string, Stretch[]>();
-  for (const span of almanac.spans) {
+  for (const span of spans) {
     // A span across a turn of the day is two stretches, one in each day.
     let from = span.from_unix_ms;
     const to = Math.max(from, span.to_unix_ms);
@@ -208,9 +263,9 @@ export function read(almanac: Almanac, settings: AlmanacSettings, now: number): 
     }
   }
 
-  const nights = findNights(almanac.spans, turn);
+  const nights = findNights(spans, turn);
   const nightByKey = new Map(nights.map((night) => [night.key, night]));
-  const first = almanac.spans[0];
+  const first = spans[0];
   const began = first ? dayStart(first.from_unix_ms, turn) : null;
   const todayStart = dayStart(now, turn);
   const cache = new Map<string, Day>();
@@ -256,6 +311,7 @@ export function read(almanac: Almanac, settings: AlmanacSettings, now: number): 
       working,
       kind,
       mark,
+      fixed: key in (almanac.fixes ?? {}),
       night: nightByKey.get(key) ?? null,
       today,
     };

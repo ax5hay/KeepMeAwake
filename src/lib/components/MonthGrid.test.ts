@@ -20,6 +20,7 @@ const reading = read(
     version: 1,
     spans: [{ from_unix_ms: at(9, 9), to_unix_ms: at(9, 17) }],
     marks: { '2026-11-20': 'leave' },
+    fixes: {},
   },
   settings,
   at(10, 12),

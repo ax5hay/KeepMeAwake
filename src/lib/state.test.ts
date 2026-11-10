@@ -70,7 +70,7 @@ const logged: History = {
   ],
 };
 
-const blank: Almanac = { version: 1, spans: [], marks: {} };
+const blank: Almanac = { version: 1, spans: [], marks: {}, fixes: {} };
 
 function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Almanac = blank) {
   let current = initial;
@@ -117,6 +117,12 @@ function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Alm
       const others = Object.entries(almanac.marks).filter(([key]) => key !== day);
       const marks = Object.fromEntries(mark === null ? others : [...others, [day, mark]]);
       almanac = { ...almanac, marks };
+      return almanac;
+    }),
+    fixDay: vi.fn(async (day, stretch) => {
+      const others = Object.entries(almanac.fixes).filter(([key]) => key !== day);
+      const fixes = Object.fromEntries(stretch === null ? others : [...others, [day, stretch]]);
+      almanac = { ...almanac, fixes };
       return almanac;
     }),
     clearAlmanac: vi.fn(async () => {
@@ -370,6 +376,7 @@ describe('AppStore and the almanac', () => {
       },
     ],
     marks: {},
+    fixes: {},
   };
 
   beforeEach(() => {
@@ -422,6 +429,12 @@ describe('AppStore and the almanac', () => {
     expect(store.almanac?.marks).toEqual({ '2026-11-12': 'leave' });
     await store.markDay('2026-11-12', null);
     expect(store.almanac?.marks).toEqual({});
+
+    const stretch = { from_unix_ms: 1, to_unix_ms: 2 };
+    await store.fixDay('2026-11-12', stretch);
+    expect(store.almanac?.fixes).toEqual({ '2026-11-12': stretch });
+    await store.fixDay('2026-11-12', null);
+    expect(store.almanac?.fixes).toEqual({});
 
     await store.clearAlmanac();
     expect(store.almanac?.spans).toEqual([]);

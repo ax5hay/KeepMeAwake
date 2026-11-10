@@ -91,6 +91,7 @@ pub fn run() {
             commands::clear_history,
             commands::get_almanac,
             commands::mark_day,
+            commands::fix_day,
             commands::clear_almanac,
             commands::get_update,
             commands::install_update,

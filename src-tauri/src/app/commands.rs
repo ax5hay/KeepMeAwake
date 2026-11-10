@@ -8,7 +8,7 @@ use tauri::{AppHandle, State};
 
 use super::update::UpdateInfo;
 use super::{AppState, hotkey};
-use crate::core::almanac::{Almanac, Mark};
+use crate::core::almanac::{Almanac, Mark, Span};
 use crate::core::history::History;
 use crate::core::{PlanRequest, Settings, Snapshot};
 use crate::persistence;
@@ -130,6 +130,20 @@ pub fn mark_day(
         .almanac
         .mark(&day, mark)
         .ok_or_else(|| format!("{day} is not a day"))
+}
+
+/// Corrects a day by hand to one stretch of presence, in place of whatever
+/// was read for it, or goes back to what was read with `null`.
+#[tauri::command]
+pub fn fix_day(
+    state: State<'_, AppState>,
+    day: String,
+    stretch: Option<Span>,
+) -> Result<Almanac, String> {
+    state
+        .almanac
+        .fix(&day, stretch)
+        .ok_or_else(|| format!("{day} cannot be corrected to that"))
 }
 
 /// Empties the almanac, in memory and on disk. Whoever is here now starts

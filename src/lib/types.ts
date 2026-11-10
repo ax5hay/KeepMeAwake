@@ -170,4 +170,6 @@ export interface Almanac {
   spans: Span[];
   /** By local date, `2026-11-10`. */
   marks: Record<string, Mark>;
+  /** Days corrected by hand: the one stretch that stands for what was read. */
+  fixes: Record<string, Span>;
 }

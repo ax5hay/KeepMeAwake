@@ -12,6 +12,7 @@ import type {
   PlanRequest,
   Settings,
   Snapshot,
+  Span,
   UpdateInfo,
   UpdateProgress,
 } from './types';
@@ -34,6 +35,7 @@ export const api = {
   clearHistory: () => invoke<History>('clear_history'),
   getAlmanac: () => invoke<Almanac>('get_almanac'),
   markDay: (day: string, mark: Mark | null) => invoke<Almanac>('mark_day', { day, mark }),
+  fixDay: (day: string, stretch: Span | null) => invoke<Almanac>('fix_day', { day, stretch }),
   clearAlmanac: () => invoke<Almanac>('clear_almanac'),
   getUpdate: () => invoke<UpdateInfo | null>('get_update'),
   installUpdate: () => invoke('install_update'),

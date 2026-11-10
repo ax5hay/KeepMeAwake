@@ -17,7 +17,16 @@ import {
   sunsetSoon,
   toggleWhisper,
 } from './format';
-import type { Almanac, History, Mark, PlanRequest, Settings, Snapshot, UpdateInfo } from './types';
+import type {
+  Almanac,
+  History,
+  Mark,
+  PlanRequest,
+  Settings,
+  Snapshot,
+  Span,
+  UpdateInfo,
+} from './types';
 
 /** Where the version last whispered about is remembered, per webview. */
 const WHISPERED_KEY = 'keepmeawake.update-whispered';
@@ -197,6 +206,15 @@ export class AppStore {
   async markDay(day: string, mark: Mark | null): Promise<void> {
     try {
       this.almanac = await this.#api.markDay(day, mark);
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  /** Corrects a day to one stretch by hand; `null` goes back to what was read. */
+  async fixDay(day: string, stretch: Span | null): Promise<void> {
+    try {
+      this.almanac = await this.#api.fixDay(day, stretch);
     } catch (err) {
       this.error = err instanceof Error ? err.message : String(err);
     }

@@ -26,6 +26,9 @@ pub const KEEP_MS: u64 = 400 * 24 * 60 * 60 * 1000;
 /// Marked days kept; the earliest dates go first.
 pub const MAX_MARKS: usize = 1000;
 
+/// The longest stretch a day can be corrected to by hand.
+pub const MAX_FIX_MS: u64 = 36 * 60 * 60 * 1000;
+
 /// How far before its first known input a new span may start. Only the
 /// latest input is ever known, so someone back for a while before a look is
 /// given at most this much.
@@ -85,6 +88,9 @@ pub struct Almanac {
     pub spans: Vec<Span>,
     /// Marked days by local date, `2026-11-10`.
     pub marks: BTreeMap<String, Mark>,
+    /// Days corrected by hand, by local date: the one stretch someone says
+    /// they were here, in place of whatever was read for that day.
+    pub fixes: BTreeMap<String, Span>,
 }
 
 impl Default for Almanac {
@@ -93,6 +99,7 @@ impl Default for Almanac {
             version: ALMANAC_VERSION,
             spans: Vec::new(),
             marks: BTreeMap::new(),
+            fixes: BTreeMap::new(),
         }
     }
 }
@@ -140,7 +147,7 @@ impl Almanac {
     /// Marks `day` (`2026-11-10`), or takes its mark away with `None`.
     /// Returns `false`, changing nothing, for a day that is not a date.
     pub fn mark(&mut self, day: &str, mark: Option<Mark>) -> bool {
-        if day.len() != 10 || NaiveDate::parse_from_str(day, "%Y-%m-%d").is_err() {
+        if !is_day(day) {
             return false;
         }
         match mark {
@@ -152,6 +159,32 @@ impl Almanac {
             }
             None => {
                 self.marks.remove(day);
+            }
+        }
+        true
+    }
+
+    /// Corrects `day` (`2026-11-10`) to one stretch, or goes back to what
+    /// was read with `None`. Returns `false`, changing nothing, for a day
+    /// that is not a date or a stretch that ends before it starts or runs
+    /// longer than [`MAX_FIX_MS`].
+    pub fn fix(&mut self, day: &str, stretch: Option<Span>) -> bool {
+        if !is_day(day) {
+            return false;
+        }
+        match stretch {
+            Some(span) => {
+                let length = span.to_unix_ms.checked_sub(span.from_unix_ms);
+                if length.is_none_or(|length| length > MAX_FIX_MS) {
+                    return false;
+                }
+                self.fixes.insert(day.to_owned(), span);
+                while self.fixes.len() > MAX_MARKS {
+                    self.fixes.pop_first();
+                }
+            }
+            None => {
+                self.fixes.remove(day);
             }
         }
         true
@@ -183,6 +216,11 @@ impl Almanac {
             span.to_unix_ms = span.to_unix_ms.min(now_unix_ms);
         }
     }
+}
+
+/// `2026-11-10`, and a date that exists.
+fn is_day(day: &str) -> bool {
+    day.len() == 10 && NaiveDate::parse_from_str(day, "%Y-%m-%d").is_ok()
 }
 
 fn millis(d: Duration) -> u64 {
@@ -365,6 +403,44 @@ mod tests {
     }
 
     #[test]
+    fn a_day_is_corrected_to_one_stretch_and_put_back() {
+        let mut a = Almanac::default();
+        let stretch = Span {
+            from_unix_ms: T0,
+            to_unix_ms: T0 + 9 * HOUR,
+        };
+        assert!(a.fix("2026-11-10", Some(stretch)));
+        assert_eq!(a.fixes.get("2026-11-10"), Some(&stretch));
+        assert!(a.fix("2026-11-10", None));
+        assert!(a.fixes.is_empty());
+    }
+
+    #[test]
+    fn a_correction_that_makes_no_sense_is_refused() {
+        let mut a = Almanac::default();
+        let backwards = Span {
+            from_unix_ms: T0 + HOUR,
+            to_unix_ms: T0,
+        };
+        let endless = Span {
+            from_unix_ms: T0,
+            to_unix_ms: T0 + MAX_FIX_MS + 1,
+        };
+        let fine = Span {
+            from_unix_ms: T0,
+            to_unix_ms: T0,
+        };
+        assert!(!a.fix("2026-11-10", Some(backwards)));
+        assert!(!a.fix("2026-11-10", Some(endless)));
+        assert!(!a.fix("the tenth", Some(fine)));
+        assert!(a.fixes.is_empty());
+        assert!(
+            a.fix("2026-11-10", Some(fine)),
+            "an empty day is a correction too"
+        );
+    }
+
+    #[test]
     fn the_earliest_marks_go_first_beyond_the_cap() {
         let mut a = Almanac::default();
         let first = NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
@@ -411,6 +487,20 @@ mod tests {
         assert_eq!(json["spans"][0]["to_unix_ms"], T0 + MIN);
         assert_eq!(json["marks"]["2026-11-10"], "leave");
         assert_eq!(json["marks"]["2026-11-11"], "clear");
+        assert!(
+            json["fixes"]
+                .as_object()
+                .is_some_and(serde_json::Map::is_empty)
+        );
+        a.fix(
+            "2026-11-12",
+            Some(Span {
+                from_unix_ms: T0,
+                to_unix_ms: T0 + HOUR,
+            }),
+        );
+        let json = serde_json::to_value(&a).unwrap();
+        assert_eq!(json["fixes"]["2026-11-12"]["to_unix_ms"], T0 + HOUR);
         let back: Almanac = serde_json::from_value(json).unwrap();
         assert_eq!(back, a);
         let empty: Almanac = serde_json::from_str("{}").unwrap();

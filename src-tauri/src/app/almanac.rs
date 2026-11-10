@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use parking_lot::{Condvar, Mutex};
 
-use crate::core::almanac::{Almanac, Look, Mark, Noted};
+use crate::core::almanac::{Almanac, Look, Mark, Noted, Span};
 use crate::persistence;
 use crate::platform::{Clock, IdleProbe};
 
@@ -133,6 +133,17 @@ impl Keeper {
     pub fn mark(&self, day: &str, mark: Option<Mark>) -> Option<Almanac> {
         let mut inner = self.inner.lock();
         if !inner.almanac.mark(day, mark) {
+            return None;
+        }
+        self.save(&mut inner);
+        Some(inner.almanac.clone())
+    }
+
+    /// Corrects `day` to one stretch, or goes back to what was read, and
+    /// saves. `None` for a correction the almanac refuses.
+    pub fn fix(&self, day: &str, stretch: Option<Span>) -> Option<Almanac> {
+        let mut inner = self.inner.lock();
+        if !inner.almanac.fix(day, stretch) {
             return None;
         }
         self.save(&mut inner);
@@ -331,6 +342,24 @@ mod tests {
         assert!(r.keeper.mark("someday", Some(Mark::Leave)).is_none());
         let cleared = r.keeper.mark("2026-11-10", None).unwrap();
         assert!(cleared.marks.is_empty());
+    }
+
+    #[test]
+    fn correcting_a_day_saves_and_works_with_the_almanac_off() {
+        let r = rig(false);
+        let stretch = Span {
+            from_unix_ms: 1_000,
+            to_unix_ms: 9_000,
+        };
+        let fixed = r.keeper.fix("2026-11-10", Some(stretch)).unwrap();
+        assert_eq!(fixed.fixes.get("2026-11-10"), Some(&stretch));
+        assert_eq!(r.on_disk(), fixed, "by hand needs no reading");
+        let backwards = Span {
+            from_unix_ms: 9_000,
+            to_unix_ms: 1_000,
+        };
+        assert!(r.keeper.fix("2026-11-10", Some(backwards)).is_none());
+        assert!(r.keeper.fix("2026-11-10", None).unwrap().fixes.is_empty());
     }
 
     #[test]

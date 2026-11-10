@@ -13,6 +13,7 @@ import {
   read,
   shiftDay,
   startOfKey,
+  stretchOn,
   stripOf,
   tally,
   usualNight,
@@ -39,11 +40,11 @@ const at = (date: number, hour: number, minute = 0) =>
 
 const span = (from: number, to: number): Span => ({ from_unix_ms: from, to_unix_ms: to });
 
-const book = (spans: Span[], marks: Record<string, Mark> = {}): Almanac => ({
-  version: 1,
-  spans,
-  marks,
-});
+const book = (
+  spans: Span[],
+  marks: Record<string, Mark> = {},
+  fixes: Record<string, Span> = {},
+): Almanac => ({ version: 1, spans, marks, fixes });
 
 const HOUR = 3_600_000;
 const MIN = 60_000;
@@ -162,6 +163,54 @@ describe('what a day reads as', () => {
   it('never assumes leave with the setting off', () => {
     const reading = read(book(worked), { ...office, empty_days_are_leave: false }, now);
     expect(reading.dayAt(at(10, 12)).kind).toBe('nothing');
+  });
+});
+
+describe('a day corrected by hand', () => {
+  const read9 = [span(at(9, 9), at(9, 12)), span(at(9, 14), at(9, 23, 30))];
+  const next = span(at(10, 7), at(10, 12));
+
+  it('stands for what was read that day, and says so', () => {
+    const fix = span(at(9, 10), at(9, 18));
+    const reading = read(book([...read9, next], {}, { '2026-11-09': fix }), office, at(10, 12));
+    const monday = reading.dayAt(at(9, 12));
+    expect(monday.fixed).toBe(true);
+    expect(formatWorked(monday.worked_ms)).toBe('8h 00m');
+    expect(monday.first).toBe(at(9, 10));
+    expect(monday.last).toBe(at(9, 18));
+    expect(reading.today.fixed).toBe(false);
+    expect(formatWorked(reading.today.worked_ms)).toBe('5h 00m');
+  });
+
+  it('moves the night with it', () => {
+    const fix = span(at(9, 10), at(9, 22));
+    const reading = read(book([...read9, next], {}, { '2026-11-09': fix }), office, at(10, 12));
+    expect(reading.today.night).toEqual({ from: at(9, 22), to: at(10, 7), key: '2026-11-10' });
+  });
+
+  it('cuts only its own day out of a span that crosses the turn', () => {
+    const late = span(at(9, 20), at(10, 3));
+    const fix = span(at(9, 9), at(9, 17));
+    const reading = read(book([late], {}, { '2026-11-09': fix }), office, at(10, 12));
+    expect(formatWorked(reading.dayAt(at(9, 12)).worked_ms)).toBe('8h 00m');
+    expect(formatWorked(reading.today.worked_ms)).toBe('2h 00m');
+  });
+
+  it('can say nobody was here at all', () => {
+    const empty = span(at(9, 9), at(9, 9));
+    const reading = read(book([...read9, next], {}, { '2026-11-09': empty }), office, at(10, 12));
+    const monday = reading.dayAt(at(9, 12));
+    expect(monday.worked_ms).toBe(0);
+    expect(monday.fixed).toBe(true);
+  });
+
+  it('turns two times of day into a stretch inside the day', () => {
+    const reading = read(book([]), evening, at(10, 12));
+    const day = reading.dayAt(at(9, 20));
+    expect(stretchOn(day, 15 * 60, 30)).toEqual(span(at(9, 15), at(10, 0, 30)));
+    expect(stretchOn(day, 2 * 60, 4 * 60)).toEqual(span(at(10, 2), at(10, 4)));
+    // Never past the turn into the next day.
+    expect(stretchOn(day, 22 * 60, 9 * 60)).toEqual(span(at(9, 22), at(10, 7)));
   });
 });
 
