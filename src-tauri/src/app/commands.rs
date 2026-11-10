@@ -8,6 +8,7 @@ use tauri::{AppHandle, State};
 
 use super::update::UpdateInfo;
 use super::{AppState, hotkey};
+use crate::core::almanac::{Almanac, Mark};
 use crate::core::history::History;
 use crate::core::{PlanRequest, Settings, Snapshot};
 use crate::persistence;
@@ -82,6 +83,7 @@ pub fn update_settings(
         settings.hotkey = previous;
         hotkey_error = Some(err);
     }
+    state.almanac.set_on(settings.almanac.enabled);
     let snapshot = state.engine.update_settings(settings.clone());
     persistence::save(&state.settings_path, &settings).map_err(|err| {
         log::error!("could not save settings: {err}");
@@ -107,6 +109,37 @@ pub fn clear_history(state: State<'_, AppState>) -> Result<History, String> {
         format!("History cleared but could not be saved: {err}")
     })?;
     Ok(history.clone())
+}
+
+/// The almanac: presence and marked days, after one fresh look so today is
+/// current to the moment.
+#[tauri::command]
+pub fn get_almanac(state: State<'_, AppState>) -> Almanac {
+    state.almanac.read()
+}
+
+/// Marks a day (`2026-11-10`) as leave or as not a leave, or takes its mark
+/// away with `null`. Fails for a day that is not a date.
+#[tauri::command]
+pub fn mark_day(
+    state: State<'_, AppState>,
+    day: String,
+    mark: Option<Mark>,
+) -> Result<Almanac, String> {
+    state
+        .almanac
+        .mark(&day, mark)
+        .ok_or_else(|| format!("{day} is not a day"))
+}
+
+/// Empties the almanac, in memory and on disk. Whoever is here now starts
+/// it again.
+#[tauri::command]
+pub fn clear_almanac(state: State<'_, AppState>) -> Result<Almanac, String> {
+    state.almanac.clear().map_err(|err| {
+        log::warn!("could not clear the almanac: {err}");
+        format!("The almanac was cleared but could not be saved: {err}")
+    })
 }
 
 /// The newer release the daily check found, if any.

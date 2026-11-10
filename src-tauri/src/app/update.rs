@@ -180,9 +180,13 @@ pub async fn check_now(app: &AppHandle) -> Option<UpdateInfo> {
 /// power request is released and the stretch ends as `you`, not `sleep`.
 pub async fn install(app: AppHandle) -> Result<(), String> {
     let engine = Arc::clone(&app.state::<AppState>().engine);
+    let almanac = Arc::clone(&app.state::<AppState>().almanac);
     let updater = app
         .updater_builder()
-        .on_before_exit(move || engine.shutdown())
+        .on_before_exit(move || {
+            almanac.flush();
+            engine.shutdown();
+        })
         .build()
         .map_err(|err| format!("The updater is unavailable: {err}"))?;
     let update = updater

@@ -1,11 +1,12 @@
-//! Loads and saves [`Settings`] and the session [`History`] as pretty JSON,
-//! atomically.
+//! Loads and saves [`Settings`], the session [`History`] and the
+//! [`Almanac`] as JSON, atomically.
 
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::core::Settings;
+use crate::core::almanac::Almanac;
 use crate::core::history::History;
 
 /// File name inside the app's config directory.
@@ -13,6 +14,37 @@ pub const SETTINGS_FILE: &str = "settings.json";
 
 /// The session log's file name inside the app's config directory.
 pub const HISTORY_FILE: &str = "history.json";
+
+/// The almanac's file name inside the app's config directory.
+pub const ALMANAC_FILE: &str = "almanac.json";
+
+/// Full path of the almanac file inside `config_dir`.
+pub fn almanac_path(config_dir: &Path) -> PathBuf {
+    config_dir.join(ALMANAC_FILE)
+}
+
+/// Reads the almanac. Missing or unreadable reads as empty, like the log:
+/// losing it must never stop the app.
+pub fn load_almanac(path: &Path) -> Almanac {
+    match fs::read_to_string(path) {
+        Ok(text) => serde_json::from_str(&text).unwrap_or_else(|err| {
+            log::warn!("almanac file is not valid JSON, starting a new one: {err}");
+            Almanac::default()
+        }),
+        Err(err) if err.kind() == io::ErrorKind::NotFound => Almanac::default(),
+        Err(err) => {
+            log::warn!("could not read the almanac, starting a new one: {err}");
+            Almanac::default()
+        }
+    }
+}
+
+/// Writes the almanac atomically, on one line: it is a year of spans that
+/// nobody reads by eye, and it is rewritten while someone works.
+pub fn save_almanac(path: &Path, almanac: &Almanac) -> io::Result<()> {
+    let json = serde_json::to_string(almanac).map_err(io::Error::other)?;
+    write_atomically(path, &json)
+}
 
 /// Full path of the history file inside `config_dir`.
 pub fn history_path(config_dir: &Path) -> PathBuf {
@@ -72,10 +104,14 @@ pub fn save(path: &Path, settings: &Settings) -> io::Result<()> {
 }
 
 fn write_json(path: &Path, value: &impl serde::Serialize) -> io::Result<()> {
+    let json = serde_json::to_string_pretty(value).map_err(io::Error::other)?;
+    write_atomically(path, &json)
+}
+
+fn write_atomically(path: &Path, json: &str) -> io::Result<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir)?;
     }
-    let json = serde_json::to_string_pretty(value).map_err(io::Error::other)?;
     let tmp = path.with_extension("json.tmp");
     fs::write(&tmp, json)?;
     // On Windows `rename` fails if the target exists, so remove it first; a
@@ -139,6 +175,27 @@ mod tests {
         assert_eq!(load_history(&path), history);
         fs::write(&path, "[ not a log").unwrap();
         assert_eq!(load_history(&path), History::default(), "corrupt");
+    }
+
+    #[test]
+    fn the_almanac_round_trips_on_one_line_and_survives_a_bad_file() {
+        use crate::core::almanac::{Mark, Span};
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = almanac_path(dir.path());
+        assert_eq!(load_almanac(&path), Almanac::default(), "missing");
+        let mut almanac = Almanac::default();
+        almanac.spans.push(Span {
+            from_unix_ms: 1_000,
+            to_unix_ms: 61_000,
+        });
+        almanac.mark("2026-11-10", Some(Mark::Leave));
+        save_almanac(&path, &almanac).unwrap();
+        assert_eq!(load_almanac(&path), almanac);
+        assert_eq!(fs::read_to_string(&path).unwrap().lines().count(), 1);
+        assert!(!path.with_extension("json.tmp").exists());
+        fs::write(&path, "{ not an almanac").unwrap();
+        assert_eq!(load_almanac(&path), Almanac::default(), "corrupt");
     }
 
     #[test]

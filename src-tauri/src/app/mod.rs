@@ -2,6 +2,7 @@
 //! Kept thin on purpose; nothing here is worth unit testing beyond the pure
 //! helpers in [`tray`].
 
+pub mod almanac;
 pub mod commands;
 pub mod history;
 pub mod hotkey;
@@ -24,7 +25,7 @@ use crate::core::settings::StartupPlan;
 use crate::core::{PlanRequest, Settings};
 use crate::engine::{Engine, EngineEvent, Listener, Platform, default_plan};
 use crate::persistence;
-use crate::platform::{SystemClock, TaskbarTheme};
+use crate::platform::{IdleProbe, SystemClock, TaskbarTheme};
 
 /// Command line flag the autostart entry passes so we boot straight to the tray.
 pub const HIDDEN_FLAG: &str = "--hidden";
@@ -42,6 +43,8 @@ pub struct AppState {
     pub history: Arc<Mutex<History>>,
     /// Where the session log is persisted.
     pub history_path: PathBuf,
+    /// The almanac and the thread that keeps it.
+    pub almanac: Arc<almanac::Keeper>,
     /// Light or dark taskbar, for the tray icon set.
     pub taskbar: Box<dyn TaskbarTheme>,
     /// A newer release, as last found by the daily check.
@@ -86,6 +89,9 @@ pub fn run() {
             commands::quit_app,
             commands::get_history,
             commands::clear_history,
+            commands::get_almanac,
+            commands::mark_day,
+            commands::clear_almanac,
             commands::get_update,
             commands::install_update,
         ])
@@ -103,6 +109,7 @@ pub fn run() {
         } => api.prevent_exit(),
         RunEvent::Exit => {
             if let Some(state) = app.try_state::<AppState>() {
+                state.almanac.flush();
                 state.engine.shutdown();
             }
         }
@@ -156,11 +163,24 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
     ));
     apply_startup_plan(&engine, &settings);
 
+    // The almanac is kept beside the engine, not by it: who is at the
+    // machine is noted with the sun up or down alike.
+    let almanac_path = persistence::almanac_path(&config_dir);
+    let keeper = Arc::new(almanac::Keeper::new(
+        persistence::load_almanac(&almanac_path),
+        almanac_path,
+        make_idle(),
+        Arc::new(SystemClock),
+        settings.almanac.enabled,
+    ));
+    keeper.start();
+
     app.manage(AppState {
         engine: Arc::clone(&engine),
         settings_path,
         history,
         history_path,
+        almanac: keeper,
         taskbar: make_taskbar(),
         update: Mutex::new(None),
     });
@@ -271,6 +291,23 @@ fn watch_taskbar_theme(app: &AppHandle, engine: &Arc<Engine>) {
 
 #[cfg(not(windows))]
 fn watch_taskbar_theme(_app: &AppHandle, _engine: &Arc<Engine>) {}
+
+/// The idle reading for the almanac: the same read-only call the engine's
+/// overnight guard makes, through a probe of its own.
+#[cfg(windows)]
+fn make_idle() -> Box<dyn IdleProbe> {
+    Box::new(crate::platform::windows::WindowsIdle)
+}
+
+#[cfg(target_os = "macos")]
+fn make_idle() -> Box<dyn IdleProbe> {
+    Box::new(crate::platform::macos::MacIdle)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn make_idle() -> Box<dyn IdleProbe> {
+    Box::new(crate::platform::NoIdle)
+}
 
 #[cfg(windows)]
 fn make_platform() -> Platform {
