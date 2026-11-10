@@ -118,7 +118,8 @@ impl Default for Notifications {
 
 /// One window of time on chosen weekdays, e.g. 09:00 until 18:00 Monday to
 /// Friday. An `end_minutes` earlier than `start_minutes` means the window runs
-/// overnight and belongs to the day it starts on.
+/// overnight and belongs to the day it starts on; the same time twice is the
+/// whole day, from that time until the same time the next day.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "snake_case")]
 pub struct Schedule {
@@ -188,15 +189,13 @@ impl Default for Schedule {
 }
 
 impl Schedule {
-    /// Clamps the minutes into a day and switches off a zero-length window,
-    /// which would otherwise mean nothing at all.
+    /// Clamps the minutes into a day. The switch is never touched: equal
+    /// times once switched the schedule off here, and since its hours cannot
+    /// be edited while it is off, that left no way to switch it back on.
     #[must_use]
     pub fn sanitized(mut self) -> Self {
         self.start_minutes = self.start_minutes.min(LAST_MINUTE);
         self.end_minutes = self.end_minutes.min(LAST_MINUTE);
-        if self.start_minutes == self.end_minutes {
-            self.enabled = false;
-        }
         self
     }
 }
@@ -413,7 +412,7 @@ mod tests {
     }
 
     #[test]
-    fn sanitize_clamps_schedule_minutes_and_disables_empty_windows() {
+    fn sanitize_clamps_schedule_minutes_and_leaves_the_switch_alone() {
         let s = Schedule {
             enabled: true,
             start_minutes: 5000,
@@ -423,14 +422,17 @@ mod tests {
         .sanitized();
         assert_eq!(s.start_minutes, LAST_MINUTE);
         assert!(s.enabled);
-        let empty = Schedule {
+        let all_day = Schedule {
             enabled: true,
             start_minutes: 600,
             end_minutes: 600,
             ..Schedule::default()
         }
         .sanitized();
-        assert!(!empty.enabled);
+        assert!(
+            all_day.enabled,
+            "the same time twice is the whole day, not a reason to switch off"
+        );
     }
 
     #[test]

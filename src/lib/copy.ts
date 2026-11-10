@@ -91,6 +91,9 @@ export function onSchedule(time: string): string {
   return `Until ${time} · on schedule`;
 }
 
+/** Settings → Schedule → From / Until. */
+export const SCHEDULE_HOURS_HINT = 'Overnight is fine. The same time twice is all day.';
+
 /** Appended to the resting line while a schedule waits for its next window. */
 export function awakeAgain(when: string): string {
   return `Awake again at ${when}.`;

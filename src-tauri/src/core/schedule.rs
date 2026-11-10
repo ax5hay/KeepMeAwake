@@ -60,7 +60,8 @@ pub fn next_boundary<Tz: TimeZone>(s: &Schedule, now: &DateTime<Tz>) -> Option<D
         .or_else(|| next_window(s, now).map(|w| w.start))
 }
 
-/// The window that starts on `day`, if that weekday is on.
+/// The window that starts on `day`, if that weekday is on. An end at or
+/// before the start is the next day's, so equal times make a whole day.
 fn window_on<Tz: TimeZone>(s: &Schedule, day: NaiveDate, tz: &Tz) -> Option<Window<Tz>> {
     let index = usize::try_from(day.weekday().num_days_from_monday()).ok()?;
     if !s.days.get(index).copied().unwrap_or(false) {
@@ -156,6 +157,26 @@ mod tests {
     fn weekday_off_has_no_window() {
         // 2026-03-07 is a Saturday.
         assert_eq!(current_window(&office(), &local_at(7, 12, 0)), None);
+    }
+
+    #[test]
+    fn the_same_time_twice_is_the_whole_day() {
+        let all_day = Schedule {
+            enabled: true,
+            start_minutes: 9 * 60,
+            end_minutes: 9 * 60,
+            ..Schedule::default()
+        };
+        let w = current_window(&all_day, &local_at(2, 3 + 12, 0)).unwrap();
+        assert_eq!(w.start, local_at(2, 9, 0));
+        assert_eq!(w.end, local_at(3, 9, 0), "until the same time tomorrow");
+        // Friday's day runs into Saturday morning, then nothing until Monday.
+        assert!(current_window(&all_day, &local_at(7, 8, 0)).is_some());
+        assert!(current_window(&all_day, &local_at(7, 10, 0)).is_none());
+        assert_eq!(
+            next_window(&all_day, &local_at(7, 10, 0)).map(|w| w.start),
+            Some(local_at(9, 9, 0))
+        );
     }
 
     #[test]

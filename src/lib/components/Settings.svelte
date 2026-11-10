@@ -17,6 +17,7 @@
     INSTALL_UPDATE,
     OVERNIGHT_GUARD_HINT,
     PLATFORM_COPY,
+    SCHEDULE_HOURS_HINT,
     UPDATES_HINT,
     WORK_HOURS_HINT,
     downloading,
@@ -257,7 +258,7 @@
         <Row label="Days">
           <DayPills days={settings.schedule.days} onchange={(days) => setSchedule({ days })} />
         </Row>
-        <Row label="From / Until" hint="Overnight is fine: 10:00 pm until 6:00 am.">
+        <Row label="From / Until" hint={SCHEDULE_HOURS_HINT}>
           <div class="times">
             <input
               type="time"

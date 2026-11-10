@@ -79,8 +79,10 @@ pub struct Schedule {
 pub schedule: Schedule,
 ```
 
-`sanitized()` clamps both minute fields to `0..=1439` and, if they are equal,
-disables the schedule (a zero-length window is meaningless).
+`sanitized()` clamps both minute fields to `0..=1439` and leaves the switch
+alone. Equal times are the whole day, from that time until the same time the
+next day. (They once switched the schedule off here; with its hours greyed
+out while off, that left no way to switch it back on.)
 
 TypeScript mirror: `schedule: { enabled: boolean; days: boolean[]; start_minutes: number; end_minutes: number }`.
 
