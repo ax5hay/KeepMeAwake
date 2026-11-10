@@ -5,12 +5,14 @@
    * up to. Everything here is derived from the spans the app keeps; the pane
    * holds only which day is being read and which month is open.
    */
+  import ClaudeGate from './ClaudeGate.svelte';
   import DayStrip from './DayStrip.svelte';
   import MonthGrid from './MonthGrid.svelte';
   import Row from './Row.svelte';
   import Switch from './Switch.svelte';
   import {
     WORKED_FROM_MS,
+    daysCsv,
     formatTotal,
     formatWorked,
     monthGrid,
@@ -21,6 +23,7 @@
     stripOf,
     tally,
     usualNight,
+    weekDigest,
     weekOf,
     yearOf,
     type Day,
@@ -33,12 +36,19 @@
     ALMANAC_HINT,
     ALMANAC_SETTINGS,
     CLEAR_ALMANAC,
+    COPIED,
+    COPY_MONTH,
     CORRECT_HOURS,
     DAY_WORDS,
     MARK_LEAVE,
     NOBODY_HERE,
     NOT_A_LEAVE,
     USE_WHAT_WAS_READ,
+    WEEK_HINT,
+    WEEK_IN_WORDS,
+    WEEK_READ,
+    WEEK_READING,
+    WEEK_SENDS,
     dayDetail,
     daysWorked,
     leavesTaken,
@@ -73,6 +83,32 @@
   const rows = $derived(reading ? monthGrid(reading, shown.year, shown.month) : []);
   const year = $derived(reading ? tally(yearOf(reading, shown.year)) : null);
   const usual = $derived(reading ? usualNight(reading.nights, reading.turn) : null);
+
+  /** The week put into words, and the week it is of, so another week starts clean. */
+  let words = $state<{ of: string; text: string } | null>(null);
+  let reading_week = $state(false);
+  const weekKey = $derived(week[0]?.key ?? '');
+
+  async function readWeek() {
+    if (!reading || reading_week) return;
+    reading_week = true;
+    const of = weekKey;
+    const text = await store.readWeek(weekDigest(reading, week));
+    if (text !== null) words = { of, text };
+    reading_week = false;
+  }
+
+  /** The open month, copied as CSV for a timesheet. */
+  let copied = $state(false);
+  async function copyMonth() {
+    try {
+      await navigator.clipboard.writeText(daysCsv(month));
+      copied = true;
+      setTimeout(() => (copied = false), 2400);
+    } catch {
+      store.error = 'The month could not be copied.';
+    }
+  }
 
   /** The hours being entered for the day being read; `null` while not correcting. */
   let editing = $state<{ from: string; until: string } | null>(null);
@@ -327,6 +363,25 @@
     </section>
 
     <section>
+      <ClaudeGate feature="week_in_words" title={WEEK_IN_WORDS} hint={WEEK_HINT}>
+        {#if words && words.of === weekKey}
+          <p class="words">{words.text}</p>
+        {/if}
+        <p class="links ask">
+          <button
+            type="button"
+            class="link"
+            disabled={reading_week}
+            onclick={() => void readWeek()}
+          >
+            {reading_week ? WEEK_READING : WEEK_READ}
+          </button>
+          <span class="sends">{WEEK_SENDS}</span>
+        </p>
+      </ClaudeGate>
+    </section>
+
+    <section>
       <div class="over">
         <div class="pager">
           <button type="button" aria-label="Previous month" onclick={() => step(-1)}>
@@ -365,6 +420,11 @@
         </button>
         <button type="button" class="link" onclick={() => void store.clearAlmanac()}>
           {CLEAR_ALMANAC}
+        </button>
+      </p>
+      <p class="links">
+        <button type="button" class="link" onclick={() => void copyMonth()}>
+          {copied ? COPIED : COPY_MONTH}
         </button>
       </p>
     </section>
@@ -493,6 +553,35 @@
     background: var(--ink);
     color: var(--paper);
     font-size: 12px;
+  }
+
+  /* What Claude said of the week: said, so in the whisper's voice. */
+  .words {
+    margin: 8px 0 0;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink);
+    text-wrap: pretty;
+    user-select: text;
+    cursor: text;
+  }
+
+  .ask {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .sends {
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+
+  .link:disabled {
+    color: var(--ink-3);
+    text-decoration-color: transparent;
   }
 
   .aside {

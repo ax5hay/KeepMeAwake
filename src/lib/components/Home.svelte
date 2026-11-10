@@ -105,36 +105,39 @@
 
 <DurationRule />
 
-<section class="rows">
-  <Row label="Keep the screen on" hint="Off lets the display dim while the laptop stays awake.">
-    <Switch
-      checked={settings?.keep_display_on ?? true}
-      label="Keep the screen on"
-      onchange={(v) => void store.updateSettings({ keep_display_on: v })}
-    />
-  </Row>
-  <Row label="Pause on low battery" hint={lowBatteryHint}>
-    <Switch
-      checked={lowBatteryOn}
-      label="Pause on low battery"
-      onchange={(v) => void store.updateSettings({ pause_below_battery_percent: v ? 20 : null })}
-    />
-  </Row>
-</section>
+<!-- Typing a plan takes the room the rows and doors use; they come back after. -->
+{#if !store.planning}
+  <section class="rows">
+    <Row label="Keep the screen on" hint="Off lets the display dim while the laptop stays awake.">
+      <Switch
+        checked={settings?.keep_display_on ?? true}
+        label="Keep the screen on"
+        onchange={(v) => void store.updateSettings({ keep_display_on: v })}
+      />
+    </Row>
+    <Row label="Pause on low battery" hint={lowBatteryHint}>
+      <Switch
+        checked={lowBatteryOn}
+        label="Pause on low battery"
+        onchange={(v) => void store.updateSettings({ pause_below_battery_percent: v ? 20 : null })}
+      />
+    </Row>
+  </section>
 
-<nav class="doors" aria-label="More in Settings">
-  {#each ways as door, i (door.section)}
-    {#if i > 0}<span class="dot" aria-hidden="true">·</span>{/if}
-    <button
-      type="button"
-      class:news={door.section === 'about'}
-      title={door.title}
-      onclick={() => store.openSettings(door.section)}
-    >
-      {door.label}
-    </button>
-  {/each}
-</nav>
+  <nav class="doors" aria-label="More in Settings">
+    {#each ways as door, i (door.section)}
+      {#if i > 0}<span class="dot" aria-hidden="true">·</span>{/if}
+      <button
+        type="button"
+        class:news={door.section === 'about'}
+        title={door.title}
+        onclick={() => store.openSettings(door.section)}
+      >
+        {door.label}
+      </button>
+    {/each}
+  </nav>
+{/if}
 
 <style>
   .status {

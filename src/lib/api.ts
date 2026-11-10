@@ -6,6 +6,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import type {
+  AiStatus,
   Almanac,
   History,
   Mark,
@@ -13,6 +14,7 @@ import type {
   Settings,
   Snapshot,
   Span,
+  Understood,
   UpdateInfo,
   UpdateProgress,
 } from './types';
@@ -37,6 +39,10 @@ export const api = {
   markDay: (day: string, mark: Mark | null) => invoke<Almanac>('mark_day', { day, mark }),
   fixDay: (day: string, stretch: Span | null) => invoke<Almanac>('fix_day', { day, stretch }),
   clearAlmanac: () => invoke<Almanac>('clear_almanac'),
+  aiStatus: () => invoke<AiStatus>('ai_status'),
+  setAiKey: (key: string | null) => invoke<AiStatus>('set_ai_key', { key }),
+  aiReadWeek: (digest: string) => invoke<string>('ai_read_week', { digest }),
+  aiPlan: (sentence: string, now: string) => invoke<Understood>('ai_plan', { sentence, now }),
   getUpdate: () => invoke<UpdateInfo | null>('get_update'),
   installUpdate: () => invoke('install_update'),
   onSnapshot: (handler: (snapshot: Snapshot) => void): Promise<UnlistenFn> =>

@@ -203,7 +203,8 @@ export function downloading(percent: number | null): string {
 export const UPDATES_HINT = 'Once a day, from GitHub. Nothing else leaves this machine.';
 
 /** A Settings section Home can open directly. */
-export type SettingsSection = 'waking' | 'schedule' | 'almanac' | 'history' | 'hotkey' | 'about';
+export type SettingsSection =
+  'waking' | 'schedule' | 'almanac' | 'ai' | 'history' | 'hotkey' | 'about';
 
 /** One way from Home straight into a Settings section. */
 export interface Door {
@@ -381,6 +382,75 @@ export const WORK_HOURS_HINT = 'Past midnight is fine. Time outside them counts 
 /** Settings → Almanac → Empty working days are leave. */
 export const EMPTY_LEAVE_HINT = 'Off on a machine you rarely use.';
 
+/** A Claude feature with no API key: said wherever the feature is. */
+export const AI_LOCKED = 'Locked: no API key yet.';
+
+/** The link beside it, into Settings → Claude. */
+export const AI_ADD_KEY = 'Add a key';
+
+/** A Claude feature with a key, while Claude is switched off. */
+export const AI_OFF = 'Claude is switched off.';
+
+/** The link beside it: the master switch, from where the feature is. */
+export const AI_SWITCH_ON = 'Switch it on';
+
+/** Settings → Claude → Use Claude. */
+export const AI_MASTER_HINT = 'Off, nothing is ever sent to Anthropic.';
+
+/** The same row with no key: the switch cannot move yet. */
+export const AI_MASTER_LOCKED = 'Needs an API key first.';
+
+/** Settings → Claude, under the key field, while there is none. */
+export const AI_KEY_WHY = 'Your own key from console.anthropic.com. Asking Claude is billed to it.';
+
+/** Settings → Claude, once a key is stored. */
+export const AI_KEY_SAVED = 'A key is saved.';
+
+/** Settings → Claude: what the app does and does not do with it. */
+export const AI_PROMISE =
+  'Claude is asked only when you click something that says so, and is sent only what that says.';
+
+/** The Almanac's week, put into words. */
+export const WEEK_IN_WORDS = 'This week, in words';
+
+/** What it does, shown while its switch is off. */
+export const WEEK_HINT = 'Two or three sentences on the week being read.';
+
+/** The link that asks. */
+export const WEEK_READ = 'Read this week';
+
+/** While it is being read. */
+export const WEEK_READING = 'Reading…';
+
+/** What asking sends. */
+export const WEEK_SENDS = 'Sends this week of hours and nights to Anthropic, when you ask.';
+
+/** Home's plan in a sentence. */
+export const TELL_THE_SUN = 'Tell the sun';
+
+/** What it does, shown while its switch is off. */
+export const TELL_HINT = 'Say the plan in words instead of picking a stop.';
+
+/** Shown in the empty field. */
+export const TELL_PLACEHOLDER = 'two hours, or until half six';
+
+/** The button that asks, and what it says while waiting. */
+export const TELL_ASK = 'Ask';
+export const TELL_THINKING = 'Asking…';
+
+/** The button that starts what was understood. */
+export const TELL_START = 'Start';
+
+/** What asking sends. */
+export const TELL_SENDS = 'Sends this sentence to Anthropic.';
+
+/** Settings → Almanac → Break reminder. */
+export const BREAK_HINT = 'A toast after that long without five minutes away.';
+
+/** The link that copies the open month, and what it says once it has. */
+export const COPY_MONTH = 'Copy month as CSV';
+export const COPIED = 'Copied';
+
 /** Settings → History before anything has been logged. */
 export const HISTORY_EMPTY = 'Nothing yet. The first sunset will be written here.';
 
@@ -451,6 +521,8 @@ export interface PlatformCopy {
   about: { before: string; code: string; after: string };
   /** Status line when the OS turns the request down. */
   refused: string;
+  /** Settings → Claude: where the API key is kept. */
+  keyKept: string;
 }
 
 /** {@link PlatformCopy} for a Mac (`true`) or Windows. */
@@ -471,6 +543,7 @@ export function platformCopy(mac: boolean): PlatformCopy {
         after,
       },
       refused: 'macOS refused the request',
+      keyKept: 'Kept in the macOS Keychain, not in a file.',
     };
   }
   return {
@@ -486,6 +559,7 @@ export function platformCopy(mac: boolean): PlatformCopy {
       after,
     },
     refused: 'Windows refused the request',
+    keyKept: 'Kept in Windows Credential Manager, not in a file.',
   };
 }
 

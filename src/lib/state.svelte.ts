@@ -7,6 +7,7 @@
  */
 import { formatWorked, hoursLength, read, type Reading } from './almanac';
 import { api, type Api } from './api';
+import { gateOf, type AiFeature, type Gate } from './claude';
 import { fullDay, quietNight, updateWhisper, type SettingsSection } from './copy';
 import {
   downloadPercent,
@@ -18,6 +19,7 @@ import {
   toggleWhisper,
 } from './format';
 import type {
+  AiStatus,
   Almanac,
   History,
   Mark,
@@ -25,6 +27,7 @@ import type {
   Settings,
   Snapshot,
   Span,
+  Understood,
   UpdateInfo,
 } from './types';
 
@@ -76,6 +79,10 @@ export class AppStore {
   almanac = $state<Almanac | null>(null);
   /** When the almanac was last read from the app, for what "now" means in it. */
   almanacAt = $state(Date.now());
+  /** A plan is being typed on Home (Until…): the rows below step aside for it. */
+  planning = $state(false);
+  /** Whether Claude has a key; `null` until asked. The key never comes here. */
+  ai = $state<AiStatus | null>(null);
   /** The Settings section to bring into view as Settings opens, if any. */
   section = $state<SettingsSection | null>(null);
   /** A newer release, as the daily check found it. */
@@ -108,7 +115,60 @@ export class AppStore {
     } catch {
       // No update news is fine; the window works the same.
     }
+    try {
+      this.ai = await this.#api.aiStatus();
+    } catch {
+      // Unknown reads as locked, which is the safe way to be wrong.
+    }
     await this.#greet();
+  }
+
+  /** Which lock, if any, is shut on a Claude feature. */
+  gate(feature: AiFeature): Gate {
+    return gateOf(this.ai, this.settings?.ai ?? null, feature);
+  }
+
+  /** The master switch: off, nothing is ever sent. */
+  async setAiEnabled(enabled: boolean): Promise<void> {
+    const ai = this.settings?.ai;
+    if (ai) await this.updateSettings({ ai: { ...ai, enabled } });
+  }
+
+  /** One feature's own switch. */
+  async setAiFeature(feature: AiFeature, on: boolean): Promise<void> {
+    const ai = this.settings?.ai;
+    if (ai) await this.updateSettings({ ai: { ...ai, [feature]: on } });
+  }
+
+  /** Stores the API key, or removes it with `null`. */
+  async setAiKey(key: string | null): Promise<boolean> {
+    try {
+      this.ai = await this.#api.setAiKey(key);
+      return true;
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+      return false;
+    }
+  }
+
+  /** Asks Claude to put a week into words; `null`, with the reason shown, if it could not. */
+  async readWeek(digest: string): Promise<string | null> {
+    try {
+      return await this.#api.aiReadWeek(digest);
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+      return null;
+    }
+  }
+
+  /** Asks Claude what plan a sentence means. Nothing is started. */
+  async askPlan(sentence: string, now: string): Promise<Understood | null> {
+    try {
+      return await this.#api.aiPlan(sentence, now);
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+      return null;
+    }
   }
 
   /**

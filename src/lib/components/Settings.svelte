@@ -11,7 +11,13 @@
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
   import {
+    AI_KEY_SAVED,
+    AI_KEY_WHY,
+    AI_MASTER_HINT,
+    AI_MASTER_LOCKED,
+    AI_PROMISE,
     ALMANAC_HINT,
+    BREAK_HINT,
     AUTHOR,
     EMPTY_LEAVE_HINT,
     INSTALL_UPDATE,
@@ -19,7 +25,11 @@
     PLATFORM_COPY,
     SCHEDULE_HOURS_HINT,
     SET_WITH_ME_HINT,
+    TELL_HINT,
+    TELL_THE_SUN,
     UPDATES_HINT,
+    WEEK_HINT,
+    WEEK_IN_WORDS,
     WHISPER_NIGHT_HINT,
     WORK_HOURS_HINT,
     downloading,
@@ -153,6 +163,23 @@
     { value: '6', label: '6h' },
     { value: '8', label: '8h' },
   ];
+
+  const breakOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: 'off', label: 'Off' },
+    { value: '60', label: '1h' },
+    { value: '90', label: '90m' },
+    { value: '120', label: '2h' },
+  ];
+
+  // The key is typed here and handed straight to the app; it is never read back.
+  let keyDraft = $state('');
+  const hasKey = $derived(store.ai?.has_key ?? false);
+
+  async function saveKey(event: Event) {
+    event.preventDefault();
+    if (keyDraft.trim() === '') return;
+    if (await store.setAiKey(keyDraft)) keyDraft = '';
+  }
 
   const nightOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: 'off', label: 'Off' },
@@ -336,6 +363,16 @@
             onchange={(v) => setAlmanac({ whisper_night: v })}
           />
         </Row>
+        <Row label="Break reminder" hint={BREAK_HINT}>
+          <Segmented
+            options={withCurrent(breakOptions, settings.almanac.break_after_mins, 'm')}
+            value={settings.almanac.break_after_mins === null
+              ? 'off'
+              : String(settings.almanac.break_after_mins)}
+            label="Break reminder"
+            onchange={(v) => setAlmanac({ break_after_mins: v === 'off' ? null : Number(v) })}
+          />
+        </Row>
         <Row label="Set with me" hint={SET_WITH_ME_HINT}>
           <Segmented
             options={withCurrent(nightOptions, settings.almanac.rest_after_mins, 'm')}
@@ -347,6 +384,62 @@
           />
         </Row>
       </div>
+    </section>
+
+    <section id="settings-ai">
+      <h2 class="eyebrow">Claude</h2>
+      <Row label="Use Claude" hint={hasKey ? AI_MASTER_HINT : AI_MASTER_LOCKED}>
+        <Switch
+          checked={hasKey && settings.ai.enabled}
+          disabled={!hasKey}
+          label="Use Claude"
+          onchange={(v) => void store.setAiEnabled(v)}
+        />
+      </Row>
+      <div class="key">
+        <div class="label">API key</div>
+        {#if hasKey}
+          <p class="hint">
+            {AI_KEY_SAVED}
+            {PLATFORM_COPY.keyKept}
+            <button type="button" class="quit" onclick={() => void store.setAiKey(null)}>
+              Remove it
+            </button>
+          </p>
+        {:else}
+          <form class="keyform" onsubmit={saveKey}>
+            <input
+              type="password"
+              aria-label="Anthropic API key"
+              placeholder="sk-ant-…"
+              autocomplete="off"
+              spellcheck="false"
+              bind:value={keyDraft}
+            />
+            <button type="submit" class="save" disabled={keyDraft.trim() === ''}>Save</button>
+          </form>
+          <p class="hint">{AI_KEY_WHY} {PLATFORM_COPY.keyKept}</p>
+        {/if}
+      </div>
+      <div class="dependent" class:off={!hasKey || !settings.ai.enabled}>
+        <Row label={WEEK_IN_WORDS} hint={WEEK_HINT}>
+          <Switch
+            checked={settings.ai.week_in_words}
+            disabled={!hasKey || !settings.ai.enabled}
+            label={WEEK_IN_WORDS}
+            onchange={(v) => void store.setAiFeature('week_in_words', v)}
+          />
+        </Row>
+        <Row label={TELL_THE_SUN} hint={TELL_HINT}>
+          <Switch
+            checked={settings.ai.tell_the_sun}
+            disabled={!hasKey || !settings.ai.enabled}
+            label={TELL_THE_SUN}
+            onchange={(v) => void store.setAiFeature('tell_the_sun', v)}
+          />
+        </Row>
+      </div>
+      <p class="hint promise">{AI_PROMISE}</p>
     </section>
 
     <section>
@@ -535,6 +628,49 @@
 
   .dependent.off {
     opacity: 0.4;
+  }
+
+  .key {
+    padding: 11px 0;
+    border-top: 1px solid var(--hair);
+  }
+
+  .key .hint {
+    margin: 4px 0 0;
+  }
+
+  .keyform {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .keyform input {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 8px;
+    border: 1px solid var(--hair-strong);
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    font-size: 12px;
+  }
+
+  .save {
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 12px;
+  }
+
+  .save:disabled {
+    opacity: 0.4;
+  }
+
+  .promise {
+    margin: 4px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--hair);
   }
 
   .times {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TellTheSun from './TellTheSun.svelte';
   /**
    * A slide-rule of durations. Each stop is a tick on a hairline; the active
    * stop carries a filled dot. "Until" opens an inline time field.
@@ -56,6 +57,12 @@
     untilOpen = false;
     void store.setPlan({ kind: 'until', unix_ms: at });
   }
+
+  // While a plan is being typed, Home gives it the room its rows take.
+  $effect(() => {
+    store.planning = untilOpen;
+    return () => (store.planning = false);
+  });
 </script>
 
 <div class="rule" role="group" aria-label="How long to stay awake">
@@ -109,6 +116,7 @@
     <button type="submit" class="set">Set</button>
     <span class="hint">Today, or tomorrow if that time has passed.</span>
   </form>
+  <TellTheSun ondone={() => (untilOpen = false)} />
 {/if}
 
 <style>

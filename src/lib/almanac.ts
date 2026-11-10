@@ -457,6 +457,86 @@ export function stripOf(reading: Reading, day: Day): Strip {
   };
 }
 
+const clockOf = (ms: number) =>
+  new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }).format(
+    new Date(ms),
+  );
+
+const dateOf = (ms: number, locale = 'en-GB') =>
+  new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(
+    new Date(ms),
+  );
+
+/**
+ * A week as plain lines, one day each: what Claude is sent when asked to
+ * put the week into words, and nothing more than the pane already shows.
+ */
+export function weekDigest(reading: Reading, week: readonly Day[]): string {
+  const hours = week.find((day) => day.working)?.hours ?? week[0]?.hours;
+  const head = hours
+    ? `Working hours: ${clockOf(hours.from)} to ${clockOf(hours.to)}. Times are local, 24-hour.`
+    : 'Times are local, 24-hour.';
+  const lines = week.map((day) => {
+    const name = dateOf(day.start);
+    if (day.start > reading.today.start) {
+      return `${name}: still to come${day.kind === 'leave' ? ', leave planned' : ''}.`;
+    }
+    if (day.kind !== 'worked') {
+      const what = day.kind === 'nothing' ? 'nothing recorded' : day.kind;
+      return `${name}: ${what}${day.today ? ' so far' : ''}.`;
+    }
+    const parts = [`${formatWorked(day.worked_ms)} at the keyboard`];
+    if (day.first !== null && day.last !== null) {
+      parts.push(`first touch ${clockOf(day.first)}, last ${clockOf(day.last)}`);
+    }
+    if (day.over_ms >= MINUTE) parts.push(`${formatWorked(day.over_ms)} outside working hours`);
+    if (day.night) {
+      const { from, to } = day.night;
+      parts.push(
+        `the night before ran ${clockOf(from)} to ${clockOf(to)} (${formatWorked(to - from)})`,
+      );
+    }
+    if (day.fixed) parts.push('hours entered by hand');
+    if (day.today) parts.push('today, not over yet');
+    return `${name}: ${parts.join('; ')}.`;
+  });
+  return [head, ...lines].join('\n');
+}
+
+/** One CSV field: quoted when it has a comma, a quote or a line break in it. */
+function field(value: string | number): string {
+  const text = String(value);
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+/**
+ * Days as CSV, one row each, for a timesheet or a spreadsheet: the date,
+ * what the day read as, minutes worked and over, the first and last touch,
+ * the night that led into it, and whether its hours were entered by hand.
+ */
+export function daysCsv(days: readonly Day[]): string {
+  const time = (ms: number | null) => (ms === null ? '' : clockOf(ms));
+  const rows = days.map((day) =>
+    [
+      day.key,
+      new Intl.DateTimeFormat('en-GB', { weekday: 'short' }).format(new Date(day.start)),
+      day.kind,
+      Math.floor(day.worked_ms / MINUTE),
+      Math.floor(day.over_ms / MINUTE),
+      time(day.first),
+      time(day.last),
+      time(day.night?.from ?? null),
+      time(day.night?.to ?? null),
+      day.fixed ? 'yes' : 'no',
+    ]
+      .map(field)
+      .join(','),
+  );
+  const head =
+    'date,weekday,day,worked_minutes,over_minutes,first_touch,last_touch,night_from,night_to,by_hand';
+  return [head, ...rows].join('\n');
+}
+
 /** `6h 42m`, `42m`, `0m`: time worked, to the minute. */
 export function formatWorked(ms: number): string {
   const minutes = Math.max(0, Math.floor(ms / MINUTE));
