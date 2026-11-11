@@ -1,7 +1,5 @@
 //! Requests the UI (or tray) can make to change what the engine is doing.
 
-use std::time::Duration;
-
 use serde::{Deserialize, Serialize};
 
 /// What the user asked for. This is the only mutation the UI can make to the
@@ -32,10 +30,10 @@ impl PlanRequest {
     pub fn resolve(self, now_unix_ms: u64) -> PlanRequest {
         match self {
             PlanRequest::Until { unix_ms } if unix_ms <= now_unix_ms => PlanRequest::Off,
+            // Rounded up: a deadline a few milliseconds short of the minute
+            // asked for would read as the minute before.
             PlanRequest::Until { unix_ms } => PlanRequest::For {
-                seconds: Duration::from_millis(unix_ms - now_unix_ms)
-                    .as_secs()
-                    .max(1),
+                seconds: (unix_ms - now_unix_ms).div_ceil(1000).max(1),
             },
             other => other,
         }
@@ -50,6 +48,12 @@ mod tests {
     fn until_in_future_becomes_for() {
         let req = PlanRequest::Until { unix_ms: 10_000 }.resolve(4_000);
         assert_eq!(req, PlanRequest::For { seconds: 6 });
+    }
+
+    #[test]
+    fn until_rounds_up_to_the_second_asked_for() {
+        let req = PlanRequest::Until { unix_ms: 60_000 }.resolve(1_250);
+        assert_eq!(req, PlanRequest::For { seconds: 59 });
     }
 
     #[test]
