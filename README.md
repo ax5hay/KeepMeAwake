@@ -41,11 +41,6 @@ Nothing is typed for you, nothing moves, and it lets go the moment you say.
 
 <br/>
 
-> [!NOTE]
-> A personal project by [Akshay Bajpai](https://akshaybajpai.com). The released build is
-> **0.5.0**. The themes beyond Paper and Night and the redrawn Windows installer are on `main`
-> and ship in 0.6.
-
 ## Contents
 
 | Section                                   | What it covers                                       |

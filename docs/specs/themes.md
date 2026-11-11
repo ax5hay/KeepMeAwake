@@ -1,6 +1,6 @@
 # Themes
 
-Status: built on Windows; waits for the Mac.
+Status: shipped in 0.6.0, built on Windows; waits for the Mac.
 
 ## Why
 

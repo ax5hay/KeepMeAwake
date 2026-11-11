@@ -76,7 +76,7 @@ Built and checked on Windows; the Mac's checks are listed in [`HANDOFF.md`](HAND
 | Claude, as a choice: a week in words, a plan said in a sentence | [claude-integration.md](specs/claude-integration.md) | core, app, ui |
 | Check for an update now · Break reminder · Copy month as CSV    |                                                      | app, ui       |
 
-## Built for 0.6, not yet released
+## Shipped in 0.6
 
 | Feature                                                                     | Spec                           | Layers   |
 | --------------------------------------------------------------------------- | ------------------------------ | -------- |
