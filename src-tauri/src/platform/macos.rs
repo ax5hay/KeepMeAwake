@@ -57,6 +57,7 @@ unsafe extern "C" {
     fn IOPSCopyPowerSourcesInfo() -> CFTypeRef;
     fn IOPSCopyPowerSourcesList(blob: CFTypeRef) -> CFArrayRef;
     fn IOPSGetPowerSourceDescription(blob: CFTypeRef, source: CFTypeRef) -> CFDictionaryRef;
+    fn IOPSGetTimeRemainingEstimate() -> f64;
 }
 
 /// `CGEventSourceStateID`, an `int32_t`.
@@ -82,6 +83,11 @@ const STATE_KEY: &str = "Power Source State";
 const CURRENT_KEY: &str = "Current Capacity";
 /// `kIOPSMaxCapacityKey`.
 const MAX_KEY: &str = "Max Capacity";
+/// `kIOPSTypeKey`, and the value it has for a laptop's own battery
+/// (`kIOPSInternalBatteryType`). A UPS is another type and is not a battery
+/// this machine carries.
+const TYPE_KEY: &str = "Type";
+const INTERNAL_BATTERY: &str = "InternalBattery";
 
 /// Two IOPMAssertions, created and released to match a [`GuardState`].
 #[derive(Debug, Default)]
@@ -180,6 +186,8 @@ impl BatteryProbe for MacBattery {
         let mains = BatteryState {
             on_ac: true,
             percent: None,
+            present: false,
+            minutes_left: None,
         };
         // SAFETY: a Copy function; null is checked before the result is
         // wrapped, and the wrapper releases it once.
@@ -196,20 +204,30 @@ impl BatteryProbe for MacBattery {
         }
         // SAFETY: `list` is a non-null CFArray of CFTypeRefs we own.
         let list: CFArray<CFType> = unsafe { CFArray::wrap_under_create_rule(list) };
-        let Some(source) = list.get(0) else {
+        // The laptop's own battery, wherever it is in the list; a Mac mini
+        // or an iMac has none (a UPS may be listed, and is not one).
+        let description = list.iter().find_map(|source| {
+            // SAFETY: `blob` and `source` are both live; the description is
+            // owned by `blob` (get rule), which outlives every use below.
+            let description = unsafe {
+                IOPSGetPowerSourceDescription(blob.as_CFTypeRef(), source.as_CFTypeRef())
+            };
+            if description.is_null() {
+                return None;
+            }
+            // SAFETY: non-null CFDictionary with CFString keys, retained by
+            // the wrapper for as long as it is used.
+            let description: CFDictionary<CFString, CFType> =
+                unsafe { CFDictionary::wrap_under_get_rule(description) };
+            let kind = description
+                .find(CFString::from_static_string(TYPE_KEY))
+                .and_then(|value| value.downcast::<CFString>())
+                .map(|value| value.to_string());
+            (kind.as_deref() == Some(INTERNAL_BATTERY)).then_some(description)
+        });
+        let Some(description) = description else {
             return mains;
         };
-        // SAFETY: `blob` and `source` are both live; the description is
-        // owned by `blob` (get rule), which outlives every use below.
-        let description =
-            unsafe { IOPSGetPowerSourceDescription(blob.as_CFTypeRef(), source.as_CFTypeRef()) };
-        if description.is_null() {
-            return mains;
-        }
-        // SAFETY: non-null CFDictionary with CFString keys, retained by the
-        // wrapper for as long as it is used.
-        let description: CFDictionary<CFString, CFType> =
-            unsafe { CFDictionary::wrap_under_get_rule(description) };
         let state = description
             .find(CFString::from_static_string(STATE_KEY))
             .and_then(|value| value.downcast::<CFString>())
@@ -220,12 +238,28 @@ impl BatteryProbe for MacBattery {
                 .and_then(|value| value.downcast::<CFNumber>())
                 .and_then(|value| value.to_i64())
         };
-        decode_power_source(
+        let mut battery = decode_power_source(
             state.as_deref().unwrap_or_default(),
             number(CURRENT_KEY),
             number(MAX_KEY),
-        )
+        );
+        if !battery.on_ac {
+            // SAFETY: no arguments; returns a plain double.
+            battery.minutes_left = minutes_from_estimate(unsafe { IOPSGetTimeRemainingEstimate() });
+        }
+        battery
     }
+}
+
+/// Pure, tested: `IOPSGetTimeRemainingEstimate`'s seconds as whole minutes.
+/// `-1` (still working it out) and `-2` (on mains) are no estimate.
+pub fn minutes_from_estimate(secs: f64) -> Option<u32> {
+    if !secs.is_finite() || secs < 0.0 {
+        return None;
+    }
+    // Saturating: an estimate past u32 minutes is not one anybody reads.
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    Some((secs / 60.0).round().min(f64::from(u32::MAX)) as u32)
 }
 
 /// Time since the last keyboard, mouse or trackpad input, from the HID
@@ -264,6 +298,8 @@ pub fn decode_power_source(state: &str, current: Option<i64>, max: Option<i64>) 
     BatteryState {
         on_ac: state != "Battery Power",
         percent,
+        present: true,
+        minutes_left: None,
     }
 }
 
@@ -300,16 +336,29 @@ mod tests {
             decode_power_source("AC Power", Some(77), Some(100)),
             BatteryState {
                 on_ac: true,
-                percent: Some(77)
+                percent: Some(77),
+                present: true,
+                minutes_left: None,
             }
         );
         assert_eq!(
             decode_power_source("Battery Power", Some(19), Some(100)),
             BatteryState {
                 on_ac: false,
-                percent: Some(19)
+                percent: Some(19),
+                present: true,
+                minutes_left: None,
             }
         );
+    }
+
+    #[test]
+    fn the_estimate_is_whole_minutes_or_nothing() {
+        assert_eq!(minutes_from_estimate(11_400.0), Some(190));
+        assert_eq!(minutes_from_estimate(89.0), Some(1));
+        assert_eq!(minutes_from_estimate(-1.0), None);
+        assert_eq!(minutes_from_estimate(-2.0), None);
+        assert_eq!(minutes_from_estimate(f64::NAN), None);
     }
 
     #[test]
@@ -372,6 +421,11 @@ mod tests {
             assert!(p <= 100);
         } else {
             assert!(state.on_ac);
+        }
+        // No battery fitted is always mains, with nothing to estimate.
+        if !state.present {
+            assert!(state.on_ac);
+            assert_eq!(state.minutes_left, None);
         }
     }
 

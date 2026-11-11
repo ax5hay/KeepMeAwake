@@ -145,12 +145,15 @@ impl BatteryProbe for WindowsBattery {
             return BatteryState {
                 on_ac: true,
                 percent: None,
+                present: false,
+                minutes_left: None,
             };
         }
         decode_power_status(
             status.ACLineStatus,
             status.BatteryFlag,
             status.BatteryLifePercent,
+            status.BatteryLifeTime,
         )
     }
 }
@@ -272,7 +275,8 @@ fn win32_error(call: &'static str, code: WIN32_ERROR) -> PlatformError {
 ///
 /// `ac_line`: 0 offline, 1 online, 255 unknown. `flag` bit 128 means no
 /// battery. `percent` 255 means unknown.
-pub fn decode_power_status(ac_line: u8, flag: u8, percent: u8) -> BatteryState {
+pub fn decode_power_status(ac_line: u8, flag: u8, percent: u8, life_secs: u32) -> BatteryState {
+    // 128 is "no system battery"; 255 ("unknown") has that bit set too.
     let no_battery = flag & 128 != 0;
     let on_ac = ac_line == 1 || ac_line == 255 || no_battery;
     let percent = if no_battery || percent == 255 {
@@ -280,7 +284,14 @@ pub fn decode_power_status(ac_line: u8, flag: u8, percent: u8) -> BatteryState {
     } else {
         Some(percent.min(100))
     };
-    BatteryState { on_ac, percent }
+    // `u32::MAX` is "unknown", which is also what Windows says on mains.
+    let minutes_left = (!on_ac && life_secs != u32::MAX).then(|| life_secs / 60);
+    BatteryState {
+        on_ac,
+        percent,
+        present: !no_battery,
+        minutes_left,
+    }
 }
 
 fn os_error(call: &'static str, err: &windows::core::Error) -> PlatformError {
@@ -297,10 +308,12 @@ mod tests {
     #[test]
     fn decodes_plugged_in_with_battery() {
         assert_eq!(
-            decode_power_status(1, 0, 77),
+            decode_power_status(1, 0, 77, u32::MAX),
             BatteryState {
                 on_ac: true,
-                percent: Some(77)
+                percent: Some(77),
+                present: true,
+                minutes_left: None,
             }
         );
     }
@@ -308,34 +321,46 @@ mod tests {
     #[test]
     fn decodes_unplugged() {
         assert_eq!(
-            decode_power_status(0, 0, 19),
+            decode_power_status(0, 0, 19, 11_400),
             BatteryState {
                 on_ac: false,
-                percent: Some(19)
+                percent: Some(19),
+                present: true,
+                minutes_left: Some(190),
             }
         );
     }
 
     #[test]
     fn unknown_line_status_is_treated_as_mains() {
-        assert!(decode_power_status(255, 0, 50).on_ac);
+        assert!(decode_power_status(255, 0, 50, u32::MAX).on_ac);
     }
 
     #[test]
     fn desktops_without_battery_are_always_on_mains() {
         assert_eq!(
-            decode_power_status(0, 128, 255),
+            decode_power_status(0, 128, 255, u32::MAX),
             BatteryState {
                 on_ac: true,
-                percent: None
+                percent: None,
+                present: false,
+                minutes_left: None,
             }
         );
     }
 
     #[test]
     fn unknown_percent_is_none_and_values_are_capped() {
-        assert_eq!(decode_power_status(1, 0, 255).percent, None);
-        assert_eq!(decode_power_status(1, 0, 120).percent, Some(100));
+        assert_eq!(decode_power_status(1, 0, 255, u32::MAX).percent, None);
+        assert_eq!(decode_power_status(1, 0, 120, u32::MAX).percent, Some(100));
+    }
+
+    #[test]
+    fn time_left_only_on_battery_and_only_when_known() {
+        assert_eq!(decode_power_status(0, 0, 50, u32::MAX).minutes_left, None);
+        assert_eq!(decode_power_status(1, 0, 50, 3600).minutes_left, None);
+        assert_eq!(decode_power_status(0, 0, 50, 3659).minutes_left, Some(60));
+        assert!(!decode_power_status(0, 255, 50, 3600).present);
     }
 
     /// Exercises the real API. Runs only on Windows and is harmless: it holds a

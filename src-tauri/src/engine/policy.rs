@@ -92,6 +92,8 @@ mod tests {
         BatteryState {
             on_ac: true,
             percent: Some(80),
+            present: true,
+            minutes_left: None,
         }
     }
 
@@ -99,6 +101,8 @@ mod tests {
         BatteryState {
             on_ac: false,
             percent: Some(percent),
+            present: true,
+            minutes_left: None,
         }
     }
 
@@ -171,6 +175,8 @@ mod tests {
             BatteryState {
                 on_ac: false,
                 percent: None,
+                present: true,
+                minutes_left: None,
             },
         );
         assert!(g.system);

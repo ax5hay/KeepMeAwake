@@ -36,6 +36,14 @@ pub struct BatteryState {
     pub on_ac: bool,
     /// Charge percentage, when a battery is present and the value is known.
     pub percent: Option<u8>,
+    /// A battery is fitted. `false` on a desktop, where no battery rule
+    /// can apply and none is offered.
+    #[serde(default)]
+    pub present: bool,
+    /// The OS's estimate of the charge left at the current drain, in
+    /// minutes, while on battery. `None` when plugged in or unknown.
+    #[serde(default)]
+    pub minutes_left: Option<u32>,
 }
 
 /// Where the schedule stands right now.

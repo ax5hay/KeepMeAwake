@@ -217,6 +217,8 @@ mod tests {
             battery: BatteryState {
                 on_ac: true,
                 percent: Some(80),
+                present: true,
+                minutes_left: None,
             },
             schedule: ScheduleState::default(),
             guard_rests_at_unix_ms: None,
@@ -310,6 +312,8 @@ mod tests {
             BatteryState {
                 on_ac: false,
                 percent: Some(18),
+                present: true,
+                minutes_left: None,
             },
         );
         assert_eq!(

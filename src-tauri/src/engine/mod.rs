@@ -924,6 +924,8 @@ mod tests {
         let battery = FakeBattery::new(BatteryState {
             on_ac: true,
             percent: Some(90),
+            present: true,
+            minutes_left: None,
         });
         // Someone is at the keyboard unless a test says otherwise.
         let idle = FakeIdle::default();
@@ -1076,6 +1078,8 @@ mod tests {
         r.battery.set(BatteryState {
             on_ac: false,
             percent: Some(10),
+            present: true,
+            minutes_left: None,
         });
         r.engine.refresh();
         wait_for_guard(&r, |g| g == GuardState::default());
@@ -1087,12 +1091,16 @@ mod tests {
             BatteryState {
                 on_ac: false,
                 percent: Some(10),
+                present: true,
+                minutes_left: None,
             }
         )));
 
         r.battery.set(BatteryState {
             on_ac: true,
             percent: Some(10),
+            present: true,
+            minutes_left: None,
         });
         r.engine.refresh();
         wait_for_guard(&r, |g| g.system);
@@ -1429,6 +1437,8 @@ mod tests {
         r.battery.set(BatteryState {
             on_ac: false,
             percent: Some(10),
+            present: true,
+            minutes_left: None,
         });
         r.engine.set_plan(PlanRequest::Indefinite);
         r.idle.set(Some(6 * HOUR));
@@ -1818,6 +1828,8 @@ mod tests {
         r.battery.set(BatteryState {
             on_ac: false,
             percent: Some(10),
+            present: true,
+            minutes_left: None,
         });
         r.engine.refresh();
         wait_for_guard(&r, |g| g == GuardState::default());
@@ -1842,6 +1854,8 @@ mod tests {
         r.battery.set(BatteryState {
             on_ac: false,
             percent: Some(10),
+            present: true,
+            minutes_left: None,
         });
         r.engine.refresh();
         wait_for_guard(&r, |g| g == GuardState::default());
@@ -1876,6 +1890,8 @@ mod tests {
         r.battery.set(BatteryState {
             on_ac: false,
             percent: Some(10),
+            present: true,
+            minutes_left: None,
         });
         let t0 = r.clock.unix_ms();
         r.engine.set_plan(PlanRequest::Indefinite);
@@ -2130,6 +2146,8 @@ mod tests {
         r.battery.set(BatteryState {
             on_ac: false,
             percent: Some(5),
+            present: true,
+            minutes_left: None,
         });
         r.engine.refresh();
         wait_for_guard(&r, |g| g == GuardState::default());
@@ -2141,6 +2159,8 @@ mod tests {
             BatteryState {
                 on_ac: false,
                 percent: Some(5),
+                present: true,
+                minutes_left: None,
             }
         )));
     }
@@ -2154,6 +2174,8 @@ mod tests {
                 battery: Box::new(FakeBattery::new(BatteryState {
                     on_ac: true,
                     percent: Some(90),
+                    present: true,
+                    minutes_left: None,
                 })),
                 idle: Box::new(FakeIdle::default()),
                 clock: Arc::new(ManualClock::new()),

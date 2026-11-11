@@ -138,6 +138,8 @@ impl BatteryProbe for AlwaysOnMains {
         BatteryState {
             on_ac: true,
             percent: None,
+            present: false,
+            minutes_left: None,
         }
     }
 }
