@@ -329,6 +329,7 @@ Claude with one button, **Enable AI**. It is off by default.
 |            | ⌘M       | minimise                                                                  |
 |            | ⌘Q       | quit                                                                      |
 | Ctrl+,     | ⌘,       | settings                                                                  |
+| ?          | ?        | every key, on one sheet                                                   |
 | Tab / ←→   | Tab / ←→ | move between stops and controls                                           |
 
 ## Tray and menu bar
@@ -417,6 +418,29 @@ by night. A theme changes colours only.
 | Loud     | Vaporwave, Thermal, Negative, Miami, Bubblegum, Highlighter, Grape Soda, Hi-Vis           |
 
 ![Settings → Theme, Paper](assets/themes-picker-light.png)
+
+## Small things
+
+None of these is needed; all of them are there.
+
+| Thing                     | Where to find it                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------------------- |
+| A sun shaped by its theme | wear Pocket (pixels), Thermal (a ring) or Risograph (a halftone dot)                            |
+| Tonight's moon            | Night, while resting: top right of the sky. Click it for its phase                              |
+| A shooting star           | a resting sky, about once in thirty openings                                                    |
+| Look before you choose    | point at any swatch in Settings → Theme; the window wears it until you move away                |
+| A theme of your own       | Settings → Theme → **Yours**: five colours, and one line to share it or to paste someone else's |
+| After dark                | Settings → Theme → **After dark**: another theme for the evening, with its hours                |
+| Every key                 | press **?**                                                                                     |
+| A year, looked back on    | Almanac → the year's row → **Look back**                                                        |
+| Print month               | Almanac → **Print month**, beside Copy month as CSV                                             |
+| Sounds                    | Settings → Theme → **Sounds**: a note as the sun rises and sets. Off by default                 |
+| Mini window               | the first button in the title bar: the sun alone, on top. **Esc** brings the window back        |
+| Credits                   | Settings → About → **Credits and history**                                                      |
+
+![The small things: three suns, the moon, a theme of your own, the keys, the credits and a year](assets/small-things.png)
+
+![The mini window, and a month as it prints](assets/small-mini-print.png)
 
 ## History
 

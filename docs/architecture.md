@@ -299,6 +299,8 @@ sequenceDiagram
 | `resume_schedule`  |                          | `Snapshot`                                                                              |
 | `update_settings`  | `settings: Settings`     | `Snapshot`, or an error string if the file could not be saved or the hotkey was refused |
 | `quit_app`         |                          |                                                                                         |
+| `set_mini`         | `on: bool`               | the window as the sun alone, 220 by 178 and on top, or back as configured               |
+| `print_window`     |                          | opens the system's print dialog; the print stylesheet shows only the month's timesheet  |
 | `extend_session`   |                          | `Snapshot`: a timed session's end moved 30 minutes later                                |
 | `keep_it_up`       |                          | `Snapshot`: the overnight guard leaves this Always session alone                        |
 | `ai_status`        |                          | `{ has_key }`: whether a key is stored; the key never comes back                        |

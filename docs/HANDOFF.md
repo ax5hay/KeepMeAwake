@@ -3,9 +3,9 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-12 · by Claude Fable 5.2 (Windows session: v0.6.0 released: themes, the Windows installers, the weekday nobody works, the README)
+**Last updated:** 2026-11-12 · by Claude Fable 5.2 (Windows session: v0.6.0 released; the twelve small things built, unreleased)
 **Release:** [v0.6.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.6.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
-**Repo state:** `main` is green (`npm run verify` on Windows: vitest 199, cargo test 247;
+**Repo state:** `main` is green (`npm run verify` on Windows: vitest 212, cargo test 249;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
 the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
@@ -193,6 +193,26 @@ on Windows is listed under **Where to start**.
 | 2026-11-11 | AI by any service (Claude, OpenAI, other); product names back; v0.5.0 released (full, latest)              | Claude Fable 5.2 |
 | 2026-11-11 | Themes (27, on four shelves); a weekday nobody works reads as a day off; both unreleased                   | Claude Fable 5.2 |
 | 2026-11-12 | Windows installers redrawn; README rewritten; v0.6.0 released (full, latest)                               | Claude Fable 5.2 |
+
+## Small things (unreleased, for 0.7)
+
+[Spec](specs/small-things.md). Twelve: a sun shaped by its theme, the moon,
+a shooting star, themes previewed on hover, a theme of your own, a theme
+after dark, the `?` key sheet, a year looked back on, a printed month,
+sounds, a mini window, credits.
+
+- Settings gained `own_theme`, `after_dark`, `sounds` and `Theme::Own`; all
+  default, no version bump. `App.svelte` now decides what is worn (preview,
+  then the evening, then the choice) and `theme.ts`'s `wear` puts it on;
+  `watchTheme` is gone.
+- Seen in the harness: all twelve but the shooting star and the sounds. In
+  the real app on Windows: the mini window's size, there and back.
+- Not checked: always-on-top and dragging the mini window; a real print
+  dialog (`print_window` calls the webview's own `print`, which is what the
+  Mac needs, since `window.print()` does nothing in WKWebView); the system
+  colour dialog; sounds; anything on the Mac.
+- `VERSIONS` in `copy.ts` (the credits' timeline) names 0.7 already: keep it
+  in step with the changelog at each release.
 
 ## Themes, and what counts as leave (released in 0.6.0)
 

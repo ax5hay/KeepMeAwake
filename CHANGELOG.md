@@ -5,6 +5,31 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+
+- A sun shaped by its theme: square pixels in Pocket, a ring around a core
+  in Thermal, a halftone dot in Risograph.
+- Tonight's moon in Night's resting sky, worked out from the date. Click it
+  for its phase.
+- A shooting star, now and then, on a resting sky.
+- Pointing at a theme in Settings wears it on the whole window until the
+  pointer leaves, so you can look before you choose.
+- A theme of your own (Settings → Theme → Yours): five colours, the rest
+  worked out, and one line of text to share it or to wear someone else's.
+- After dark (Settings → Theme): another theme for the evening, with its
+  hours. Off unless you ask.
+- `?` lays every key over the window on one sheet.
+- A year, looked back on (Almanac → the year → Look back): hours, days and
+  leave, the months as bars, the longest day, the earliest start, the
+  latest finish, the longest run.
+- Print month, beside Copy month as CSV: the open month as a timesheet.
+- Sounds (Settings → Theme, off by default): a soft note as the sun rises
+  and as it sets, while the window is open.
+- Mini window (the first button in the title bar): the sun alone, small and
+  above other windows. Esc brings the window back.
+- Credits and history (Settings → About): the versions as a timeline, and
+  whose work the app is made with, the borrowed palettes' authors included.
+
 ## [0.6.0] - 2026-11-12
 
 Themes, a Windows installer that looks like the app, and a leave count

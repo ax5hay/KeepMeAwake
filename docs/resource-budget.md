@@ -130,6 +130,13 @@ Get-Process keepmeawake | Select-Object Id, @{n='PrivateMB';e={[math]::Round($_.
 npm run ui:build   # Vite prints gzip sizes per chunk
 ```
 
+The small things ([spec](specs/small-things.md)) add nothing at rest, since
+all of them live in the window. Three are worth naming: with After dark on,
+the window holds one timeout to the moment the evening next starts or ends
+(none with it off); the shooting star is one CSS animation played once,
+about one opening in thirty, and never with reduced motion; and sounds
+build an audio context on the first note, not before.
+
 ## Rules that protect it
 
 ```mermaid

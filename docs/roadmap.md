@@ -83,6 +83,12 @@ Built and checked on Windows; the Mac's checks are listed in [`HANDOFF.md`](HAND
 | Themes: the app's own, eight borrowed palettes, eight to play, eight loud   | [themes.md](specs/themes.md)   | core, ui |
 | Almanac: a weekday you never work reads as a day off, not a leave each week | [almanac.md](specs/almanac.md) | ui       |
 
+## Built for 0.7, not yet released
+
+| Feature                                                                                                                                                                                                              | Spec                                     | Layers        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------- |
+| Small things: a sun shaped by its theme, the moon, a shooting star, themes previewed, a theme of your own, a theme after dark, the key sheet, a year looked back on, a printed month, sounds, a mini window, credits | [small-things.md](specs/small-things.md) | core, app, ui |
+
 ## After 0.3
 
 Scoped enough to size; each gets a full spec when it is next in line.

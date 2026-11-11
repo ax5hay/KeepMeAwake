@@ -75,6 +75,12 @@ and one accent, the sun. A loud theme is loud in its paper. The picker shows
 each as a small horizon in its own colours, because that is what choosing it
 changes.
 
+Three themes also draw their own sun, because their medium would: square
+pixels in Pocket, a ring around a core in Thermal, a halftone dot in
+Risograph. It is the one shape a theme may change. A theme of one's own is
+five colours and nothing else; the other fifteen tokens are worked out from
+them, so it cannot be made unreadable by leaving something out.
+
 ![The borrowed themes](assets/themes-borrowed.png)
 
 ![The themes to play with](assets/themes-play.png)
