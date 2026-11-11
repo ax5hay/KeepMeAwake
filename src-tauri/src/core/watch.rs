@@ -12,15 +12,17 @@ use serde::{Deserialize, Serialize};
 use super::snapshot::BatteryState;
 
 /// How long a transfer or a busy processor keeps holding after its last
-/// reading over the threshold, so a pause between two files or two compile
-/// steps does not let the laptop sleep in the middle.
-pub const WATCH_LINGER: Duration = Duration::from_secs(2 * 60);
+/// reading over the threshold, by default, so a pause between two files or
+/// two compile steps does not let the laptop sleep in the middle.
+pub const LINGER_MINS: u8 = 2;
 
-/// Network traffic, in and out together, above which a transfer is going.
-/// Background chatter (sync heartbeats, mail) stays well under it.
-pub const TRANSFER_BYTES_PER_SEC: u64 = 64 * 1024;
+/// Network traffic, in and out together, above which a transfer is going,
+/// by default, in kilobytes (1000 bytes) a second. Background chatter (sync
+/// heartbeats, mail) stays well under it.
+pub const TRANSFER_KBPS: u32 = 64;
 
-/// Processor use, across all cores, above which the computer is busy.
+/// Processor use, across all cores, above which the computer is busy, by
+/// default.
 pub const BUSY_PERCENT: u8 = 30;
 
 /// Two readings closer than this are not compared: a command can wake the
@@ -35,16 +37,16 @@ pub const MAX_APP_NAME: usize = 64;
 
 /// What keeps the laptop awake on its own. Every condition is off, and the
 /// app list empty, until chosen.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "snake_case")]
 #[allow(clippy::struct_excessive_bools)] // independent switches, one per row
 pub struct WatchSettings {
     /// Awake while any of these apps runs. Matched without case, and
     /// without a trailing `.exe`.
     pub apps: Vec<String>,
-    /// Awake while the network moves more than [`TRANSFER_BYTES_PER_SEC`].
+    /// Awake while the network moves more than `transfer_kbps`.
     pub transfers: bool,
-    /// Awake while the processor is over [`BUSY_PERCENT`].
+    /// Awake while the processor is over `busy_percent`.
     pub busy: bool,
     /// Awake while another app is full screen: a video, a game, slides.
     pub full_screen: bool,
@@ -52,9 +54,37 @@ pub struct WatchSettings {
     pub display: bool,
     /// Awake while plugged in. Laptops only.
     pub plugged_in: bool,
+    /// A transfer is going above this many kilobytes a second, in and out.
+    pub transfer_kbps: u32,
+    /// The computer is busy above this share of the processor.
+    pub busy_percent: u8,
+    /// A transfer or a busy spell keeps holding this long after it drops.
+    pub linger_mins: u8,
+}
+
+impl Default for WatchSettings {
+    fn default() -> Self {
+        Self {
+            apps: Vec::new(),
+            transfers: false,
+            busy: false,
+            full_screen: false,
+            display: false,
+            plugged_in: false,
+            transfer_kbps: TRANSFER_KBPS,
+            busy_percent: BUSY_PERCENT,
+            linger_mins: LINGER_MINS,
+        }
+    }
 }
 
 impl WatchSettings {
+    /// How long a transfer or a busy spell keeps holding after it drops.
+    #[must_use]
+    pub fn linger(&self) -> Duration {
+        Duration::from_secs(u64::from(self.linger_mins) * 60)
+    }
+
     /// Any condition is switched on, so the machine has to be read.
     #[must_use]
     pub fn any(&self) -> bool {
@@ -70,6 +100,10 @@ impl WatchSettings {
     /// `.exe`) removed, at most [`MAX_APPS`] of at most [`MAX_APP_NAME`].
     #[must_use]
     pub fn sanitized(mut self) -> Self {
+        // A kilobyte a second to 100 MB/s; 5% to 95%; a minute to an hour.
+        self.transfer_kbps = self.transfer_kbps.clamp(1, 100_000);
+        self.busy_percent = self.busy_percent.clamp(5, 95);
+        self.linger_mins = self.linger_mins.clamp(1, 60);
         let mut seen: Vec<String> = Vec::new();
         self.apps = self
             .apps
@@ -234,9 +268,14 @@ impl Watcher {
     ) -> WatchState {
         self.sample_transfer(
             settings.transfers.then_some(readings.transferred).flatten(),
+            settings,
             now,
         );
-        self.sample_cpu(settings.busy.then_some(readings.cpu).flatten(), now);
+        self.sample_cpu(
+            settings.busy.then_some(readings.cpu).flatten(),
+            settings,
+            now,
+        );
         let holding = |until: Option<Instant>| until.is_some_and(|until| now < until);
         // Without a battery these two would hold forever: a desktop is
         // always plugged in, and its only displays are external.
@@ -269,7 +308,7 @@ impl Watcher {
         }
     }
 
-    fn sample_transfer(&mut self, reading: Option<u64>, now: Instant) {
+    fn sample_transfer(&mut self, reading: Option<u64>, settings: &WatchSettings, now: Instant) {
         let Some(bytes) = reading else {
             self.bytes = None;
             self.rate = None;
@@ -288,15 +327,16 @@ impl Watcher {
                 self.rate = bytes
                     .checked_sub(before)
                     .map(|moved| per_second(moved, now.saturating_duration_since(at)));
-                if self.rate.is_some_and(|rate| rate > TRANSFER_BYTES_PER_SEC) {
-                    self.transfer_until = Some(now + WATCH_LINGER);
+                let threshold = u64::from(settings.transfer_kbps) * 1000;
+                if self.rate.is_some_and(|rate| rate > threshold) {
+                    self.transfer_until = Some(now + settings.linger());
                 }
             }
             None => self.bytes = Some((bytes, now)),
         }
     }
 
-    fn sample_cpu(&mut self, reading: Option<CpuTicks>, now: Instant) {
+    fn sample_cpu(&mut self, reading: Option<CpuTicks>, settings: &WatchSettings, now: Instant) {
         let Some(ticks) = reading else {
             self.cpu = None;
             self.percent = None;
@@ -308,8 +348,8 @@ impl Watcher {
             Some((before, _)) => {
                 self.cpu = Some((ticks, now));
                 self.percent = busy_percent(before, ticks);
-                if self.percent.is_some_and(|p| p > BUSY_PERCENT) {
-                    self.busy_until = Some(now + WATCH_LINGER);
+                if self.percent.is_some_and(|p| p > settings.busy_percent) {
+                    self.busy_until = Some(now + settings.linger());
                 }
             }
             None => self.cpu = Some((ticks, now)),
@@ -361,6 +401,7 @@ mod tests {
             full_screen: true,
             display: true,
             plugged_in: true,
+            ..WatchSettings::default()
         }
     }
 
@@ -560,6 +601,48 @@ mod tests {
         assert_eq!(calm.reason, Some(WatchReason::Busy), "lingers");
         let gone = watcher.observe(&settings, &cpu(570, 3000), laptop(true), at(200));
         assert_eq!(gone.reason, None);
+    }
+
+    #[test]
+    fn the_thresholds_and_the_wait_are_the_settings() {
+        let settings = WatchSettings {
+            transfers: true,
+            transfer_kbps: 16,
+            linger_mins: 5,
+            ..WatchSettings::default()
+        };
+        let mut watcher = Watcher::default();
+        let start = Instant::now();
+        let at = |secs| start + Duration::from_secs(secs);
+        watcher.observe(&settings, &bytes(0), laptop(true), at(0));
+        // 20 KB/s: under the default, over a 16 KB/s threshold.
+        let state = watcher.observe(&settings, &bytes(600_000), laptop(true), at(30));
+        assert_eq!(state.reason, Some(WatchReason::Transfer));
+        // Quiet: still held at four minutes, let go after five.
+        let held = watcher.observe(&settings, &bytes(600_000), laptop(true), at(30 + 240));
+        assert_eq!(held.reason, Some(WatchReason::Transfer));
+        let gone = watcher.observe(&settings, &bytes(600_000), laptop(true), at(30 + 301));
+        assert_eq!(gone.reason, None);
+    }
+
+    #[test]
+    fn thresholds_are_kept_in_range() {
+        let wild = WatchSettings {
+            transfer_kbps: 0,
+            busy_percent: 100,
+            linger_mins: 0,
+            ..WatchSettings::default()
+        }
+        .sanitized();
+        assert_eq!(
+            (wild.transfer_kbps, wild.busy_percent, wild.linger_mins),
+            (1, 95, 1)
+        );
+        let d = WatchSettings::default();
+        assert_eq!(
+            (d.transfer_kbps, d.busy_percent, d.linger_mins),
+            (64, 30, 2)
+        );
     }
 
     #[test]

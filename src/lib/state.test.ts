@@ -86,9 +86,12 @@ const base: Snapshot = {
       full_screen: false,
       display: false,
       plugged_in: false,
+      transfer_kbps: 64,
+      busy_percent: 30,
+      linger_mins: 2,
     },
     after_end: 'nothing',
-    wide: false,
+    wide: null,
   },
   app_version: '0.1.0',
 };

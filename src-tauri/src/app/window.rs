@@ -231,8 +231,10 @@ fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     // state, so there is never a blank flash. If the UI fails to do so, show
     // it anyway after a grace period so the user is never locked out.
     let window = WebviewWindowBuilder::from_config(app, &config)?.build()?;
-    // It reopens the size it was closed at.
-    if app.state::<AppState>().engine.settings().wide
+    // It reopens the size it was closed at; until one is chosen, a desktop
+    // (no battery) opens wide and a laptop standard.
+    let snapshot = app.state::<AppState>().engine.snapshot();
+    if snapshot.settings.wide.unwrap_or(!snapshot.battery.present)
         && let Err(err) = set_wide(app, &window, true)
     {
         log::warn!("could not open wide: {err}");

@@ -95,7 +95,8 @@ export interface Settings {
   last_update_check_unix_ms: number;
   watch: WatchSettings;
   after_end: AfterEnd;
-  wide: boolean;
+  /** `null` until chosen: a desktop opens wide, a laptop standard. */
+  wide: boolean | null;
 }
 
 /** What happens after a stretch ends on its own. */
@@ -109,6 +110,9 @@ export interface WatchSettings {
   full_screen: boolean;
   display: boolean;
   plugged_in: boolean;
+  transfer_kbps: number;
+  busy_percent: number;
+  linger_mins: number;
 }
 
 /** Why a watched condition holds the laptop awake. */
