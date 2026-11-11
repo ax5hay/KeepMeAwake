@@ -52,9 +52,15 @@ timeline
 
 ## Next
 
-| Feature          | Spec                                     | Layers   |
-| ---------------- | ---------------------------------------- | -------- |
-| Winget and Scoop | [winget-scoop.md](specs/winget-scoop.md) | ci, docs |
+| Feature                                                                                       | Spec                                             | Layers                          |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------- |
+| Battery aware: no battery rules without a battery; time left on battery                       | [battery-aware.md](specs/battery-aware.md)       | core, platform, ui              |
+| Stay awake while an app runs, a download moves, it is busy, full screen, docked or plugged in | [stay-awake-while.md](specs/stay-awake-while.md) | core, platform, engine, app, ui |
+| When it ends: nothing, lock, screen off or sleep (was _After the sun sets_)                   | [when-it-ends.md](specs/when-it-ends.md)         | core, platform, app, ui         |
+| Command line, and awake while a command runs                                                  | [command-line.md](specs/command-line.md)         | core, platform, app             |
+| Sleep detection                                                                               | [sleep-detection.md](specs/sleep-detection.md)   | platform, engine, app           |
+| The wide window: the day drawn as a horizon, with everything under it                         | [wide-window.md](specs/wide-window.md)           | app, ui                         |
+| Winget and Scoop                                                                              | [winget-scoop.md](specs/winget-scoop.md)         | ci, docs                        |
 
 macOS shipped in 0.2.0 as a pre-release, built on a Mac. The
 by-hand acceptance items that need a person at the Mac (menu bar click and

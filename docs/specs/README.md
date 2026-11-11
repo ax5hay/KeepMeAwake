@@ -18,12 +18,17 @@ flowchart LR
         direction TB
         sw["sunset-warning.md"] --> og["overnight-guard.md"] --> al["almanac.md"]
     end
+    subgraph v08["0.8"]
+        direction TB
+        ba["battery-aware.md"] --> sa["stay-awake-while.md"] --> we["when-it-ends.md"] --> cl["command-line.md"] --> sd["sleep-detection.md"] --> ww["wide-window.md"]
+    end
     subgraph mac["macOS track (on a Mac)"]
         direction TB
         m["macos.md"]
     end
     v02 --> v03
     v03 --> v04
+    v04 --> v08
     v02 --> mac
 ```
 
@@ -42,6 +47,12 @@ flowchart LR
 | [Claude](claude-integration.md)                              | 0.5     | core, app, ui                      | M    |
 | [Themes](themes.md)                                          | 0.6     | core, ui                           | S    |
 | [Small things](small-things.md)                              | 0.7     | core, app, ui                      | M    |
+| [Battery aware](battery-aware.md)                            | 0.8     | core, platform, ui                 | S    |
+| [Stay awake while…](stay-awake-while.md)                     | 0.8     | core, platform, engine, app, ui    | L    |
+| [When it ends](when-it-ends.md)                              | 0.8     | core, platform, app, ui            | S    |
+| [Command line](command-line.md)                              | 0.8     | core, platform, app, docs          | M    |
+| [Sleep detection](sleep-detection.md)                        | 0.8     | platform, engine, app              | M    |
+| [The wide window](wide-window.md)                            | 0.8     | app, ui                            | L    |
 | [macOS](macos.md)                                            | track   | build, platform, app, tray, ui, ci | L    |
 
 Each spec has the same sections: **Why**, **Experience** (exact copy and
