@@ -2,6 +2,7 @@
 //! Kept thin on purpose; nothing here is worth unit testing beyond the pure
 //! helpers in [`tray`].
 
+pub mod after_end;
 pub mod ai;
 pub mod almanac;
 pub mod commands;
@@ -238,7 +239,10 @@ fn on_engine_event(handle: &AppHandle, event: &EngineEvent) {
                 EngineEvent::ScheduleStarted { .. } => log::info!("schedule window opened"),
                 EngineEvent::ScheduleEnded { .. } => log::info!("schedule window closed"),
                 EngineEvent::SessionStarted { mode, .. } => log::info!("sun up: {mode:?}"),
-                EngineEvent::SessionEnded { ended, .. } => log::info!("sun down: {ended:?}"),
+                EngineEvent::SessionEnded { ended, .. } => {
+                    log::info!("sun down: {ended:?}");
+                    after_end::on_ended(handle, *ended);
+                }
                 EngineEvent::SunsetSoon { secs_left, .. } => {
                     log::info!("the sun sets in {secs_left}s");
                 }

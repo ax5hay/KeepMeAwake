@@ -93,7 +93,13 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
             };
             toast(
                 SUNSET_TITLE,
-                format!("{mins} {unit} left. Add 30 minutes from {place} or the window."),
+                format!(
+                    "{mins} {unit} left. Add 30 minutes from {place} or the window.{}",
+                    snapshot
+                        .settings
+                        .after_end
+                        .forewarning(cfg!(target_os = "macos"))
+                ),
             )
         }
         EngineEvent::Paused(PauseReason::LowBattery | PauseReason::OnBattery, battery)
@@ -283,6 +289,13 @@ mod tests {
                 "Timer ends soon",
                 format!("5 minutes left. Add 30 minutes from {place} or the window.")
             ))
+        );
+        // With When it ends set, the toast says what comes after.
+        let mut sleeps = snapshot(Mode::Timed, ALL);
+        sleeps.settings.after_end = crate::core::AfterEnd::Sleep;
+        assert!(
+            body(&soon, &sleeps)
+                .is_some_and(|t| t.1.ends_with("or the window. Then it will sleep."))
         );
         let last = EngineEvent::SunsetSoon {
             ends_at_unix_ms: 0,

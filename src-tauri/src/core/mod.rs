@@ -13,6 +13,6 @@ pub mod watch;
 
 pub use plan::PlanRequest;
 pub use session::{Mode, Session, SessionEvent};
-pub use settings::{AiSettings, AlmanacSettings, Provider, Schedule, Settings};
+pub use settings::{AfterEnd, AiSettings, AlmanacSettings, Provider, Schedule, Settings};
 pub use snapshot::{BatteryState, GuardState, PauseReason, ScheduleState, Snapshot};
 pub use watch::{WatchReason, WatchSettings, WatchState};

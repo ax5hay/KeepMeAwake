@@ -342,6 +342,89 @@ impl ActivityProbe for WindowsActivity {
     }
 }
 
+/// Locks, turns the screen off or sleeps: each the documented request for
+/// that state, none of them input to another application (ADR 0002).
+pub fn after_end(action: crate::core::AfterEnd) -> Result<(), PlatformError> {
+    use crate::core::AfterEnd;
+    use windows::Win32::Foundation::{LPARAM, WPARAM};
+    use windows::Win32::System::Power::SetSuspendState;
+    use windows::Win32::System::Shutdown::LockWorkStation;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        HWND_BROADCAST, PostMessageW, SC_MONITORPOWER, WM_SYSCOMMAND,
+    };
+    match action {
+        AfterEnd::Nothing => Ok(()),
+        // SAFETY: no arguments; locks this session's desktop.
+        AfterEnd::Lock => unsafe { LockWorkStation() }.map_err(|e| os_error("LockWorkStation", &e)),
+        AfterEnd::ScreenOff => {
+            // 2 is "off" for SC_MONITORPOWER.
+            let command = WPARAM(usize::try_from(SC_MONITORPOWER).unwrap_or(0));
+            // SAFETY: a posted system command with plain values; nothing is
+            // borrowed past the call.
+            unsafe { PostMessageW(Some(HWND_BROADCAST), WM_SYSCOMMAND, command, LPARAM(2)) }
+                .map_err(|e| os_error("PostMessageW(SC_MONITORPOWER)", &e))
+        }
+        AfterEnd::Sleep => {
+            enable_shutdown_privilege();
+            // SAFETY: three plain flags: sleep (not hibernate), not forced,
+            // wake events left on.
+            if unsafe { SetSuspendState(false, false, false) } {
+                Ok(())
+            } else {
+                Err(os_error(
+                    "SetSuspendState",
+                    &windows::core::Error::from_thread(),
+                ))
+            }
+        }
+    }
+}
+
+/// `SetSuspendState` needs the shutdown privilege enabled on this process's
+/// token; every interactive user holds it, disabled. Best effort: if it
+/// cannot be enabled, the call that needs it says so.
+fn enable_shutdown_privilege() {
+    use windows::Win32::Foundation::LUID;
+    use windows::Win32::Security::{
+        AdjustTokenPrivileges, LUID_AND_ATTRIBUTES, LookupPrivilegeValueW, SE_PRIVILEGE_ENABLED,
+        SE_SHUTDOWN_NAME, TOKEN_ADJUST_PRIVILEGES, TOKEN_PRIVILEGES, TOKEN_QUERY,
+    };
+    use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+    let mut token = HANDLE::default();
+    // SAFETY: this process's pseudo-handle and a writable handle; the token
+    // is closed below.
+    let opened = unsafe {
+        OpenProcessToken(
+            GetCurrentProcess(),
+            TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+            &raw mut token,
+        )
+    };
+    if opened.is_err() {
+        return;
+    }
+    let mut luid = LUID::default();
+    // SAFETY: a static privilege name and a writable LUID.
+    if unsafe { LookupPrivilegeValueW(PCWSTR::null(), SE_SHUTDOWN_NAME, &raw mut luid) }.is_ok() {
+        let privileges = TOKEN_PRIVILEGES {
+            PrivilegeCount: 1,
+            Privileges: [LUID_AND_ATTRIBUTES {
+                Luid: luid,
+                Attributes: SE_PRIVILEGE_ENABLED,
+            }],
+        };
+        // SAFETY: an open token with adjust rights and one privilege to
+        // enable; the previous state is not asked for.
+        let _ = unsafe {
+            AdjustTokenPrivileges(token, false, Some(&raw const privileges), 0, None, None)
+        };
+    }
+    // SAFETY: opened above, closed exactly once.
+    unsafe {
+        let _ = CloseHandle(token);
+    }
+}
+
 /// A FILETIME's two halves as one count of 100 ns ticks.
 fn ticks(time: windows::Win32::Foundation::FILETIME) -> u64 {
     (u64::from(time.dwHighDateTime) << 32) | u64::from(time.dwLowDateTime)

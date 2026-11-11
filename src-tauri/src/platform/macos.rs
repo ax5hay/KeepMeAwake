@@ -284,6 +284,33 @@ impl BatteryProbe for MacBattery {
     }
 }
 
+/// Turns the screen off or sleeps, through `pmset`, which any user may run
+/// for these two. macOS has no public way to lock: the screen going off
+/// locks it when the Mac asks for a password on wake.
+pub fn after_end(action: crate::core::AfterEnd) -> Result<(), PlatformError> {
+    use crate::core::AfterEnd;
+    let verb = match action {
+        AfterEnd::Nothing => return Ok(()),
+        AfterEnd::Lock | AfterEnd::ScreenOff => "displaysleepnow",
+        AfterEnd::Sleep => "sleepnow",
+    };
+    let status = std::process::Command::new("/usr/bin/pmset")
+        .arg(verb)
+        .status()
+        .map_err(|err| PlatformError::Os {
+            call: "pmset",
+            detail: err.to_string(),
+        })?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(PlatformError::Os {
+            call: "pmset",
+            detail: status.to_string(),
+        })
+    }
+}
+
 /// Pure, tested: `IOPSGetTimeRemainingEstimate`'s seconds as whole minutes.
 /// `-1` (still working it out) and `-2` (on mains) are no estimate.
 pub fn minutes_from_estimate(secs: f64) -> Option<u32> {

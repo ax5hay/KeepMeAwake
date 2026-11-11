@@ -103,6 +103,7 @@ const base: Snapshot = {
       display: false,
       plugged_in: false,
     },
+    after_end: 'nothing',
   },
   app_version: '0.1.0',
 };

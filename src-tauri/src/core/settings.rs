@@ -1,6 +1,7 @@
 //! User preferences. Persisted as JSON; every field has a default so older
 //! files keep loading after new fields are added.
 
+use super::history::Ended;
 use super::watch::WatchSettings;
 use serde::{Deserialize, Serialize};
 
@@ -199,6 +200,55 @@ impl AfterDark {
     }
 }
 
+/// What happens after a stretch ends on its own: when a timer runs out,
+/// the schedule's hours close, or a watched condition clears.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum AfterEnd {
+    /// The laptop sleeps in its own time, as it always has.
+    #[default]
+    Nothing,
+    /// Lock the screen. On a Mac, which has no public way to lock, the
+    /// screen is turned off instead (it locks if a password is asked on wake).
+    Lock,
+    /// Turn the screen off.
+    ScreenOff,
+    /// Put the machine to sleep.
+    Sleep,
+}
+
+/// How long nobody must have touched the machine before an [`AfterEnd`]
+/// acts: someone typing when the schedule closes is not put to sleep.
+pub const AWAY_BEFORE_ACTING: std::time::Duration = std::time::Duration::from_secs(60);
+
+impl AfterEnd {
+    /// Acts for a stretch that ended on its own (a timer, the schedule, a
+    /// condition), never for one ended by hand, the battery or the guard.
+    #[must_use]
+    pub fn applies(self, ended: Ended) -> bool {
+        self != Self::Nothing && matches!(ended, Ended::Timer | Ended::Schedule | Ended::Watch)
+    }
+
+    /// [`AfterEnd::applies`], and nobody has touched the machine for
+    /// [`AWAY_BEFORE_ACTING`]. An unknown idle time means someone may be
+    /// there: it does not act.
+    #[must_use]
+    pub fn acts(self, ended: Ended, idle: Option<std::time::Duration>) -> bool {
+        self.applies(ended) && idle.is_some_and(|idle| idle >= AWAY_BEFORE_ACTING)
+    }
+
+    /// Added to the warning before a timer ends, so the end is no surprise.
+    #[must_use]
+    pub fn forewarning(self, mac: bool) -> &'static str {
+        match self {
+            Self::Nothing => "",
+            Self::Lock if !mac => " Then it will lock.",
+            Self::Lock | Self::ScreenOff => " Then the screen turns off.",
+            Self::Sleep => " Then it will sleep.",
+        }
+    }
+}
+
 /// What happens when the app launches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
@@ -275,6 +325,8 @@ pub struct Settings {
     /// Stay awake while…: conditions that keep the laptop awake on their
     /// own. All off until chosen.
     pub watch: WatchSettings,
+    /// What happens after a stretch ends on its own.
+    pub after_end: AfterEnd,
 }
 
 /// The hotkey a fresh install gets: `⌘⌥K` on a Mac, `Ctrl+Alt+K` elsewhere.
@@ -537,6 +589,7 @@ impl Default for Settings {
             check_for_updates: true,
             last_update_check_unix_ms: 0,
             watch: WatchSettings::default(),
+            after_end: AfterEnd::default(),
         }
     }
 }
@@ -573,6 +626,44 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn after_end_acts_only_for_an_ending_of_its_own_with_nobody_there() {
+        use std::time::Duration;
+        let away = Some(Duration::from_secs(90));
+        for action in [AfterEnd::Lock, AfterEnd::ScreenOff, AfterEnd::Sleep] {
+            for ended in [Ended::Timer, Ended::Schedule, Ended::Watch] {
+                assert!(action.acts(ended, away), "{action:?} after {ended:?}");
+                assert!(
+                    !action.acts(ended, Some(Duration::from_secs(5))),
+                    "someone is typing"
+                );
+                assert!(!action.acts(ended, None), "nobody can say");
+            }
+            for ended in [
+                Ended::User,
+                Ended::Battery,
+                Ended::Idle,
+                Ended::Sleep,
+                Ended::Crash,
+            ] {
+                assert!(!action.acts(ended, away), "{action:?} after {ended:?}");
+            }
+        }
+        assert!(!AfterEnd::Nothing.acts(Ended::Timer, away));
+        assert_eq!(Settings::default().after_end, AfterEnd::Nothing);
+    }
+
+    #[test]
+    fn the_warning_says_what_comes_next() {
+        assert_eq!(AfterEnd::Nothing.forewarning(false), "");
+        assert_eq!(AfterEnd::Lock.forewarning(false), " Then it will lock.");
+        assert_eq!(
+            AfterEnd::Lock.forewarning(true),
+            " Then the screen turns off."
+        );
+        assert_eq!(AfterEnd::Sleep.forewarning(true), " Then it will sleep.");
+    }
 
     #[test]
     fn defaults_are_safe() {

@@ -94,7 +94,11 @@ export interface Settings {
   /** When it last asked, Unix ms; 0 for never. Written by the app, not the UI. */
   last_update_check_unix_ms: number;
   watch: WatchSettings;
+  after_end: AfterEnd;
 }
+
+/** What happens after a stretch ends on its own. */
+export type AfterEnd = 'nothing' | 'lock' | 'screen_off' | 'sleep';
 
 /** Stay awake while…: conditions that keep the laptop awake on their own. */
 export interface WatchSettings {
