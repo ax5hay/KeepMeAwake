@@ -297,6 +297,13 @@ pub fn set_mini(app: AppHandle, window: tauri::WebviewWindow, on: bool) -> Resul
     super::window::set_mini(&app, &window, on).map_err(|err| err.to_string())
 }
 
+/// The wide window, or back to the usual one. Remembered in settings by the
+/// window, which sends the setting with it.
+#[tauri::command]
+pub fn set_wide(app: AppHandle, window: tauri::WebviewWindow, on: bool) -> Result<(), String> {
+    super::window::set_wide(&app, &window, on).map_err(|err| err.to_string())
+}
+
 /// Opens the system's print dialog on the window: the month's timesheet is
 /// all its print stylesheet shows.
 #[tauri::command]

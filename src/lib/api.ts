@@ -34,6 +34,7 @@ export const api = {
   updateSettings: (settings: Settings) => invoke<Snapshot>('update_settings', { settings }),
   quit: () => invoke('quit_app'),
   setMini: (on: boolean) => invoke('set_mini', { on }),
+  setWide: (on: boolean) => invoke('set_wide', { on }),
   printWindow: () => invoke('print_window'),
   getHistory: () => invoke<History>('get_history'),
   clearHistory: () => invoke<History>('clear_history'),

@@ -101,6 +101,7 @@ pub fn run() {
             commands::update_settings,
             commands::quit_app,
             commands::set_mini,
+            commands::set_wide,
             commands::print_window,
             commands::get_history,
             commands::clear_history,

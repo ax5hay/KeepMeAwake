@@ -88,6 +88,7 @@ const base: Snapshot = {
       plugged_in: false,
     },
     after_end: 'nothing',
+    wide: false,
   },
   app_version: '0.1.0',
 };
@@ -190,6 +191,7 @@ function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Alm
     getUpdate: vi.fn(async () => waiting),
     checkForUpdate: vi.fn(async () => waiting),
     runningApps: vi.fn(async () => ['Arc', 'Xcode', 'zsh']),
+    setWide: vi.fn(async () => undefined),
     installUpdate: vi.fn(async () => {
       throw new Error('The update could not be installed: offline');
     }),

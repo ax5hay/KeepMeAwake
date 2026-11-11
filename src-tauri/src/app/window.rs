@@ -19,6 +19,11 @@ pub const MAIN: &str = "main";
 /// The window as the sun alone, in points: the scene and one line under it.
 pub const MINI: (f64, f64) = (220.0, 178.0);
 
+/// The wide window, in points.
+pub const WIDE: (f64, f64) = (1040.0, 640.0);
+/// The smallest the wide window may be made, in points.
+pub const WIDE_MIN: (f64, f64) = (860.0, 560.0);
+
 /// How long to wait for the UI to call `show()` before forcing it.
 const SHOW_FALLBACK: Duration = Duration::from_millis(2500);
 
@@ -165,23 +170,51 @@ pub fn set_mini(app: &AppHandle, window: &WebviewWindow, on: bool) -> tauri::Res
         window.set_size(size(MINI.0, MINI.1))?;
         window.set_max_size(Some(size(MINI.0, MINI.1)))?;
     } else {
-        let config = app
-            .config()
-            .app
-            .windows
-            .iter()
-            .find(|w| w.label == MAIN)
-            .cloned()
-            .ok_or_else(|| tauri::Error::WindowNotFound)?;
-        let limit = |width: Option<f64>, height: Option<f64>| match (width, height) {
-            (Some(width), Some(height)) => Some(size(width, height)),
-            _ => None,
-        };
-        window.set_max_size(limit(config.max_width, config.max_height))?;
-        window.set_size(size(config.width, config.height))?;
-        window.set_min_size(limit(config.min_width, config.min_height))?;
+        restore(app, window)?;
     }
     window.set_always_on_top(on)
+}
+
+/// Makes `window` the wide window, a whole day across, or puts it back.
+/// Wide is not on top: it is a window to leave open beside others.
+pub fn set_wide(app: &AppHandle, window: &WebviewWindow, on: bool) -> tauri::Result<()> {
+    use tauri::{LogicalSize, Size};
+
+    let size = |width: f64, height: f64| Size::Logical(LogicalSize::new(width, height));
+    window.set_always_on_top(false)?;
+    if on {
+        window.set_max_size(None::<Size>)?;
+        window.set_size(size(WIDE.0, WIDE.1))?;
+        window.set_min_size(Some(size(WIDE_MIN.0, WIDE_MIN.1)))?;
+        window.center()
+    } else {
+        restore(app, window)
+    }
+}
+
+/// The size and limits the configuration gives the usual window. The limits
+/// are moved around the size so that neither refuses the other.
+fn restore(app: &AppHandle, window: &WebviewWindow) -> tauri::Result<()> {
+    use tauri::{LogicalSize, Size};
+
+    let size = |width: f64, height: f64| Size::Logical(LogicalSize::new(width, height));
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|w| w.label == MAIN)
+        .cloned()
+        .ok_or_else(|| tauri::Error::WindowNotFound)?;
+    let limit = |width: Option<f64>, height: Option<f64>| match (width, height) {
+        (Some(width), Some(height)) => Some(size(width, height)),
+        _ => None,
+    };
+    // Coming down from wide, the minimum goes first; up from mini, the
+    // maximum. Setting both before the size covers either way.
+    window.set_min_size(limit(config.min_width, config.min_height))?;
+    window.set_max_size(limit(config.max_width, config.max_height))?;
+    window.set_size(size(config.width, config.height))
 }
 
 fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
@@ -198,6 +231,12 @@ fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     // state, so there is never a blank flash. If the UI fails to do so, show
     // it anyway after a grace period so the user is never locked out.
     let window = WebviewWindowBuilder::from_config(app, &config)?.build()?;
+    // It reopens the size it was closed at.
+    if app.state::<AppState>().engine.settings().wide
+        && let Err(err) = set_wide(app, &window, true)
+    {
+        log::warn!("could not open wide: {err}");
+    }
     {
         let window = window.clone();
         std::thread::spawn(move || {

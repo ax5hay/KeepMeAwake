@@ -327,6 +327,8 @@ pub struct Settings {
     pub watch: WatchSettings,
     /// What happens after a stretch ends on its own.
     pub after_end: AfterEnd,
+    /// The window opens wide: the day drawn across it.
+    pub wide: bool,
 }
 
 /// The hotkey a fresh install gets: `⌘⌥K` on a Mac, `Ctrl+Alt+K` elsewhere.
@@ -590,6 +592,7 @@ impl Default for Settings {
             last_update_check_unix_ms: 0,
             watch: WatchSettings::default(),
             after_end: AfterEnd::default(),
+            wide: false,
         }
     }
 }
