@@ -387,7 +387,7 @@ dark menu bar itself. Nothing to set.
 |               | Pause whenever unplugged           | strictest: on battery means resting                                                 |
 | Window        | Closing keeps it running           | off quits on close                                                                  |
 |               | Free memory when closed            | destroys the UI on close (default); off hides it for an instant reopen              |
-| Theme         |                                    | System, Paper, Night and sixteen more; see Themes below                             |
+| Theme         |                                    | System, Paper, Night and twenty-four more; see Themes below                         |
 | Notifications | When a timer ends                  | a toast when a timed session sets on its own. On by default                         |
 |               | Battery pauses and resumes         | when the battery rule pauses the sun, and when the charger brings it back           |
 |               | Schedule starts and ends           | when a schedule window opens or closes                                              |
@@ -406,15 +406,15 @@ dark menu bar itself. Nothing to set.
 ## Themes
 
 Settings → Theme. Each swatch is a small horizon in that theme's colours;
-click one to wear it. **Back to System** returns to Paper by day and Night
+click one to wear it, or walk them with the arrow keys. **Back to System** returns to Paper by day and Night
 by night. A theme changes colours only.
 
 | Shelf    | Themes                                                                                    |
 | -------- | ----------------------------------------------------------------------------------------- |
 | Its own  | System (follows Windows or macOS), Paper, Night                                           |
 | Borrowed | Solarized Light, Solarized Dark, Gruvbox, Nord, Dracula, Catppuccin, Tokyo Night, Monokai |
-| Play     | Terminal, Blueprint, Pocket, Newsprint                                                    |
-| Loud     | Vaporwave, Hot Dog Stand, Bubblegum, Highlighter                                          |
+| Play     | Terminal, Blueprint, Pocket, Newsprint, Risograph, Dial-up, Mars, Deep Sea                |
+| Loud     | Vaporwave, Thermal, Negative, Miami, Bubblegum, Highlighter, Grape Soda, Hi-Vis           |
 
 ![Settings → Theme, Paper](assets/themes-picker-light.png)
 

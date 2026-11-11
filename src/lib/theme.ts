@@ -55,6 +55,10 @@ export const SHELVES: ReadonlyArray<ThemeShelf> = [
       { id: 'blueprint', label: 'Blueprint' },
       { id: 'pocket', label: 'Pocket' },
       { id: 'newsprint', label: 'Newsprint' },
+      { id: 'risograph', label: 'Risograph' },
+      { id: 'dial_up', label: 'Dial-up' },
+      { id: 'mars', label: 'Mars' },
+      { id: 'deep_sea', label: 'Deep Sea' },
     ],
   },
   {
@@ -62,9 +66,13 @@ export const SHELVES: ReadonlyArray<ThemeShelf> = [
     hint: 'On purpose.',
     themes: [
       { id: 'vaporwave', label: 'Vaporwave' },
-      { id: 'hot_dog_stand', label: 'Hot Dog Stand' },
+      { id: 'thermal', label: 'Thermal' },
+      { id: 'negative', label: 'Negative' },
+      { id: 'miami', label: 'Miami' },
       { id: 'bubblegum', label: 'Bubblegum' },
       { id: 'highlighter', label: 'Highlighter' },
+      { id: 'grape_soda', label: 'Grape Soda' },
+      { id: 'hi_vis', label: 'Hi-Vis' },
     ],
   },
 ];

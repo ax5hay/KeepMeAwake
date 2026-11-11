@@ -43,19 +43,35 @@ pub enum Theme {
     Pocket,
     /// Black on white, with a red sun.
     Newsprint,
+    /// Two inks on cream: blue, and a fluorescent pink sun.
+    Risograph,
+    /// Grey panels under a teal desktop sky.
+    DialUp,
+    /// Rust and butterscotch, where the sun sets blue.
+    Mars,
+    /// The dark below the light, and something glowing in it.
+    DeepSea,
     /// Pink and cyan on violet.
     Vaporwave,
-    /// Red and yellow, after the old joke.
-    HotDogStand,
+    /// As a heat camera sees it: the sun white-hot, the ground still warm.
+    Thermal,
+    /// A film negative: the orange base, and a cyan sun.
+    Negative,
+    /// Aqua sky, sand, a flamingo sun.
+    Miami,
     /// Pink, all of it.
     Bubblegum,
     /// Marker yellow, with a pink sun.
     Highlighter,
+    /// Purple, with a lime sun.
+    GrapeSoda,
+    /// Safety orange over asphalt, the sun reflective.
+    HiVis,
 }
 
 impl Theme {
     /// Every theme, in the order the picker shows them.
-    pub const ALL: [Self; 19] = [
+    pub const ALL: [Self; 27] = [
         Self::System,
         Self::Light,
         Self::Dark,
@@ -71,10 +87,18 @@ impl Theme {
         Self::Blueprint,
         Self::Pocket,
         Self::Newsprint,
+        Self::Risograph,
+        Self::DialUp,
+        Self::Mars,
+        Self::DeepSea,
         Self::Vaporwave,
-        Self::HotDogStand,
+        Self::Thermal,
+        Self::Negative,
+        Self::Miami,
         Self::Bubblegum,
         Self::Highlighter,
+        Self::GrapeSoda,
+        Self::HiVis,
     ];
 }
 
@@ -773,7 +797,7 @@ mod tests {
             assert_eq!(serde_json::from_str::<Theme>(name).unwrap(), *theme);
             assert_eq!(names.iter().filter(|other| *other == name).count(), 1);
         }
-        assert!(names.contains(&r#""hot_dog_stand""#.to_owned()));
+        assert!(names.contains(&r#""deep_sea""#.to_owned()));
         assert!(names.contains(&r#""tokyo_night""#.to_owned()));
     }
 }

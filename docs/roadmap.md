@@ -80,7 +80,7 @@ Built and checked on Windows; the Mac's checks are listed in [`HANDOFF.md`](HAND
 
 | Feature                                                                     | Spec                           | Layers   |
 | --------------------------------------------------------------------------- | ------------------------------ | -------- |
-| Themes: the app's own, eight borrowed palettes, four to play, four loud     | [themes.md](specs/themes.md)   | core, ui |
+| Themes: the app's own, eight borrowed palettes, eight to play, eight loud   | [themes.md](specs/themes.md)   | core, ui |
 | Almanac: a weekday you never work reads as a day off, not a leave each week | [almanac.md](specs/almanac.md) | ui       |
 
 ## After 0.3

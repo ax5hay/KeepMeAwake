@@ -15,6 +15,21 @@ function blockOf(theme: string): string | null {
   return css.slice(at, css.indexOf('}', at));
 }
 
+/** Relative luminance of `#rrggbb`, as WCAG has it. */
+function luminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((at) => {
+    const c = parseInt(hex.slice(at, at + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
+}
+
+/** WCAG contrast of two colours, 1 to 21. */
+function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return ((hi ?? 0) + 0.05) / ((lo ?? 0) + 0.05);
+}
+
 const TOKENS = [
   'paper',
   'paper-2',
@@ -44,7 +59,7 @@ describe('resolveTheme', () => {
     expect(resolveTheme('system', false)).toBe('light');
     expect(resolveTheme('light', true)).toBe('light');
     expect(resolveTheme('dark', false)).toBe('dark');
-    expect(resolveTheme('hot_dog_stand', true)).toBe('hot_dog_stand');
+    expect(resolveTheme('deep_sea', true)).toBe('deep_sea');
   });
 });
 
@@ -65,6 +80,30 @@ describe('the themes', () => {
       expect(block, id).not.toBeNull();
       for (const token of TOKENS) expect(block, `${id} --${token}`).toContain(`--${token}:`);
       expect(block, id).toMatch(/color-scheme: (light|dark);/);
+    }
+  });
+
+  it('can each be read: ink on paper, and the sun against its sky and ground', () => {
+    for (const { id } of THEMES) {
+      if (id === 'system') continue;
+      const block = blockOf(id) ?? '';
+      const of = (token: string) => {
+        const found = new RegExp(`--${token}: (#[0-9a-f]{6});`).exec(block);
+        expect(found, `${id} --${token}`).not.toBeNull();
+        return found?.[1] ?? '#000000';
+      };
+      const paper = of('paper');
+      expect(contrast(of('ink'), paper), `${id} ink on paper`).toBeGreaterThanOrEqual(6);
+      expect(contrast(of('ink'), of('paper-2')), `${id} ink on paper-2`).toBeGreaterThanOrEqual(5);
+      expect(contrast(of('ink-2'), paper), `${id} ink-2 on paper`).toBeGreaterThanOrEqual(4);
+      expect(contrast(of('ink-3'), paper), `${id} ink-3 on paper`).toBeGreaterThanOrEqual(2);
+      // The horizon line and the tips are ink on the sky.
+      expect(contrast(of('ink'), of('sky-on')), `${id} ink on sky`).toBeGreaterThanOrEqual(3.5);
+      // The sun has to be seen where it is drawn, and so does its reflection.
+      expect(contrast(of('sun'), of('sky-on')), `${id} sun on sky`).toBeGreaterThanOrEqual(1.5);
+      expect(contrast(of('sun'), of('ground-on')), `${id} sun on ground`).toBeGreaterThanOrEqual(
+        1.5,
+      );
     }
   });
 

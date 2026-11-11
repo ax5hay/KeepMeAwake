@@ -29,10 +29,18 @@ export type Theme =
   | 'blueprint'
   | 'pocket'
   | 'newsprint'
+  | 'risograph'
+  | 'dial_up'
+  | 'mars'
+  | 'deep_sea'
   | 'vaporwave'
-  | 'hot_dog_stand'
+  | 'thermal'
+  | 'negative'
+  | 'miami'
   | 'bubblegum'
-  | 'highlighter';
+  | 'highlighter'
+  | 'grape_soda'
+  | 'hi_vis';
 
 export type StartupPlan = 'off' | 'indefinite' | 'default_duration';
 

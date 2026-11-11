@@ -274,7 +274,7 @@
   --paper: #9bbc0f;
   --paper-2: #8bac0f;
   --ink: #0f380f;
-  --ink-2: #306230;
+  --ink-2: #1f4a1f;
   --ink-3: #557d1c;
   --hair: rgb(15 56 15 / 0.14);
   --hair-strong: rgb(15 56 15 / 0.34);
@@ -321,6 +321,110 @@
   color-scheme: light;
 }
 
+[data-theme='risograph'] {
+  /* Risograph */
+  --paper: #f5f0e1;
+  --paper-2: #ebe5d2;
+  --ink: #2a3f8f;
+  --ink-2: #5568ad;
+  --ink-3: #96a2cc;
+  --hair: rgb(42 63 143 / 0.14);
+  --hair-strong: rgb(42 63 143 / 0.34);
+  --sun: #ff48b0;
+  --sun-dim: #f5a9cf;
+  --sky-off: #e6e4dc;
+  --sky-on: #dfe9f2;
+  --sky-paused: #e8e2d6;
+  --ground-off: #ebe5d2;
+  --ground-on: #f2e3dc;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(42 63 143 / 0.08);
+
+  color-scheme: light;
+}
+
+[data-theme='dial_up'] {
+  /* Dial-up */
+  --paper: #c0c0c0;
+  --paper-2: #d4d0c8;
+  --ink: #000000;
+  --ink-2: #3a3a3a;
+  --ink-3: #6e6e6e;
+  --hair: rgb(0 0 0 / 0.14);
+  --hair-strong: rgb(0 0 0 / 0.34);
+  --sun: #fff04a;
+  --sun-dim: #9fb86b;
+  --sky-off: #006d6d;
+  --sky-on: #008080;
+  --sky-paused: #4f7a7a;
+  --ground-off: #b3b3b3;
+  --ground-on: #a8a8a8;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+
+  color-scheme: light;
+}
+
+[data-theme='mars'] {
+  /* Mars */
+  --paper: #3b1f17;
+  --paper-2: #4a2a1f;
+  --ink: #f6dfc8;
+  --ink-2: #d1a98a;
+  --ink-3: #94705a;
+  --hair: rgb(246 223 200 / 0.12);
+  --hair-strong: rgb(246 223 200 / 0.3);
+  --sun: #9fd4ff;
+  --sun-dim: #5a7187;
+  --sky-off: #4a2b20;
+  --sky-on: #8f5a3a;
+  --sky-paused: #5a3a2c;
+  --ground-off: #2e1811;
+  --ground-on: #5e2f1c;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='deep_sea'] {
+  /* Deep Sea */
+  --paper: #021a2b;
+  --paper-2: #06263c;
+  --ink: #d6f3ff;
+  --ink-2: #8dbdd3;
+  --ink-3: #4f7f97;
+  --hair: rgb(214 243 255 / 0.12);
+  --hair-strong: rgb(214 243 255 / 0.3);
+  --sun: #5cffd6;
+  --sun-dim: #2c7d73;
+  --sky-off: #011420;
+  --sky-on: #053a5c;
+  --sky-paused: #04283d;
+  --ground-off: #010f18;
+  --ground-on: #032033;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
 /* Loud: on purpose. */
 
 [data-theme='vaporwave'] {
@@ -349,28 +453,80 @@
   color-scheme: dark;
 }
 
-[data-theme='hot_dog_stand'] {
-  /* Hot Dog Stand */
-  --paper: #f01414;
-  --paper-2: #ff3b2f;
-  --ink: #000000;
-  --ink-2: #1a0000;
-  --ink-3: #4a0000;
-  --hair: rgb(0 0 0 / 0.14);
-  --hair-strong: rgb(0 0 0 / 0.34);
-  --sun: #ffe600;
-  --sun-dim: #b8870a;
-  --sky-off: #d01010;
-  --sky-on: #ff2a2a;
-  --sky-paused: #c21a1a;
-  --ground-off: #b00c0c;
-  --ground-on: #ffe600;
+[data-theme='thermal'] {
+  /* Thermal */
+  --paper: #14052e;
+  --paper-2: #230a47;
+  --ink: #fff3c4;
+  --ink-2: #ffb38a;
+  --ink-3: #b0528f;
+  --hair: rgb(255 243 196 / 0.12);
+  --hair-strong: rgb(255 243 196 / 0.3);
+  --sun: #fff7a8;
+  --sun-dim: #c96a2b;
+  --sky-off: #1d0840;
+  --sky-on: #7a1470;
+  --sky-paused: #3a0f55;
+  --ground-off: #2a0a4f;
+  --ground-on: #d1481f;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='negative'] {
+  /* Negative */
+  --paper: #e08a3c;
+  --paper-2: #d47d30;
+  --ink: #0a1d3a;
+  --ink-2: #1d3157;
+  --ink-3: #6f4a26;
+  --hair: rgb(10 29 58 / 0.14);
+  --hair-strong: rgb(10 29 58 / 0.34);
+  --sun: #9ff0ff;
+  --sun-dim: #b8b78f;
+  --sky-off: #c9762e;
+  --sky-on: #b8611a;
+  --sky-paused: #c98345;
+  --ground-off: #c06f28;
+  --ground-on: #d98232;
   --grain-blend: multiply;
   --grain-opacity: 0.08;
   --afterglow-off: 0.16;
   --afterglow-on: 0.1;
   --stars: 0.14;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  --shadow: 0 1px 2px rgb(10 29 58 / 0.08);
+
+  color-scheme: light;
+}
+
+[data-theme='miami'] {
+  /* Miami */
+  --paper: #fff4e6;
+  --paper-2: #ffe6d0;
+  --ink: #0d4d57;
+  --ink-2: #3f7f88;
+  --ink-3: #8fb5b8;
+  --hair: rgb(13 77 87 / 0.14);
+  --hair-strong: rgb(13 77 87 / 0.34);
+  --sun: #ff5fa2;
+  --sun-dim: #f7b3cd;
+  --sky-off: #d4ece9;
+  --sky-on: #9fe3dc;
+  --sky-paused: #dfe6df;
+  --ground-off: #ffe6d0;
+  --ground-on: #ffd9a8;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(13 77 87 / 0.08);
 
   color-scheme: light;
 }
@@ -423,6 +579,58 @@
   --afterglow-on: 0.1;
   --stars: 0.14;
   --shadow: 0 1px 2px rgb(17 17 17 / 0.08);
+
+  color-scheme: light;
+}
+
+[data-theme='grape_soda'] {
+  /* Grape Soda */
+  --paper: #2a0a4a;
+  --paper-2: #37105f;
+  --ink: #f3e6ff;
+  --ink-2: #c9a8ee;
+  --ink-3: #8a62b8;
+  --hair: rgb(243 230 255 / 0.12);
+  --hair-strong: rgb(243 230 255 / 0.3);
+  --sun: #c6ff3d;
+  --sun-dim: #63803a;
+  --sky-off: #1f0738;
+  --sky-on: #4a1785;
+  --sky-paused: #33105a;
+  --ground-off: #1a0630;
+  --ground-on: #2e0d52;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='hi_vis'] {
+  /* Hi-Vis */
+  --paper: #ff6a00;
+  --paper-2: #ff7d1f;
+  --ink: #000000;
+  --ink-2: #2b1200;
+  --ink-3: #6b2e00;
+  --hair: rgb(0 0 0 / 0.14);
+  --hair-strong: rgb(0 0 0 / 0.34);
+  --sun: #e1ff00;
+  --sun-dim: #8a9c00;
+  --sky-off: #e85f00;
+  --sky-on: #ff8a2b;
+  --sky-paused: #d9661a;
+  --ground-off: #d95a00;
+  --ground-on: #1a1a1a;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 
   color-scheme: light;
 }

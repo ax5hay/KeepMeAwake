@@ -8,11 +8,11 @@ Versions: [SemVer](https://semver.org).
 ### Added
 
 - Themes (Settings → Theme): the app's own System, Paper and Night, and
-  sixteen more. Borrowed from palettes people already work in: Solarized
+  twenty-four more. Borrowed from palettes people already work in: Solarized
   Light and Dark, Gruvbox, Nord, Dracula, Catppuccin, Tokyo Night, Monokai.
-  To play with: Terminal, Blueprint, Pocket, Newsprint. Loud on purpose:
-  Vaporwave, Hot Dog Stand, Bubblegum, Highlighter. Each swatch is a small
-  horizon in its own colours. A theme changes colours only.
+  To play with: Terminal, Blueprint, Pocket, Newsprint, Risograph, Dial-up, Mars, Deep Sea. Loud on purpose: Vaporwave, Thermal, Negative, Miami, Bubblegum, Highlighter, Grape Soda, Hi-Vis. Each swatch is a small
+  horizon in its own colours, and the arrow keys walk them. A theme changes
+  colours only, and every one is measured to be readable.
 
 ### Changed
 

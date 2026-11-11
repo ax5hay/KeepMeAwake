@@ -5,7 +5,7 @@ short; link out for detail.
 
 **Last updated:** 2026-11-11 · by Claude Fable 5.2 (Windows session: v0.5.0 released; themes and the weekday nobody works built, unreleased)
 **Release:** [v0.5.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.5.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
-**Repo state:** `main` is green (`npm run verify` on Windows: vitest 198, cargo test 247;
+**Repo state:** `main` is green (`npm run verify` on Windows: vitest 199, cargo test 247;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
 the settings sliders and Home's doors: Windows `.exe` / `.msi`, macOS `.dmg` /
@@ -191,16 +191,17 @@ on Windows is listed under **Where to start**.
 | 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Sleep when I'm away (4 commits)         | Claude Fable 5.2 |
 | 2026-11-10 | v0.4.0 released (full, latest). Claude behind three locks; Check for updates; break reminder; month as CSV | Claude Fable 5.2 |
 | 2026-11-11 | AI by any service (Claude, OpenAI, other); product names back; v0.5.0 released (full, latest)              | Claude Fable 5.2 |
-| 2026-11-11 | Themes (19, on four shelves); a weekday nobody works reads as a day off; both unreleased                   | Claude Fable 5.2 |
+| 2026-11-11 | Themes (27, on four shelves); a weekday nobody works reads as a day off; both unreleased                   | Claude Fable 5.2 |
 
 ## Themes, and what counts as leave (unreleased, for 0.6)
 
-- **Themes** ([spec](specs/themes.md)): `theme` gained sixteen values; each is a block of
+- **Themes** ([spec](specs/themes.md)): `theme` gained twenty-four values; each is a block of
   the same tokens in `src/styles/themes.css`, on a bare `[data-theme]` so the
   picker's swatches wear their own. Checked: every theme on Home in the
   harness. Not checked: the real window, the Almanac and Settings in each
-  theme, anything on the Mac. Hot Dog Stand loses the sun's reflection on its
-  yellow ground; left as is.
+  theme, anything on the Mac. Hot Dog Stand came and went (its sun
+  vanished on its own ground); the contrast test in `theme.test.ts` now keeps
+  a theme like that out.
 - **Leave**: weekends were never counted as leave (not a working day reads
   `Day off`); that was already so. New: `usual_off` in `src/lib/almanac.ts`, a
   working weekday the record says is not worked reads as a day off. UI only;

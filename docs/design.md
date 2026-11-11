@@ -64,9 +64,12 @@ and Night by name.
 
 ### Themes
 
-Paper and Night are the app's own. Settings → Theme offers sixteen more
+Paper and Night are the app's own. Settings → Theme offers twenty-four more
 ([spec](specs/themes.md)): eight borrowed from palettes people already work
-in, four to play with, four that are loud on purpose. A theme is the same
+in, eight to play with, eight that are loud on purpose. Each of those is a
+place or a thing with a horizon of its own (a heat camera, a film negative,
+Mars at sunset), not a colour picked for being bright, and a test measures
+that every one can be read. A theme is the same
 tokens with other values, and the rules above hold in each: no gradients,
 and one accent, the sun. A loud theme is loud in its paper. The picker shows
 each as a small horizon in its own colours, because that is what choosing it
@@ -74,7 +77,9 @@ changes.
 
 ![The borrowed themes](assets/themes-borrowed.png)
 
-![The themes to play with, and the loud ones](assets/themes-play-loud.png)
+![The themes to play with](assets/themes-play.png)
+
+![The loud themes](assets/themes-loud.png)
 
 ## Type
 

@@ -5,7 +5,7 @@
    * same attribute the page does, so what it shows cannot drift from what
    * choosing it gives. System is the two it moves between, side by side.
    */
-  import { SHELVES } from '$lib/theme';
+  import { SHELVES, THEMES } from '$lib/theme';
   import type { Theme } from '$lib/types';
 
   interface Props {
@@ -15,10 +15,26 @@
 
   const { value, onchange }: Props = $props();
 
+  /** Arrows walk the themes, wearing each: a radio group's keys. */
+  function onkeydown(event: KeyboardEvent) {
+    const step = { ArrowRight: 1, ArrowDown: 4, ArrowLeft: -1, ArrowUp: -4 }[event.key];
+    if (step === undefined) return;
+    event.preventDefault();
+    const from = THEMES.findIndex((theme) => theme.id === value);
+    const to = Math.min(THEMES.length - 1, Math.max(0, from + step));
+    const next = THEMES[to];
+    if (!next || to === from) return;
+    onchange(next.id);
+    picker?.querySelector<HTMLElement>(`[data-id='${next.id}']`)?.focus();
+  }
+
+  let picker = $state<HTMLElement | null>(null);
+
   const halves = (id: Theme): ReadonlyArray<string> => (id === 'system' ? ['light', 'dark'] : [id]);
 </script>
 
-<div class="picker">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="picker" bind:this={picker} {onkeydown}>
   {#each SHELVES as shelf (shelf.title)}
     <div class="shelf" role="radiogroup" aria-label={`${shelf.title} themes`}>
       <div class="title"><span class="eyebrow">{shelf.title}</span> <span>{shelf.hint}</span></div>
@@ -29,6 +45,8 @@
             role="radio"
             aria-checked={theme.id === value}
             class="swatch"
+            data-id={theme.id}
+            tabindex={theme.id === value ? 0 : -1}
             class:chosen={theme.id === value}
             onclick={() => onchange(theme.id)}
           >
