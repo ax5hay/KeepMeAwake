@@ -68,8 +68,11 @@ never scrolls as a whole; the week column scrolls if it must.
 
 ## Settings
 
-`wide: bool`, default false: the window reopens at the size it was closed
-in.
+`wide: Option<bool>`, default `None`: the window reopens at the size last
+chosen. Until something is chosen, a machine without a battery opens wide
+and a laptop standard (the owner's call). Opened wide that way, an ink bar
+across the top suggests the standard window (`Switch to the standard
+window`, `Keep wide`); either answer is stored and the bar goes.
 
 ## Rust
 

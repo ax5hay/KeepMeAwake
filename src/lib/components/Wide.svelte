@@ -19,6 +19,9 @@
     KEPT_UP,
     WATCH_ROWS,
     WATCH_SHORT,
+    WIDE_KEEP,
+    WIDE_SUGGEST,
+    WIDE_TO_STANDARD,
     afterEndOptions,
     doors,
     rate,
@@ -37,7 +40,9 @@
   const watch = $derived(snapshot?.watch ?? null);
   const offerExtend = $derived(store.sunsetSoon && snapshot?.paused === null);
 
-  type Condition = Exclude<keyof WatchSettings, 'apps'>;
+  type Condition = 'transfers' | 'busy' | 'full_screen' | 'display' | 'plugged_in';
+  // Opened wide for someone who never chose: suggest the standard window.
+  const unchosen = $derived(settings !== null && settings.wide === null);
   const conditions = $derived(
     (['transfers', 'busy', 'full_screen', 'display', 'plugged_in'] as const).filter(
       (key) => battery?.present || (key !== 'display' && key !== 'plugged_in'),
@@ -80,7 +85,18 @@
 </script>
 
 <div class="wide">
-  <DaySky height={236} />
+  {#if unchosen}
+    <div class="suggest" role="region" aria-label="Window size">
+      <p>{WIDE_SUGGEST}</p>
+      <button type="button" class="primary" onclick={() => void store.setWide(false)}>
+        {WIDE_TO_STANDARD}
+      </button>
+      <button type="button" class="keep" onclick={() => void store.updateSettings({ wide: true })}
+        >{WIDE_KEEP}</button
+      >
+    </div>
+  {/if}
+  <DaySky height={unchosen ? 200 : 236} />
 
   {#if store.view === 'home'}
     <div class="ledger">
@@ -221,6 +237,43 @@
     flex-direction: column;
     height: calc(100vh - 40px);
     min-height: 0;
+  }
+
+  /* The one loud thing outside the sky: ink across the top, until chosen. */
+  .suggest {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px 10px 28px;
+    background: var(--ink);
+    color: var(--paper);
+    flex: none;
+  }
+
+  .suggest p {
+    flex: 1;
+    margin: 0;
+  }
+
+  .suggest .primary {
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .suggest .primary:focus-visible,
+  .suggest .keep:focus-visible {
+    outline: 1.5px solid var(--paper);
+    outline-offset: 2px;
+  }
+
+  .suggest .keep {
+    color: var(--paper);
+    opacity: 0.75;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .ledger {

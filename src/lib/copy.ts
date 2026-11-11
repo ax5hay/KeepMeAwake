@@ -167,11 +167,11 @@ export const WATCH_ROWS = {
   },
   transfers: {
     label: 'A download or upload is going',
-    hint: 'Over 64 KB/s, until it has been quiet for 2 minutes.',
+    hint: 'Above the speed you set below.',
   },
   busy: {
     label: 'The computer is busy',
-    hint: 'Processor over 30%: a build, an export, a render.',
+    hint: 'A build, an export, a render.',
   },
   full_screen: { label: 'Something is full screen', hint: 'A video, a game or a presentation.' },
   display: { label: 'An external display is connected', hint: 'At a desk with a monitor.' },
@@ -196,6 +196,13 @@ export function afterEndOptions(mac: boolean): ReadonlyArray<{ value: AfterEnd; 
     { value: 'sleep', label: 'Sleep' },
   ];
 }
+
+/** Under Stay awake while…, the thresholds, each under its switch. */
+export const WATCH_TUNE = {
+  transfer: 'Lower catches slow downloads; higher ignores sync and chat.',
+  busy: 'Lower keeps awake for lighter work.',
+  linger: 'After a download or busy spell drops, before it lets go.',
+} as const;
 
 /** The same rows, named shortly for the wide window's Watching column. */
 export const WATCH_SHORT = {
@@ -571,6 +578,13 @@ export const PRINT_MONTH = 'Print month';
 /** The title bar's way into the mini window, and the mini window's way back. */
 export const MINI_TITLE = 'Mini window: just the sun, above other windows';
 export const MINI_BACK = 'Back to the whole window';
+
+/** The wide window, opened for someone who has not chosen: a strong nudge
+ * toward the standard one, which most people prefer. */
+export const WIDE_SUGGEST =
+  'This computer has no battery, so it opened wide. Most people find the standard window easier.';
+export const WIDE_TO_STANDARD = 'Switch to the standard window';
+export const WIDE_KEEP = 'Keep wide';
 
 /** The title bar's way into the wide window. */
 export const WIDE_TITLE = 'Wide window: the whole day, and everything under it';

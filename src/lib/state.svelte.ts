@@ -603,8 +603,10 @@ export class AppStore {
     this.snapshot = snapshot;
     this.now = Date.now();
     if (before === null) {
-      // The window opens the size it was closed at.
-      this.wide = snapshot.settings.wide;
+      // The window opens the size it was closed at; until that is chosen,
+      // wide on a desktop (no battery) and standard on a laptop, as Rust
+      // sized it.
+      this.wide = snapshot.settings.wide ?? !snapshot.battery.present;
       if (this.wide) void this.loadHistory();
     } else if (this.wide && isAwake(before) !== isAwake(snapshot)) {
       // The wide window draws the log: a stretch began or ended.

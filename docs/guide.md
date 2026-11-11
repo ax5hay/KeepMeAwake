@@ -353,14 +353,14 @@ Everything here is off until you turn it on.
 
 ![Stay awake while, in Settings](assets/watch-settings-light.png)
 
-| Row                              | Keeps it awake while                                                    |
-| -------------------------------- | ----------------------------------------------------------------------- |
-| These apps are running           | any app on the list runs. Pick from what is running, or type a name     |
-| A download or upload is going    | more than 64 KB/s moves, and for 2 minutes after it goes quiet          |
-| The computer is busy             | the processor is over 30% (a build, an export), and for 2 minutes after |
-| Something is full screen         | a video, a game or a presentation fills a screen                        |
-| An external display is connected | a monitor is plugged in (laptops only)                                  |
-| Plugged in                       | the laptop is on mains power (laptops only)                             |
+| Row                              | Keeps it awake while                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| These apps are running           | any app on the list runs. Pick from what is running, or type a name             |
+| A download or upload is going    | more than a set speed moves (64 KB/s to start), and a while after it goes quiet |
+| The computer is busy             | the processor is over a set share (30% to start): a build, an export            |
+| Something is full screen         | a video, a game or a presentation fills a screen                                |
+| An external display is connected | a monitor is plugged in (laptops only)                                          |
+| Plugged in                       | the laptop is on mains power (laptops only)                                     |
 
 A dot beside an app is in the sun's colour while it is running. Home says
 which condition is keeping it awake: `While Xcode runs`, `While the network
@@ -370,6 +370,12 @@ come first; a condition takes over when they end.
 Clicking the sun while a condition holds lets the laptop sleep until that
 condition clears (`Skipping until Xcode quits.`); click again to undo.
 History lists each stretch, ending as `condition`.
+
+Each of those two has its threshold right under its switch: **Counts
+from** (16 KB/s to 5 MB/s) and **Busy above** (10% to 70%). **Then waits**
+(1 to 30 minutes, 2 to start) is how long it keeps the laptop awake after a
+download or a busy spell drops, so a pause between two files does not let
+it sleep.
 
 It looks every 30 seconds, and only at what is switched on; with nothing
 on, it looks at nothing.
@@ -397,6 +403,11 @@ guard ended it. The timer warning says what is coming:
 The title bar's two-corners button (or Ctrl+E, ⌘E on a Mac) opens the
 window wide: 1040 × 640, down to 860 × 560. It reopens wide until you go
 back with the same button, the shortcut, or Esc.
+
+On a computer with no battery (a Mac mini, an iMac, a desktop PC) the
+window opens wide until you choose, with a bar across the top suggesting
+the standard window: **Switch to the standard window**, or **Keep wide**.
+Either choice is remembered and the bar goes. A laptop opens standard.
 
 ![The wide window, Paper](assets/wide-light.png)
 

@@ -282,6 +282,11 @@ reads a file holding the app's pid, so a killed app reads as not running;
 browser harness used for the screenshots is a Vite dev server with a fake
 `__TAURI_INTERNALS__` and a fixed clock; it is not committed.
 
+Answered by the owner after the first build: the thresholds are settings
+(Counts from, Busy above, Then waits, under their switches), and a machine
+without a battery opens wide until someone chooses, with an ink bar
+suggesting the standard window.
+
 Known gaps: on Windows the release binary is a GUI program, so cmd does not
 wait for `--run` (PowerShell does with `| Out-Null`); `--run` keeps the
 laptop awake up to 30 s after the command ends (the next poll); the wide
@@ -625,11 +630,6 @@ Home's doors lead with a waiting update and drop the hotkey door to stay
 one line; the whisper is once per version, remembered in localStorage.
 
 ## Open questions for Akshay
-
-- Stay awake while…: the thresholds are fixed (64 KB/s, 30% processor, a
-  2-minute linger). Wanted as settings, or right as they are?
-- Should the wide window be the default on a desktop (no battery), where
-  the app is more likely left open on a big screen?
 
 - Claude's answers are capped hard (120, 300 and 200 tokens). If a real
   answer ever comes back cut off, which cap to raise, and by how much?

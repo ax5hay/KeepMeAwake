@@ -56,6 +56,8 @@ import {
   WATCH_ROWS,
   afterEndOptions,
   afterEndHint,
+  WATCH_TUNE,
+  WIDE_SUGGEST,
 } from './copy';
 
 /** Every string that differs by platform, flattened. */
@@ -398,6 +400,9 @@ describe('stay awake while copy', () => {
   it('names no platform', () => {
     for (const row of Object.values(WATCH_ROWS)) {
       expect(`${row.label} ${row.hint}`).not.toMatch(/tray|taskbar|Windows|menu bar|macOS/i);
+    }
+    for (const hint of [...Object.values(WATCH_TUNE), WIDE_SUGGEST]) {
+      expect(hint).not.toMatch(/tray|taskbar|Windows|menu bar|macOS/i);
     }
   });
 });

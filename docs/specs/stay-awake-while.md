@@ -67,7 +67,10 @@ pub struct WatchSettings {
 ```
 
 All off and empty by default; `Settings::watch`, defaulted. No version
-bump.
+bump. Asked for after the first build: the thresholds are settings too,
+`transfer_kbps` (64, 1–100 000), `busy_percent` (30, 5–95) and
+`linger_mins` (2, 1–60), each shown under its switch as **Counts from**,
+**Busy above** and **Then waits**.
 
 ## Rust
 

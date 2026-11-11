@@ -14,6 +14,7 @@
   import Switch from './Switch.svelte';
   import WatchApps from './WatchApps.svelte';
   import {
+    WATCH_TUNE,
     AFTER_END,
     afterEndHint,
     afterEndOptions,
@@ -100,6 +101,17 @@
       if (minutes !== null) setAlmanac({ [field]: minutes });
     };
   }
+
+  // Stay awake while…'s thresholds, as stops.
+  const transferOptions = [
+    { value: '16', label: '16 KB/s' },
+    { value: '64', label: '64 KB/s' },
+    { value: '256', label: '256 KB/s' },
+    { value: '1000', label: '1 MB/s' },
+    { value: '5000', label: '5 MB/s' },
+  ];
+  const busyOptions = [10, 20, 30, 50, 70].map((p) => ({ value: String(p), label: `${p}%` }));
+  const lingerOptions = [1, 2, 5, 10, 30].map((m) => ({ value: String(m), label: `${m}m` }));
 
   function setWatch(patch: Partial<WatchSettings>) {
     if (!settings) return;
@@ -375,7 +387,42 @@
             onchange={(v) => setWatch({ [row.key]: v })}
           />
         </Row>
+        {#if row.key === 'transfers' && settings.watch.transfers}
+          <div class="sub">
+            <Row label="Counts from" hint={WATCH_TUNE.transfer}>
+              <Stepper
+                options={withCurrent(transferOptions, settings.watch.transfer_kbps, ' KB/s')}
+                value={String(settings.watch.transfer_kbps)}
+                label="Counts as a download from"
+                onchange={(v) => setWatch({ transfer_kbps: Number(v) })}
+              />
+            </Row>
+          </div>
+        {:else if row.key === 'busy' && settings.watch.busy}
+          <div class="sub">
+            <Row label="Busy above" hint={WATCH_TUNE.busy}>
+              <Stepper
+                options={withCurrent(busyOptions, settings.watch.busy_percent, '%')}
+                value={String(settings.watch.busy_percent)}
+                label="Busy above"
+                onchange={(v) => setWatch({ busy_percent: Number(v) })}
+              />
+            </Row>
+          </div>
+        {/if}
       {/each}
+      {#if settings.watch.transfers || settings.watch.busy}
+        <div class="sub">
+          <Row label="Then waits" hint={WATCH_TUNE.linger}>
+            <Stepper
+              options={withCurrent(lingerOptions, settings.watch.linger_mins, 'm')}
+              value={String(settings.watch.linger_mins)}
+              label="Waits after it drops"
+              onchange={(v) => setWatch({ linger_mins: Number(v) })}
+            />
+          </Row>
+        </div>
+      {/if}
     </section>
 
     <section id="settings-schedule">
@@ -910,6 +957,11 @@
 
   .field input::placeholder {
     color: var(--ink-3);
+  }
+
+  /* A setting that belongs to the switch above it. */
+  .sub {
+    padding-left: 16px;
   }
 
   .stacked {
