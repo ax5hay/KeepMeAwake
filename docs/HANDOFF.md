@@ -3,7 +3,7 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-12 · by Claude Fable 5.2 (Windows session: v0.7.0 released: the twelve small things)
+**Last updated:** 2026-11-12 · by Claude Fable 5.2 (Windows session: v0.7.0 released; what is left needs the owner, on the machine where the owner is the repo admin)
 **Release:** [v0.7.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.7.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
 **Repo state:** `main` is green (`npm run verify` on Windows: vitest 212, cargo test 249;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
@@ -34,6 +34,40 @@ anything shared (`core`, `engine`, `copy.ts`, docs) is where the two tracks
 can collide, so commit it small and push it soon.
 
 ## Where to start
+
+### On the machine where the owner is the repo admin (do this first)
+
+The GitHub login on the Windows PC can push to `main` and publish releases
+but is not an admin of the repository, so it could not change the repo's
+settings. These wait for the owner, on a machine signed in as the admin:
+
+| To do                                                  | How                                                                                 | Why it was not done                                                                          |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| The repo's About text and topics                       | the command below                                                                   | `gh repo edit` answered 404: it needs admin                                                  |
+| The social preview image                               | in the browser: repo Settings → Social preview → upload `design/social-preview.png` | GitHub has no API for it, and it needs admin                                                 |
+| Look at the README on github.com, in light and in dark | open the repo's front page                                                          | its five Mermaid diagrams were rendered with Mermaid 11 locally, never seen on GitHub itself |
+| Update an installed copy to 0.7.0                      | Settings → About → **Check for updates**, then install                              | no installed copy has been watched updating itself, from any version                         |
+
+```sh
+gh repo edit ax5hay/KeepMeAwake   --description "A sun for your laptop: while it is up, Windows or macOS stays awake. It asks the OS, the way a video player does; no fake keypresses. Timers, a schedule, battery rules, an almanac of your days, 27 themes and your own, about 5 MB in the tray. Tauri, Rust, Svelte."   --add-topic themes,time-tracking,prevent-sleep,no-sleep,productivity,tauri-app,svelte5,webview2
+```
+
+Then, by hand in the real 0.7.0 window, the things no harness could show
+(each is an unticked box in [`specs/small-things.md`](specs/small-things.md)
+or [`specs/themes.md`](specs/themes.md)):
+
+| Check                                                                   | Where                                                                |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| The mini window stays above other windows, and drags by its line        | title bar, first button                                              |
+| **Print month** opens a real print dialog and the page is the timesheet | Almanac, beside Copy month as CSV                                    |
+| The colour picker opens and a picked colour is worn                     | Settings → Theme → Yours                                             |
+| The two notes are heard, rising and falling                             | Settings → Theme → Sounds, then click the sun                        |
+| The Almanac and Settings read well in each theme                        | Settings → Theme; only Home was looked at in every theme             |
+| The setup's finish page, and the MSI's dialogs                          | run the 0.7.0 installers; only the setup's welcome page was seen     |
+| An AI answer from a real service                                        | Settings → AI, with a key; none has ever come back, from any service |
+
+If the admin machine is the Mac, all of this doubles as the Mac's first look
+at 0.4.0 to 0.7.0: see the next section.
 
 ### On the Mac (macOS track)
 
