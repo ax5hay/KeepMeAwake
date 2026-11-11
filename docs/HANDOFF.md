@@ -3,7 +3,7 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-12 · by Claude Fable 5.2 (Windows session: v0.7.0 released; what is left needs the owner, on the machine where the owner is the repo admin)
+**Last updated:** 2026-11-12 · by Claude Opus 5.5 (Mac session: repo admin tasks, a plain-words pass over every piece of copy; Windows checks it next)
 **Release:** [v0.7.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.7.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
 **Repo state:** `main` is green (`npm run verify` on Windows: vitest 212, cargo test 249;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
@@ -35,22 +35,26 @@ can collide, so commit it small and push it soon.
 
 ## Where to start
 
-### On the machine where the owner is the repo admin (do this first)
+### On the machine where the owner is the repo admin
 
-The GitHub login on the Windows PC can push to `main` and publish releases
-but is not an admin of the repository, so it could not change the repo's
-settings. These wait for the owner, on a machine signed in as the admin:
+The Mac is signed in as the admin (the Windows PC's login can push and
+release but not change settings). What was left for the admin:
 
-| To do                                                  | How                                                                                 | Why it was not done                                                                          |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| The repo's About text and topics                       | the command below                                                                   | `gh repo edit` answered 404: it needs admin                                                  |
-| The social preview image                               | in the browser: repo Settings → Social preview → upload `design/social-preview.png` | GitHub has no API for it, and it needs admin                                                 |
-| Look at the README on github.com, in light and in dark | open the repo's front page                                                          | its five Mermaid diagrams were rendered with Mermaid 11 locally, never seen on GitHub itself |
-| Update an installed copy to 0.7.0                      | Settings → About → **Check for updates**, then install                              | no installed copy has been watched updating itself, from any version                         |
+| To do                                                  | Status                                                                                                                                            |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The repo's About text and topics                       | done on the Mac (admin login): 20 topics, and the description rewritten in plain words (see `gh repo view`)                                       |
+| The social preview image                               | **owner, by hand**: repo Settings → General → Social preview → upload `design/social-preview.png` (1280 × 640). No API; needs a signed-in browser |
+| Look at the README on github.com, in light and in dark | done: all five diagrams render, no broken images. Light reads well. Dark has three faults, below                                                  |
+| Update an installed copy to 0.7.0                      | **not done**: no installed copy on the Mac. Install the 0.6.0 DMG, then Settings → About → **Check for updates**                                  |
 
-```sh
-gh repo edit ax5hay/KeepMeAwake   --description "A sun for your laptop: while it is up, Windows or macOS stays awake. It asks the OS, the way a video player does; no fake keypresses. Timers, a schedule, battery rules, an almanac of your days, 27 themes and your own, about 5 MB in the tray. Tauri, Rust, Svelte."   --add-topic themes,time-tracking,prevent-sleep,no-sleep,productivity,tauri-app,svelte5,webview2
-```
+The README's diagrams in GitHub's dark mode (they wear Paper's colours on a
+dark page):
+
+| Diagram               | Fault                                                                                          | Likely fix                                                                      |
+| --------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| One click, end to end | the `You` stick figure's label and the lifelines are dark ink on the dark page: near-invisible | `participant You` (a box) instead of `actor`; `actorLineColor` set to `#9a948a` |
+| The sun's states      | GitHub's always-on zoom buttons cover `Paused` and `Asking` at the right edge                  | a layout that keeps those states off the right edge, or a narrower diagram      |
+| The parts             | too wide for the column, so it shrinks until the labels are tiny (light mode too)              | `flowchart TB`                                                                  |
 
 Then, by hand in the real 0.7.0 window, the things no harness could show
 (each is an unticked box in [`specs/small-things.md`](specs/small-things.md)
@@ -176,12 +180,13 @@ Built on one machine, not yet built and checked on the other. A row goes
 when the other machine has run `npm run verify` and the acceptance items that
 apply there (see [`development.md`](development.md#two-machines-one-main)).
 
-| What                    | Built on | Waits for | Check there                                                                                                                      |
-| ----------------------- | -------- | --------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Almanac                 | Windows  | Mac       | `npm run verify`; its acceptance (below) on the Mac; the title bar button and the pane in SF Pro at 340 px; a night across sleep |
-| Overnight guard         | Windows  | Mac       | `npm run verify` (includes the real `MacIdle` reading); the guard's acceptance (below) on the Mac, menu bar item                 |
-| UI pass, sliders, doors | Windows  | Mac       | the icon; the doors fit one line in SF Pro at 340 px and show `⌥⌘K`; each opens its section; Esc in Until…                       |
-| Auto-update             | Windows  | Mac       | the 0.3.0 DMG installs; its check runs and stamps `last_update_check_unix_ms`; About shows the switch; menu bar line             |
+| What                    | Built on | Waits for | Check there                                                                                                                                                              |
+| ----------------------- | -------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Plain-words copy pass   | Mac      | Windows   | `npm run verify`; the tray menu (**Add 30 minutes**, **I'm here, stay awake**, **Until I turn it off**); a toast; the installer's welcome and finish (**All set**) pages |
+| Almanac                 | Windows  | Mac       | `npm run verify`; its acceptance (below) on the Mac; the title bar button and the pane in SF Pro at 340 px; a night across sleep                                         |
+| Overnight guard         | Windows  | Mac       | `npm run verify` (includes the real `MacIdle` reading); the guard's acceptance (below) on the Mac, menu bar item                                                         |
+| UI pass, sliders, doors | Windows  | Mac       | the icon; the doors fit one line in SF Pro at 340 px and show `⌥⌘K`; each opens its section; Esc in Until…                                                               |
+| Auto-update             | Windows  | Mac       | the 0.3.0 DMG installs; its check runs and stamps `last_update_check_unix_ms`; About shows the switch; menu bar line                                                     |
 
 Checked on Windows this session, so these rows came off: the **macOS
 track** (`npm run verify` green; toasts and the hotkey as in 0.2), **session
@@ -205,29 +210,49 @@ on Windows is listed under **Where to start**.
 
 ## Done this cycle
 
-| Date       | What                                                                                                       | By               |
-| ---------- | ---------------------------------------------------------------------------------------------------------- | ---------------- |
-| 2026-11-07 | 0.1.0 built end to end; docs, CI, specs for 0.2 and 0.3; roadmap to 0.5                                    | Claude Fable 5.1 |
-| 2026-11-07 | 0.2 built: schedule, notifications, global hotkey, taskbar-aware tray icons; engine wake-up fix            | Claude Opus 5.5  |
-| 2026-11-07 | Repo moved to `ax5hay` and made public; every link updated; bundle metadata made honest                    | Claude Fable 5.1 |
-| 2026-11-07 | macOS scoped: `specs/macos.md`, Mac setup in `development.md`, two-track handoff                           | Claude Fable 5.1 |
-| 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release          | Claude Opus 5.5  |
-| 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep                | Claude Opus 5.5  |
-| 2026-11-07 | Sunset warning: spec, built (6 commits) on the Mac, reviewed; two-machine rule written into the docs       | Claude Opus 5.5  |
-| 2026-11-07 | Overnight guard specced; Mac session wrapped up, Windows start list rewritten                              | Claude Opus 5.5  |
-| 2026-11-07 | Windows PC set up; the Mac's macOS, history and sunset work checked on Windows; History screenshots        | Claude Opus 5.5  |
-| 2026-11-07 | Overnight guard built on Windows (6 commits + 2 review fixes), CI green on both runners                    | Claude Opus 5.5  |
-| 2026-11-07 | Settings button as sliders (a gear read as a sun); Home's doors into Settings; Home shots recaptured       | Claude Opus 5.5  |
-| 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)                | Claude Opus 5.5  |
-| 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                             | Claude Opus 5.5  |
-| 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                       | Claude Opus 5.5  |
-| 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards          | Claude Fable 5.2 |
-| 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Sleep when I'm away (4 commits)         | Claude Fable 5.2 |
-| 2026-11-10 | v0.4.0 released (full, latest). Claude behind three locks; Check for updates; break reminder; month as CSV | Claude Fable 5.2 |
-| 2026-11-11 | AI by any service (Claude, OpenAI, other); product names back; v0.5.0 released (full, latest)              | Claude Fable 5.2 |
-| 2026-11-11 | Themes (27, on four shelves); a weekday nobody works reads as a day off; both unreleased                   | Claude Fable 5.2 |
-| 2026-11-12 | Windows installers redrawn; README rewritten; v0.6.0 released (full, latest)                               | Claude Fable 5.2 |
-| 2026-11-12 | Twelve small things built; v0.7.0 released (full, latest)                                                  | Claude Fable 5.2 |
+| Date       | What                                                                                                         | By               |
+| ---------- | ------------------------------------------------------------------------------------------------------------ | ---------------- |
+| 2026-11-07 | 0.1.0 built end to end; docs, CI, specs for 0.2 and 0.3; roadmap to 0.5                                      | Claude Fable 5.1 |
+| 2026-11-07 | 0.2 built: schedule, notifications, global hotkey, taskbar-aware tray icons; engine wake-up fix              | Claude Opus 5.5  |
+| 2026-11-07 | Repo moved to `ax5hay` and made public; every link updated; bundle metadata made honest                      | Claude Fable 5.1 |
+| 2026-11-07 | macOS scoped: `specs/macos.md`, Mac setup in `development.md`, two-track handoff                             | Claude Fable 5.1 |
+| 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release            | Claude Opus 5.5  |
+| 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep                  | Claude Opus 5.5  |
+| 2026-11-07 | Sunset warning: spec, built (6 commits) on the Mac, reviewed; two-machine rule written into the docs         | Claude Opus 5.5  |
+| 2026-11-07 | Overnight guard specced; Mac session wrapped up, Windows start list rewritten                                | Claude Opus 5.5  |
+| 2026-11-07 | Windows PC set up; the Mac's macOS, history and sunset work checked on Windows; History screenshots          | Claude Opus 5.5  |
+| 2026-11-07 | Overnight guard built on Windows (6 commits + 2 review fixes), CI green on both runners                      | Claude Opus 5.5  |
+| 2026-11-07 | Settings button as sliders (a gear read as a sun); Home's doors into Settings; Home shots recaptured         | Claude Opus 5.5  |
+| 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)                  | Claude Opus 5.5  |
+| 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                               | Claude Opus 5.5  |
+| 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                         | Claude Opus 5.5  |
+| 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards            | Claude Fable 5.2 |
+| 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Sleep when I'm away (4 commits)           | Claude Fable 5.2 |
+| 2026-11-10 | v0.4.0 released (full, latest). Claude behind three locks; Check for updates; break reminder; month as CSV   | Claude Fable 5.2 |
+| 2026-11-11 | AI by any service (Claude, OpenAI, other); product names back; v0.5.0 released (full, latest)                | Claude Fable 5.2 |
+| 2026-11-11 | Themes (27, on four shelves); a weekday nobody works reads as a day off; both unreleased                     | Claude Fable 5.2 |
+| 2026-11-12 | Windows installers redrawn; README rewritten; v0.6.0 released (full, latest)                                 | Claude Fable 5.2 |
+| 2026-11-12 | Twelve small things built; v0.7.0 released (full, latest)                                                    | Claude Fable 5.2 |
+| 2026-11-12 | Mac: old clone reset to the rewritten history; repo About and topics set; README checked on github.com       | Claude Opus 5.5  |
+| 2026-11-12 | Plain words everywhere: window, tray, toasts, installer, README, guide, repo description; rules in design.md | Claude Opus 5.5  |
+
+## Plain words (unreleased)
+
+Asked for by the owner: every line a person reads should be understood in
+one go, with flair only where nobody has to act on it. The rule and a table
+of examples are in [`design.md`](design.md#copy); the changelog lists the
+renamed labels.
+
+- Kept by request: the Almanac and the other named features (Ask the
+  almanac, Tell the sun, Morning whisper, Sleep when I'm away, Overnight
+  guard), the states Resting / Awake / Paused, theme names, easter eggs.
+- Seen in a browser harness at 340 and 380 px (Home near a timer's end and
+  with the guard asking, Settings, themes, Almanac); three lines were
+  shortened after that look. Not seen: the real window, the tray menu, a
+  toast, the installer. Specs under `docs/specs/` keep the old wording on
+  purpose: they record what was built.
+- No setting or identifier changed (`keep_it_up`, `sunset_warning_mins`
+  and the rest), so no settings version bump.
 
 ## Small things (released in 0.7.0)
 
