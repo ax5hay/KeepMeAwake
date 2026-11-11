@@ -217,6 +217,13 @@ on Windows is listed under **Where to start**.
   welcome page looked at (`docs/assets/installer-welcome.png`); the finish
   page and the MSI's dialogs have not been seen, since that means installing. The DMG
   background is unchanged.
+- **README**: rewritten around a cover (`docs/assets/cover.png`), a tour, a
+  gallery of every theme (`docs/assets/themes/<id>.png`, Home in each, from
+  the harness with seeded data) and five Mermaid diagrams in Paper's colours
+  (an `init` block per diagram; all five were rendered with Mermaid 11
+  before pushing). The repo's description and topics were brought up to date.
+  Not done, because only the owner can: upload `design/social-preview.png`
+  as the social preview in the repo's settings.
 - Vitest now runs with `css: true`, because the theme tests read the
   stylesheets.
 
