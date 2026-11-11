@@ -75,7 +75,7 @@
       </p>
       <p class="hint">Made by {AUTHOR.name} · {AUTHOR.siteLabel}</p>
 
-      <h3 class="eyebrow">How it got here</h3>
+      <h3 class="eyebrow">Version history</h3>
       <ol class="versions">
         {#each VERSIONS as version (version.name)}
           <li>
@@ -134,14 +134,14 @@
             <dt>Latest finish</dt>
             <dd>{dateOf(review.latest)} · {formatClock(review.latest.last)}</dd>
           {/if}
-          <dt>Longest run</dt>
+          <dt>Most days in a row</dt>
           <dd>{daysInARow(review.run)}</dd>
           {#if review.over_ms >= 60_000}
             <dt>Outside your hours</dt>
             <dd>{formatTotal(review.over_ms)}</dd>
           {/if}
           {#if usual}
-            <dt>Usual night</dt>
+            <dt>Usually away</dt>
             <dd>{clockOf(usual.from_minutes)} – {clockOf(usual.to_minutes)}</dd>
           {/if}
         </dl>

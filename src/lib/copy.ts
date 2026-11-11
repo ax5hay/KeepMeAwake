@@ -25,23 +25,23 @@ export const CREDIT = `Made in the small hours by ${AUTHOR.name}.`;
 export function horizonTips(mac: boolean): readonly string[] {
   return [
     'The sun is the switch. Click it, or press Space.',
-    'Pick a stop on the rule and the sun will set when the time is up.',
+    'Pick a length under the sun to stay awake for just that long.',
     mac
       ? 'Closing this window keeps the sun in the menu bar. ⌘W does the same.'
       : 'Closing this window keeps the sun in your tray. Esc does the same.',
     mac
       ? 'Right-click the sun in the menu bar for everything, no window needed.'
       : 'Right-click the sun in the tray for everything without opening this window.',
-    'Below 20% battery the sun pauses and waits for the charger.',
-    'Until… takes a time of day. If it has already passed, it means tomorrow.',
+    'Below 20% battery it pauses, and picks up again when you plug in.',
+    'Until… takes a time of day. A time already gone today means tomorrow.',
     mac
       ? '⌘, opens settings. Esc brings you back here.'
       : 'Ctrl+, opens settings. Esc brings you back here.',
     mac
-      ? 'macOS lists this under pmset -g assertions, by name.'
-      : 'Windows lists this under powercfg /requests, by name.',
-    'The sun has nothing to do with daylight. It is how awake your laptop is.',
-    'A schedule keeps the sun up for you. Settings → Schedule.',
+      ? 'To check it is working, run pmset -g assertions and look for its name.'
+      : 'To check it is working, run powercfg /requests and look for its name.',
+    'The sun is not about daylight. Up means your laptop stays awake.',
+    'To stay awake at set hours every day, use Settings → Schedule.',
   ];
 }
 
@@ -84,7 +84,7 @@ export function isLate(hour: number): boolean {
 }
 
 /** Appended to the awake detail line late at night. */
-export const LATE_NIGHT = 'It is late. The sun will hold the line.';
+export const LATE_NIGHT = 'It is late. Your laptop will stay awake.';
 
 /** Status detail while a schedule window holds the sun up. */
 export function onSchedule(time: string): string {
@@ -92,7 +92,7 @@ export function onSchedule(time: string): string {
 }
 
 /** Settings → Schedule → From / Until. */
-export const SCHEDULE_HOURS_HINT = 'Overnight is fine. The same time twice is all day.';
+export const SCHEDULE_HOURS_HINT = 'Can run past midnight. The same start and end means all day.';
 
 /** Appended to the resting line while a schedule waits for its next window. */
 export function awakeAgain(when: string): string {
@@ -125,48 +125,49 @@ export function longStop(secs: number): string {
 
 /** The status line while a timed session is inside its sunset warning. */
 export function sunsetIn(secs: number): string {
-  if (secs < 60) return 'The sun sets in under a minute.';
+  if (secs < 60) return 'Ends in under a minute.';
   const m = Math.ceil(secs / 60);
-  return `The sun sets in ${m} minute${m === 1 ? '' : 's'}.`;
+  return `Ends in ${m} minute${m === 1 ? '' : 's'}.`;
 }
 
 /** The action under the status line, and the tray item, near sunset. */
-export const EXTEND_LABEL = 'Give it another 30m';
+export const EXTEND_LABEL = 'Add 30 minutes';
 
 /** Whispered after the extend link is clicked. */
-export const EXTENDED = 'Another 30 minutes.';
+export const EXTENDED = 'Added 30 minutes.';
 
 /**
  * The status line while the overnight guard asks whether anyone is there:
- * `Nobody here for 6 hours. Resting at 3:12 am.`
+ * `No input for 6h. Sleeps at 3:12 am.`
  */
 export function nobodyHere(hours: number, time: string): string {
-  return `Nobody here for ${hours} hour${hours === 1 ? '' : 's'}. Resting at ${time}.`;
+  return `No input for ${hours}h. Sleeps at ${time}.`;
 }
 
 /**
  * The status line while Sleep when I'm away is about to set the sun: the keys went
- * quiet inside the resting hours. `Away for the night. Sleeping at 3:12 am.`
+ * quiet inside the resting hours. `Away for the night? Sleeps at 3:12 am.`
  */
 export function quietForTheNight(time: string): string {
-  return `Away for the night. Sleeping at ${time}.`;
+  return `Away for the night? Sleeps at ${time}.`;
 }
 
 /** The resting line after the sun set with the night. */
-export const SET_WITH_THE_NIGHT = 'Asleep for the night. Always resumes when you return.';
+export const SET_WITH_THE_NIGHT =
+  'Sleeping while you are away. Always comes back on when you return.';
 
 /** Settings → Almanac → Sleep when I'm away. */
 export const SET_WITH_ME_HINT =
   "At night, lets the laptop sleep once you've been away this long, and turns Always back on when you return.";
 
 /** Settings → Almanac → Morning whisper. */
-export const WHISPER_NIGHT_HINT = "Last night's time away, shown once when you open the app.";
+export const WHISPER_NIGHT_HINT = 'When you were away last night, shown once in the morning.';
 
 /** The action under the status line, and the tray item, while the guard asks. */
-export const KEEP_IT_UP = 'Keep it up';
+export const KEEP_IT_UP = "I'm here";
 
-/** Whispered after Keep it up: the guard will not ask again this session. */
-export const KEPT_UP = 'Kept up. It will not ask again this time.';
+/** Whispered after I'm here: the guard will not ask again this session. */
+export const KEPT_UP = 'Staying awake. It will not ask again this time.';
 
 /**
  * The Always line. While the overnight guard watches, it says so, so the
@@ -174,12 +175,12 @@ export const KEPT_UP = 'Kept up. It will not ask again this time.';
  */
 export function untilYouSay(guardHours: number | null): string {
   return guardHours === null
-    ? 'Until you say otherwise.'
-    : `Until you say otherwise, or ${guardHours}h untouched.`;
+    ? 'Until you turn it off.'
+    : `Until you turn it off, or ${guardHours}h with no input.`;
 }
 
 /** Settings → Waking → Overnight guard. */
-export const OVERNIGHT_GUARD_HINT = 'Ends an untouched Always.';
+export const OVERNIGHT_GUARD_HINT = "Stops Always if you're away.";
 
 /** Whispered once per version, the first time the window opens after it is found. */
 export function updateWhisper(version: string): string {
@@ -205,7 +206,7 @@ export const CHECKING = 'Checking…';
 export const NEWEST = "You're up to date.";
 
 /** Settings → About → Check for updates automatically. */
-export const UPDATES_HINT = 'Once a day and when you open this window, from GitHub.';
+export const UPDATES_HINT = 'Looks on GitHub once a day, and when you open this window.';
 
 /** A Settings section Home can open directly. */
 export type SettingsSection =
@@ -240,31 +241,35 @@ export function doors(
     ];
   }
   return [
-    { section: 'schedule', label: 'Schedule', title: 'Awake on its own during set hours' },
+    { section: 'schedule', label: 'Schedule', title: 'Stay awake at set hours, on its own' },
     {
       section: 'waking',
       label: 'Overnight',
       title:
         guardHours === null
-          ? 'Overnight guard is off: Always never rests on its own'
-          : `Always rests after ${guardHours}h with nobody around`,
+          ? 'Overnight guard is off: Always runs until you turn it off'
+          : `Always turns off after ${guardHours}h with no input`,
     },
-    { section: 'history', label: 'History', title: 'When the sun was up, and how it set' },
+    {
+      section: 'history',
+      label: 'History',
+      title: 'When it kept your laptop awake, and why it stopped',
+    },
     hotkey === null
-      ? { section: 'hotkey', label: 'Hotkey', title: 'Toggle from any app' }
-      : { section: 'hotkey', label: hotkey, title: `${hotkey} toggles from any app` },
+      ? { section: 'hotkey', label: 'Hotkey', title: 'A shortcut that works in any app' }
+      : { section: 'hotkey', label: hotkey, title: `${hotkey} turns it on or off from any app` },
   ];
 }
 
 /** The title bar's way into the Almanac. */
-export const ALMANAC_TITLE = 'Almanac: your days, hours and nights';
+export const ALMANAC_TITLE = 'Almanac: the hours you worked, day by day';
 
 /**
  * Whispered once on the first open after a night. It names the quiet, not
  * what was done with it: the keys went quiet, and that is all it knows.
  */
 export function quietNight(from: string, to: string): string {
-  return `A quiet night: ${from} to ${to}.`;
+  return `Last night you were away from ${from} to ${to}.`;
 }
 
 /** The word a day reads as when it has no hours to show. */
@@ -335,7 +340,7 @@ export function nightLine(from: string, to: string, length: string): string {
 export const MARK_LEAVE = 'Mark as leave';
 
 /** The same link on a day that reads as leave. */
-export const NOT_A_LEAVE = 'Not a leave';
+export const NOT_A_LEAVE = 'Not leave';
 
 /** The link that opens a day's hours for correcting. */
 export const CORRECT_HOURS = 'Edit hours';
@@ -379,17 +384,18 @@ export const ALMANAC_SETTINGS = 'Working days and hours…';
 export const CLEAR_ALMANAC = 'Clear the almanac';
 
 /** The pane while the almanac is switched off. */
-export const ALMANAC_CLOSED = 'The almanac is closed. Nothing is being recorded.';
+export const ALMANAC_CLOSED = 'The almanac is off. Nothing is being recorded.';
 
 /** The pane on its first day, before there is anything to draw. */
-export const ALMANAC_BEGINS = 'The first day is being written.';
+export const ALMANAC_BEGINS =
+  'Your first day is being recorded. There will be more to see tomorrow.';
 
 /** Settings → Almanac → Keep an almanac. */
-export const ALMANAC_HINT = 'Your hours, leave and nights.';
+export const ALMANAC_HINT = 'Logs your hours from keyboard and mouse.';
 
 /** The sheet `?` lays over the window. */
-export const KEYS_TITLE = 'Keys';
-export const KEYS_FOOT = 'In the theme picker, the arrows walk the themes.';
+export const KEYS_TITLE = 'Keyboard shortcuts';
+export const KEYS_FOOT = 'In the theme picker, the arrow keys move between themes.';
 
 /** The sheet behind Settings → About → Credits. */
 export const CREDITS_TITLE = 'Credits';
@@ -408,7 +414,11 @@ export const VERSIONS: ReadonlyArray<{ name: string; when: string; what: string 
   { name: '0.3', when: 'Nov 2026', what: 'History, the overnight guard, updates of its own.' },
   { name: '0.2', when: 'Nov 2026', what: 'A schedule, a hotkey, notifications.' },
   { name: '0.1', when: '2026', what: 'One sun, a tray icon, timers and battery rules.' },
-  { name: 'Before', when: '', what: 'A script that pressed a key every few minutes.' },
+  {
+    name: 'Before',
+    when: '',
+    what: 'A script that pressed a key every few minutes, which this replaces.',
+  },
 ];
 
 /** What it is made with, and whose palettes it borrows. */
@@ -426,10 +436,10 @@ export const CREDITS: ReadonlyArray<{ what: string; by: string }> = [
 
 /** A year, looked back on: the sheet's title and its link in the Almanac. */
 export function yearTitle(year: number): string {
-  return `${year}, looked back on`;
+  return `${year} in review`;
 }
-export const YEAR_LINK = 'Look back';
-export const YEAR_EMPTY = 'Nothing was kept in this year.';
+export const YEAR_LINK = 'Year in review';
+export const YEAR_EMPTY = 'Nothing was recorded this year.';
 
 /** `1 day`, `9 days in a row`. */
 export function daysInARow(count: number): string {
@@ -440,16 +450,16 @@ export function daysInARow(count: number): string {
 export const PRINT_MONTH = 'Print month';
 
 /** The title bar's way into the mini window, and the mini window's way back. */
-export const MINI_TITLE = 'Mini window: the sun alone, on top';
+export const MINI_TITLE = 'Mini window: just the sun, above other windows';
 export const MINI_BACK = 'Back to the whole window';
 
 /** Settings → Theme → After dark. */
 export const AFTER_DARK = 'After dark';
-export const AFTER_DARK_HINT = 'Another theme for the evening.';
+export const AFTER_DARK_HINT = 'Switch to a different theme in the evening.';
 
 /** Settings → Sounds. */
 export const SOUNDS = 'Sounds';
-export const SOUNDS_HINT = 'A soft note as the sun rises and sets, while this window is open.';
+export const SOUNDS_HINT = 'A soft note when it turns on and off, while this window is open.';
 
 /** A theme of one's own: its five colours, and the line that shares it. */
 export const OWN_PART_LABELS = {
@@ -459,19 +469,19 @@ export const OWN_PART_LABELS = {
   sky: 'Sky',
   ground: 'Ground',
 } as const;
-export const OWN_CODE_HINT = 'This line is your theme. Paste one here to wear it.';
-export const OWN_CODE_BAD = 'That is not a theme: sun: and five colours.';
+export const OWN_CODE_HINT = "Your theme as a line of text. Paste someone else's here to use it.";
+export const OWN_CODE_BAD = 'That is not a theme code. It starts with sun: and has five colours.';
 export const OWN_COPY = 'Copy';
 export const OWN_COPIED = 'Copied';
 
 /** Settings → Theme, under the name of the one worn. */
-export const THEME_HINT = 'Colours only. The sun stays the one accent.';
+export const THEME_HINT = 'Changes the colours, nothing else.';
 
 /** The way back to the app's own two. */
-export const THEME_RESET = 'Back to System';
+export const THEME_RESET = 'Use the system theme';
 
 /** Settings → Almanac → Working hours. */
-export const WORK_HOURS_HINT = 'Past midnight is fine. Time outside them counts as over.';
+export const WORK_HOURS_HINT = 'Can run past midnight. Time outside them counts as extra.';
 
 /** Settings → Almanac → Count missed working days as leave. */
 export const EMPTY_LEAVE = 'Count missed working days as leave';
@@ -490,13 +500,13 @@ export const AI_OFF = 'AI is switched off.';
 export const AI_SWITCH_ON = 'Switch it on';
 
 /** Settings → AI → Use AI. */
-export const AI_MASTER_HINT = 'Off, nothing is ever sent anywhere.';
+export const AI_MASTER_HINT = 'While off, nothing is ever sent anywhere.';
 
 /** The same row with no key: the switch cannot move yet. */
 export const AI_MASTER_LOCKED = 'Needs an API key first.';
 
 /** Settings → AI → Service. */
-export const AI_SERVICE_HINT = 'Whose model answers. Each service keeps its own key.';
+export const AI_SERVICE_HINT = 'Which AI answers. Each one has its own key.';
 
 /** Settings → AI → Model, for a service with a smallest model of its own. */
 export function modelHint(smallest: string): string {
@@ -570,7 +580,8 @@ export function sendsSentence(to: string): string {
 export const TELL_THE_SUN = 'Tell the sun';
 
 /** What it does, shown while its switch is off. */
-export const TELL_HINT = 'Type how long to stay awake instead of picking a time.';
+export const TELL_HINT =
+  'Type how long to stay awake, in your own words, instead of picking a time.';
 
 /** Shown in the empty field. */
 export const TELL_PLACEHOLDER = 'for 2 hours, or until 6:30 pm';
@@ -583,14 +594,15 @@ export const TELL_THINKING = 'Asking…';
 export const TELL_START = 'Start';
 
 /** Settings → Almanac → Break reminder. */
-export const BREAK_HINT = 'A toast after that long without five minutes away.';
+export const BREAK_HINT = 'A notification after this long without a 5-minute break.';
 
 /** The link that copies the open month, and what it says once it has. */
 export const COPY_MONTH = 'Copy month as CSV';
 export const COPIED = 'Copied';
 
 /** Settings → History before anything has been logged. */
-export const HISTORY_EMPTY = 'Nothing yet. The first sunset will be written here.';
+export const HISTORY_EMPTY =
+  'Nothing yet. Each time it keeps your laptop awake will be listed here.';
 
 /** The link under the history list. */
 export const CLEAR_HISTORY = 'Clear history';
@@ -599,7 +611,7 @@ export const CLEAR_HISTORY = 'Clear history';
 export const HOTKEY_RECORDING = 'Press keys…';
 
 /** The Tips row for the global hotkey. */
-export const HOTKEY_TIP = 'Toggle from anywhere';
+export const HOTKEY_TIP = 'Turn on or off from any app';
 
 /** One row of Settings → Tips. */
 export interface Tip {
@@ -611,24 +623,24 @@ export interface Tip {
 export function tips(mac: boolean): readonly Tip[] {
   if (mac) {
     return [
-      { keys: 'Space', does: 'Toggle awake and resting' },
+      { keys: 'Space', does: 'Turn staying awake on or off' },
       { keys: 'Esc', does: 'Back, or close the window' },
       { keys: '⌘,', does: 'Settings' },
-      { keys: '?', does: 'Every key, on one sheet' },
+      { keys: '?', does: 'All keyboard shortcuts' },
       { keys: '⌘W', does: 'Close to the menu bar' },
       { keys: '⌘Q', does: 'Quit' },
       { keys: 'Menu bar · click', does: 'Open this window' },
-      { keys: 'Menu bar · right click', does: 'Every action, no window' },
+      { keys: 'Menu bar · right click', does: 'Every action, as a menu' },
       { keys: 'Horizon', does: 'Click the line for a tip' },
     ];
   }
   return [
-    { keys: 'Space', does: 'Toggle awake and resting' },
+    { keys: 'Space', does: 'Turn staying awake on or off' },
     { keys: 'Esc', does: 'Back, or close to the tray' },
     { keys: 'Ctrl+,', does: 'Settings' },
-    { keys: '?', does: 'Every key, on one sheet' },
+    { keys: '?', does: 'All keyboard shortcuts' },
     { keys: 'Tray · left click', does: 'Open this window' },
-    { keys: 'Tray · right click', does: 'Every action, no window' },
+    { keys: 'Tray · right click', does: 'Every action, as a menu' },
     { keys: 'Horizon', does: 'Click the line for a tip' },
   ];
 }
@@ -667,18 +679,18 @@ export interface PlatformCopy {
 
 /** {@link PlatformCopy} for a Mac (`true`) or Windows. */
 export function platformCopy(mac: boolean): PlatformCopy {
-  const mechanism = 'the same mechanism a video player uses. See it under';
-  const after = '. Nothing is typed, nothing moves.';
+  const mechanism = 'the same way a video player does. You can see it with';
+  const after = '. Nothing is typed and the mouse never moves.';
   if (mac) {
     return {
       closeLabel: 'Close to the menu bar',
-      closeTitle: 'Close to the menu bar (⌘W). The sun stays up.',
+      closeTitle: 'Close to the menu bar (⌘W). It keeps running there.',
       settingsTitle: 'Settings (⌘,)',
       launchHint: 'Starts quietly in the menu bar.',
-      lengthHint: 'Used by the sun, the menu bar and Space.',
+      lengthHint: 'How long a click or Space keeps it awake.',
       hotkeyHint: 'Works in any app. Needs at least one of ⌘, ⌃, ⌥.',
       about: {
-        before: `Holds a power assertion while awake, ${mechanism}`,
+        before: `While awake, it asks macOS to stay awake, ${mechanism}`,
         code: 'pmset -g assertions',
         after,
       },
@@ -688,13 +700,13 @@ export function platformCopy(mac: boolean): PlatformCopy {
   }
   return {
     closeLabel: 'Close to tray',
-    closeTitle: 'Close to tray (Esc). The sun stays up.',
+    closeTitle: 'Close to tray (Esc). It keeps running there.',
     settingsTitle: 'Settings (Ctrl+,)',
     launchHint: 'Starts quietly in the tray.',
-    lengthHint: 'Used by the sun, the tray and Space.',
+    lengthHint: 'How long a click or Space keeps it awake.',
     hotkeyHint: 'Works in any app. Needs at least one of Ctrl, Alt, Win.',
     about: {
-      before: `Holds a Windows power request while awake, ${mechanism}`,
+      before: `While awake, it asks Windows to stay awake, ${mechanism}`,
       code: 'powercfg /requests',
       after,
     },

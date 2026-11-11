@@ -10,7 +10,7 @@ describe('History', () => {
   it('says so when nothing has been logged, with nothing to clear', () => {
     render(History, { history: { version: 1, entries: [] }, now: NOW, onclear: () => {} });
     expect(
-      screen.getByText('Nothing yet. The first sunset will be written here.'),
+      screen.getByText('Nothing yet. Each time it keeps your laptop awake will be listed here.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Clear history' })).toBeNull();
   });

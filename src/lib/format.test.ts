@@ -111,12 +111,10 @@ describe('statusText and the night', () => {
       guard_rests_at_unix_ms: rests,
       guard_night: true,
     };
-    expect(statusText(asking, noon, 'en-US').detail).toBe(
-      'Away for the night. Sleeping at 3:12 am.',
-    );
+    expect(statusText(asking, noon, 'en-US').detail).toBe('Away for the night? Sleeps at 3:12 am.');
     const guardOff = { ...asking, settings: { ...asking.settings, overnight_guard_hours: null } };
     expect(statusText(guardOff, noon, 'en-US').detail).toBe(
-      'Away for the night. Sleeping at 3:12 am.',
+      'Away for the night? Sleeps at 3:12 am.',
     );
   });
 
@@ -124,7 +122,7 @@ describe('statusText and the night', () => {
     const down = { ...base, rises_on_touch: true };
     expect(statusText(down, noon)).toEqual({
       title: 'Resting',
-      detail: 'Asleep for the night. Always resumes when you return.',
+      detail: 'Sleeping while you are away. Always comes back on when you return.',
     });
   });
 });
@@ -185,11 +183,11 @@ describe('statusText', () => {
     expect(statusText(base, NOW).title).toBe('Resting');
     expect(statusText({ ...base, mode: 'indefinite' }, NOW)).toEqual({
       title: 'Awake',
-      detail: 'Until you say otherwise.',
+      detail: 'Until you turn it off.',
     });
     expect(statusText({ ...base, mode: 'indefinite', paused: 'low_battery' }, NOW)).toEqual({
       title: 'Paused',
-      detail: 'Holding off while battery is low.',
+      detail: 'Not keeping awake while battery is low.',
     });
     const ends = new Date(2026, 0, 1, 17, 30).getTime();
     const timed = { ...base, mode: 'timed' as const, ends_at_unix_ms: ends, plan_secs: 3600 };
@@ -362,11 +360,11 @@ describe('statusText while the overnight guard asks', () => {
   it('asks in place of the usual line, awake or paused', () => {
     expect(statusText(asking, rests - 600_000, 'en-US')).toEqual({
       title: 'Awake',
-      detail: 'Nobody here for 6 hours. Resting at 3:12 am.',
+      detail: 'No input for 6h. Sleeps at 3:12 am.',
     });
     expect(statusText({ ...asking, paused: 'low_battery' }, rests, 'en-US')).toEqual({
       title: 'Paused',
-      detail: 'Nobody here for 6 hours. Resting at 3:12 am.',
+      detail: 'No input for 6h. Sleeps at 3:12 am.',
     });
   });
 
@@ -375,18 +373,18 @@ describe('statusText while the overnight guard asks', () => {
     const noon = new Date(2026, 0, 2, 12, 0).getTime();
     const late = new Date(2026, 0, 2, 2, 0).getTime();
     expect(statusText({ ...always, guard_watching: true }, noon).detail).toBe(
-      'Until you say otherwise, or 6h untouched.',
+      'Until you turn it off, or 6h with no input.',
     );
     expect(statusText({ ...always, guard_watching: true }, late).detail).toBe(
-      'Until you say otherwise, or 6h untouched.',
+      'Until you turn it off, or 6h with no input.',
     );
-    expect(statusText(always, noon).detail).toBe('Until you say otherwise.');
+    expect(statusText(always, noon).detail).toBe('Until you turn it off.');
     expect(statusText(always, late).detail).toMatch(/It is late\./);
   });
 
   it('goes back to the usual line once withdrawn', () => {
     const withdrawn = { ...asking, guard_rests_at_unix_ms: null };
-    expect(statusText(withdrawn, rests, 'en-US').detail).toMatch(/^Until you say otherwise\./);
+    expect(statusText(withdrawn, rests, 'en-US').detail).toMatch(/^Until you turn it off\./);
   });
 });
 
@@ -431,7 +429,7 @@ describe('sunsetSoon', () => {
   it('turns the status line to the sunset', () => {
     expect(statusText(timed, at(299), 'en-US')).toEqual({
       title: 'Awake',
-      detail: 'The sun sets in 5 minutes.',
+      detail: 'Ends in 5 minutes.',
     });
     expect(statusText(timed, at(400), 'en-US').detail).toBe('Until 5:30 pm · 6m left');
   });

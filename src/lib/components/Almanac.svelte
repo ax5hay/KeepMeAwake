@@ -499,7 +499,7 @@
           </dd>
         {/if}
         {#if usual}
-          <dt>Usual night</dt>
+          <dt>Usually away</dt>
           <dd>{clockOf(usual.from_minutes)} – {clockOf(usual.to_minutes)}</dd>
         {/if}
       </dl>

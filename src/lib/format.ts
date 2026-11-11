@@ -146,7 +146,7 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
     };
   }
   if (snapshot.paused) {
-    return { title: 'Paused', detail: `Holding off while ${pauseText(snapshot.paused)}.` };
+    return { title: 'Paused', detail: `Not keeping awake while ${pauseText(snapshot.paused)}.` };
   }
   const late = isLate(new Date(nowMs).getHours()) ? ` ${LATE_NIGHT}` : '';
   if (snapshot.mode === 'indefinite') {

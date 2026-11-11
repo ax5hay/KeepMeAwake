@@ -26,8 +26,8 @@ export interface ThemeShelf {
 /** Every theme, as the picker shelves them. */
 export const SHELVES: ReadonlyArray<ThemeShelf> = [
   {
-    title: 'Its own',
-    hint: 'Paper by day, Night by night.',
+    title: 'Standard',
+    hint: 'System follows your light or dark mode.',
     themes: [
       { id: 'system', label: 'System' },
       { id: 'light', label: 'Paper' },
@@ -35,8 +35,8 @@ export const SHELVES: ReadonlyArray<ThemeShelf> = [
     ],
   },
   {
-    title: 'Borrowed',
-    hint: 'From the editor you already live in.',
+    title: 'Editors',
+    hint: 'Colour schemes from code editors.',
     themes: [
       { id: 'solarized_light', label: 'Solarized Light' },
       { id: 'solarized_dark', label: 'Solarized Dark' },
@@ -49,8 +49,8 @@ export const SHELVES: ReadonlyArray<ThemeShelf> = [
     ],
   },
   {
-    title: 'Play',
-    hint: 'Somewhere else the horizon could be.',
+    title: 'Places',
+    hint: 'The same horizon, somewhere else.',
     themes: [
       { id: 'terminal', label: 'Terminal' },
       { id: 'blueprint', label: 'Blueprint' },
@@ -64,7 +64,7 @@ export const SHELVES: ReadonlyArray<ThemeShelf> = [
   },
   {
     title: 'Loud',
-    hint: 'On purpose.',
+    hint: 'Bright and bold, on purpose.',
     themes: [
       { id: 'vaporwave', label: 'Vaporwave' },
       { id: 'thermal', label: 'Thermal' },
@@ -78,7 +78,7 @@ export const SHELVES: ReadonlyArray<ThemeShelf> = [
   },
   {
     title: 'Yours',
-    hint: 'Five colours, and it is a theme.',
+    hint: 'Pick five colours and make your own.',
     themes: [{ id: 'own', label: 'Yours' }],
   },
 ];

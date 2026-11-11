@@ -395,7 +395,7 @@ describe('AppStore', () => {
     const store = new AppStore(api);
     await store.init();
     expect(store.guardAsking).toBe(true);
-    expect(store.status.detail).toMatch(/^Nobody here for 6 hours\./);
+    expect(store.status.detail).toMatch(/^No input for 6h\./);
     await store.keepItUp();
     expect(api.keepItUp).toHaveBeenCalledOnce();
     expect(store.guardAsking).toBe(false);
@@ -593,7 +593,7 @@ describe('AppStore and the almanac', () => {
   it('whispers the night once, on the first open after it', async () => {
     const first = new AppStore(fakeApi(base, null, slept).api);
     await first.init();
-    expect(first.whisper).toBe('A quiet night: 11:48 pm to 7:02 am.');
+    expect(first.whisper).toBe('Last night you were away from 11:48 pm to 7:02 am.');
     first.dispose();
 
     const again = new AppStore(fakeApi(base, null, slept).api);

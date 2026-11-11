@@ -256,7 +256,7 @@
       <h2 class="eyebrow">Startup</h2>
       <Row
         label="Launch at sign-in"
-        hint={autostart === null ? 'Unavailable' : PLATFORM_COPY.launchHint}
+        hint={autostart === null ? 'Not available on this system' : PLATFORM_COPY.launchHint}
       >
         <Switch
           checked={autostart === true}
@@ -265,14 +265,14 @@
           onchange={(v) => void setAutostart(v)}
         />
       </Row>
-      <Row label="Open the window at launch" hint="Only when you start it yourself.">
+      <Row label="Open the window at launch" hint="When you start it yourself, not at sign-in.">
         <Switch
           checked={!settings.start_hidden}
           label="Open the window at launch"
           onchange={(v) => void store.updateSettings({ start_hidden: !v })}
         />
       </Row>
-      <Row label="Begin as">
+      <Row label="At launch">
         <Segmented
           options={startupOptions}
           value={settings.startup_plan}
@@ -283,7 +283,7 @@
     </section>
 
     <section id="settings-waking">
-      <h2 class="eyebrow">Waking</h2>
+      <h2 class="eyebrow">Staying awake</h2>
       <Row label="Default length" hint={PLATFORM_COPY.lengthHint}>
         <Stepper
           options={durationOptions}
@@ -295,13 +295,13 @@
             void store.updateSettings({ default_duration_secs: v === 'inf' ? null : Number(v) })}
         />
       </Row>
-      <Row label="Warn before sunset" hint="A nudge before a timer ends.">
+      <Row label="Timer warning" hint="Lets you add 30 minutes.">
         <Segmented
           options={withCurrent(sunsetOptions, settings.sunset_warning_mins, 'm')}
           value={settings.sunset_warning_mins === null
             ? 'off'
             : String(settings.sunset_warning_mins)}
-          label="Warn before sunset"
+          label="Timer warning"
           onchange={(v) =>
             void store.updateSettings({ sunset_warning_mins: v === 'off' ? null : Number(v) })}
         />
@@ -328,7 +328,7 @@
 
     <section id="settings-schedule">
       <h2 class="eyebrow">Schedule</h2>
-      <Row label="Keep a schedule" hint="Awake during these hours, resting outside them.">
+      <Row label="Keep a schedule" hint="Stays awake during these hours, on the days you pick.">
         <Switch
           checked={settings.schedule.enabled}
           label="Keep a schedule"
@@ -547,7 +547,7 @@
             })}
         />
       </Row>
-      <Row label="Pause whenever unplugged" hint="Strictest option: battery means resting.">
+      <Row label="Pause whenever unplugged" hint="On battery, your laptop sleeps as usual.">
         <Switch
           checked={settings.pause_on_battery}
           label="Pause whenever unplugged"
@@ -603,7 +603,7 @@
         />
       </Row>
       {#if settings.after_dark.enabled}
-        <Row label="Wear">
+        <Row label="Evening theme">
           <select
             class="select"
             aria-label="The theme after dark"
@@ -617,7 +617,7 @@
             {/each}
           </select>
         </Row>
-        <Row label="From, until">
+        <Row label="Evening hours">
           <div class="times">
             <input
               type="time"

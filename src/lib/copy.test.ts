@@ -110,7 +110,10 @@ describe('longStop', () => {
 
 describe('tipsWith', () => {
   it('lists the hotkey after Space, and nothing when it is off', () => {
-    expect(tipsWith('Ctrl+Alt+K')[1]).toEqual({ keys: 'Ctrl+Alt+K', does: 'Toggle from anywhere' });
+    expect(tipsWith('Ctrl+Alt+K')[1]).toEqual({
+      keys: 'Ctrl+Alt+K',
+      does: 'Turn on or off from any app',
+    });
     expect(tipsWith('Ctrl+Alt+K')).toHaveLength(TIPS.length + 1);
     expect(tipsWith(null)).toBe(TIPS);
   });
@@ -147,18 +150,18 @@ describe('platform copy', () => {
 
 describe('sunsetIn', () => {
   it('counts whole minutes up, then says under a minute', () => {
-    expect(sunsetIn(300)).toBe('The sun sets in 5 minutes.');
-    expect(sunsetIn(299)).toBe('The sun sets in 5 minutes.');
-    expect(sunsetIn(60)).toBe('The sun sets in 1 minute.');
-    expect(sunsetIn(59)).toBe('The sun sets in under a minute.');
+    expect(sunsetIn(300)).toBe('Ends in 5 minutes.');
+    expect(sunsetIn(299)).toBe('Ends in 5 minutes.');
+    expect(sunsetIn(60)).toBe('Ends in 1 minute.');
+    expect(sunsetIn(59)).toBe('Ends in under a minute.');
   });
 });
 
 describe('overnight guard copy', () => {
   it('says how long nobody has been here and when the sun rests', () => {
-    expect(nobodyHere(6, '3:12 am')).toBe('Nobody here for 6 hours. Resting at 3:12 am.');
-    expect(nobodyHere(1, '3:12 am')).toBe('Nobody here for 1 hour. Resting at 3:12 am.');
-    expect(KEEP_IT_UP).toBe('Keep it up');
+    expect(nobodyHere(6, '3:12 am')).toBe('No input for 6h. Sleeps at 3:12 am.');
+    expect(nobodyHere(1, '3:12 am')).toBe('No input for 1h. Sleeps at 3:12 am.');
+    expect(KEEP_IT_UP).toBe("I'm here");
   });
 
   it('fits the status line with the link, and the hint on one line', () => {
@@ -176,12 +179,12 @@ describe('doors', () => {
       ['history', 'History'],
       ['hotkey', 'Ctrl+Alt+K'],
     ]);
-    expect(doors('⌥⌘K')[3]?.title).toBe('⌥⌘K toggles from any app');
+    expect(doors('⌥⌘K')[3]?.title).toBe('⌥⌘K turns it on or off from any app');
     expect(doors(null)[3]?.label).toBe('Hotkey');
   });
 
   it('says what the guard will do, or that it is off', () => {
-    expect(doors(null, 6)[1]?.title).toBe('Always rests after 6h with nobody around');
+    expect(doors(null, 6)[1]?.title).toBe('Always turns off after 6h with no input');
     expect(doors(null, null)[1]?.title).toMatch(/^Overnight guard is off/);
   });
 
@@ -308,7 +311,9 @@ describe('almanac copy', () => {
   });
 
   it('names the quiet and never says anyone slept', () => {
-    expect(quietNight('11:48 pm', '7:02 am')).toBe('A quiet night: 11:48 pm to 7:02 am.');
+    expect(quietNight('11:48 pm', '7:02 am')).toBe(
+      'Last night you were away from 11:48 pm to 7:02 am.',
+    );
     expect(nightLine('11:48 pm', '7:02 am', '7h 14m')).toBe(
       'Away overnight 11:48 pm – 7:02 am · 7h 14m',
     );
@@ -345,8 +350,8 @@ describe('almanac copy', () => {
 
 describe('the Always line', () => {
   it('names the guard while it watches', () => {
-    expect(untilYouSay(6)).toBe('Until you say otherwise, or 6h untouched.');
-    expect(untilYouSay(null)).toBe('Until you say otherwise.');
+    expect(untilYouSay(6)).toBe('Until you turn it off, or 6h with no input.');
+    expect(untilYouSay(null)).toBe('Until you turn it off.');
     expect(KEPT_UP.length).toBeLessThanOrEqual(48);
   });
 });
