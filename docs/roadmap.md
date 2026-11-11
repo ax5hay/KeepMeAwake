@@ -50,10 +50,11 @@ timeline
 | Overnight guard (from 0.4)                                       | [overnight-guard.md](specs/overnight-guard.md) | platform, engine, app, ui |
 | Home's doors into Settings, settings sliders, a pass over the UI |                                                | ui                        |
 
-## Built for 0.8 (unreleased)
+## Shipped in 0.8
 
-Built on the Mac; the Windows paths are compiled and unit tested by CI, and
-both machines have hand checks left (see [`HANDOFF.md`](HANDOFF.md)).
+Released as 0.8.0. Built on the Mac; the Windows paths are compiled and
+unit tested by CI, and both machines have hand checks left (see
+[`HANDOFF.md`](HANDOFF.md)).
 
 | Feature                                                                                       | Spec                                             | Layers                          |
 | --------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------- |
@@ -106,7 +107,7 @@ Built and checked on Windows; the Mac's checks are listed in [`HANDOFF.md`](HAND
 ## After 0.3
 
 Scoped enough to size; each gets a full spec when it is next in line.
-Since built, under **Built for 0.8** above: after the sun sets (as When it
+Since built, under **Shipped in 0.8** above: after the sun sets (as When it
 ends), sleep detection, presenting (full screen) and docked awareness, watch
 a process (as Stay awake while…), the energy estimate (as time left), the
 CLI, and the sky log (as the wide window's day).

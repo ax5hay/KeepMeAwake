@@ -530,6 +530,11 @@ export const CREDITS_LINK = 'Credits and history';
 /** How the app got here, newest first. */
 export const VERSIONS: ReadonlyArray<{ name: string; when: string; what: string }> = [
   {
+    name: '0.8',
+    when: 'Nov 2026',
+    what: 'It notices for you: awake while things run, then what you chose. A wide window. Plain words.',
+  },
+  {
     name: '0.7',
     when: 'Nov 2026',
     what: 'The small things: a theme of your own, the moon, a mini window, a year looked back on.',

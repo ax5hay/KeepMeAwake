@@ -5,6 +5,16 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-12
+
+It notices for you: it stays awake while something is going on, does what
+you chose when that ends, answers a terminal, knows when the machine
+sleeps, and draws your day in a wide window. Every line you read was also
+rewritten in plain words. Built and checked on the Mac (tests, a terminal,
+a browser harness); CI compiled and tested every Windows path. A real lid
+close, the lock and sleep actions, and the wide window as a real window
+have not been tried by hand on either machine yet.
+
 ### Added
 
 - **Stay awake while…** (Settings): keep the laptop awake on its own while
@@ -336,7 +346,8 @@ First release. A twenty-line Python script became a desktop app.
   late-night line.
 - Settings persisted atomically; rotating log file.
 
-[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.8.0
 [0.7.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.7.0
 [0.6.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.6.0
 [0.5.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.5.0

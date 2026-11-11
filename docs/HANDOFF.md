@@ -4,7 +4,7 @@ The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
 **Last updated:** 2026-11-12 · by Claude Opus 5.5 (Mac session: admin tasks, plain words, and six 0.8 features built on the Mac: battery aware, stay awake while, when it ends, a command line, sleep detection, the wide window. Windows checks them next)
-**Release:** [v0.7.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.7.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
+**Release:** [v0.8.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.8.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
 **Repo state:** `npm run verify` green on the Mac (vitest 232, cargo test 289); the Mac
 runs its own platform tests in place of the Windows ones. CI: see the latest run on `main`.
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
