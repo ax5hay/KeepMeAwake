@@ -103,6 +103,108 @@ const IFT_ETHER: u8 = 0x6;
 const CPU_STATES: usize = 4;
 const CPU_STATE_IDLE: usize = 2;
 
+// Sleep and wake, from the IOKit power management notifications.
+type IoConnect = u32;
+type IoObject = u32;
+type PowerCallback = extern "C" fn(*mut std::ffi::c_void, u32, u32, *mut std::ffi::c_void);
+
+#[link(name = "IOKit", kind = "framework")]
+unsafe extern "C" {
+    fn IORegisterForSystemPower(
+        refcon: *mut std::ffi::c_void,
+        port: *mut *mut std::ffi::c_void,
+        callback: PowerCallback,
+        notifier: *mut IoObject,
+    ) -> IoConnect;
+    fn IONotificationPortGetRunLoopSource(
+        port: *mut std::ffi::c_void,
+    ) -> core_foundation::runloop::CFRunLoopSourceRef;
+    fn IOAllowPowerChange(kernel_port: IoConnect, notification_id: isize) -> IoReturn;
+}
+
+/// `kIOMessageCanSystemSleep`: idle sleep is being considered.
+const CAN_SYSTEM_SLEEP: u32 = 0xE000_0270;
+/// `kIOMessageSystemWillSleep`: the Mac is going to sleep.
+const SYSTEM_WILL_SLEEP: u32 = 0xE000_0280;
+/// `kIOMessageSystemHasPoweredOn`: the Mac woke (a dark wake sends none).
+const SYSTEM_HAS_POWERED_ON: u32 = 0xE000_0300;
+
+/// What the power callback needs: the port to answer on, and whom to tell.
+struct SleepContext {
+    root: IoConnect,
+    on: Box<dyn Fn(bool) + Send + Sync>,
+}
+
+extern "C" fn power_callback(
+    refcon: *mut std::ffi::c_void,
+    _service: u32,
+    message: u32,
+    argument: *mut std::ffi::c_void,
+) {
+    // SAFETY: `refcon` is the context leaked in `watch_sleep`, set up before
+    // the run loop that delivers this callback started; it is never freed.
+    let context = unsafe { &*refcon.cast::<SleepContext>() };
+    // The notification id is the pointer-sized `argument`, as IOKit sends it.
+    let id = argument as isize;
+    match message {
+        // Idle sleep asks first; a held assertion already says no to it,
+        // so letting it through changes nothing.
+        CAN_SYSTEM_SLEEP => {
+            // SAFETY: answering this notification on its own port.
+            let _ = unsafe { IOAllowPowerChange(context.root, id) };
+        }
+        SYSTEM_WILL_SLEEP => {
+            (context.on)(true);
+            // SAFETY: as above; an unanswered notification delays sleep by
+            // thirty seconds, so it is always answered.
+            let _ = unsafe { IOAllowPowerChange(context.root, id) };
+        }
+        SYSTEM_HAS_POWERED_ON => (context.on)(false),
+        _ => {}
+    }
+}
+
+/// Calls `on(true)` as the Mac goes to sleep and `on(false)` as it wakes,
+/// from a thread that parks in its own run loop and wakes for nothing else.
+pub fn watch_sleep(on: Box<dyn Fn(bool) + Send + Sync>) -> Result<(), PlatformError> {
+    use core_foundation::runloop::{CFRunLoop, CFRunLoopSource, kCFRunLoopCommonModes};
+    let spawned = std::thread::Builder::new()
+        .name("keepmeawake-sleep".into())
+        .spawn(move || {
+            let context = Box::into_raw(Box::new(SleepContext { root: 0, on }));
+            let mut port: *mut std::ffi::c_void = std::ptr::null_mut();
+            let mut notifier: IoObject = 0;
+            // SAFETY: valid out-pointers and a callback with the signature
+            // IOKit expects; `context` lives for the life of the process.
+            let root = unsafe {
+                IORegisterForSystemPower(
+                    context.cast(),
+                    &raw mut port,
+                    power_callback,
+                    &raw mut notifier,
+                )
+            };
+            if root == 0 || port.is_null() {
+                return;
+            }
+            // SAFETY: nothing reads the context until the run loop runs.
+            unsafe { (*context).root = root };
+            // SAFETY: the port came from IORegisterForSystemPower and owns
+            // its source (get rule).
+            let source = unsafe {
+                CFRunLoopSource::wrap_under_get_rule(IONotificationPortGetRunLoopSource(port))
+            };
+            // SAFETY: reading an immutable CoreFoundation constant.
+            let mode = unsafe { kCFRunLoopCommonModes };
+            CFRunLoop::get_current().add_source(&source, mode);
+            CFRunLoop::run_current();
+        });
+    spawned.map(|_| ()).map_err(|err| PlatformError::Os {
+        call: "thread spawn",
+        detail: err.to_string(),
+    })
+}
+
 // Mach, declared here because the libc crate marks its own copies
 // deprecated in favour of another crate; both come from libSystem.
 unsafe extern "C" {

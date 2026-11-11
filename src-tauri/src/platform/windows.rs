@@ -348,6 +348,60 @@ impl ActivityProbe for WindowsActivity {
     }
 }
 
+/// Calls `on(true)` as the PC goes to sleep and `on(false)` as it wakes.
+/// Windows calls back on a thread of its own; nothing of ours waits.
+pub fn watch_sleep(on: Box<dyn Fn(bool) + Send + Sync>) -> Result<(), PlatformError> {
+    use std::ffi::c_void;
+    use windows::Win32::System::Power::{
+        DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS, PowerRegisterSuspendResumeNotification,
+    };
+    use windows::Win32::UI::WindowsAndMessaging::{
+        DEVICE_NOTIFY_CALLBACK, PBT_APMRESUMEAUTOMATIC, PBT_APMRESUMESUSPEND, PBT_APMSUSPEND,
+    };
+
+    type Listener = Box<dyn Fn(bool) + Send + Sync>;
+
+    unsafe extern "system" fn callback(context: *const c_void, kind: u32, _: *const c_void) -> u32 {
+        // SAFETY: `context` is the listener leaked below, never freed while
+        // the registration lives, which is the life of the process.
+        let on = unsafe { &*context.cast::<Listener>() };
+        match kind {
+            PBT_APMSUSPEND => on(true),
+            PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => on(false),
+            _ => {}
+        }
+        0
+    }
+
+    let context: *mut Listener = Box::into_raw(Box::new(on));
+    let params = Box::into_raw(Box::new(DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS {
+        Callback: Some(callback),
+        Context: context.cast(),
+    }));
+    let mut registration: *mut c_void = std::ptr::null_mut();
+    // SAFETY: `params` points at subscription parameters that stay alive
+    // (leaked) for as long as the registration does: the life of the process.
+    let registered = unsafe {
+        PowerRegisterSuspendResumeNotification(
+            DEVICE_NOTIFY_CALLBACK,
+            HANDLE(params.cast()),
+            &raw mut registration,
+        )
+    };
+    if registered.is_err() {
+        // SAFETY: not registered, so nothing else holds these.
+        unsafe {
+            drop(Box::from_raw(params));
+            drop(Box::from_raw(context));
+        }
+        return Err(win32_error(
+            "PowerRegisterSuspendResumeNotification",
+            registered,
+        ));
+    }
+    Ok(())
+}
+
 /// Lets a command-line run print to the terminal it was started from. The
 /// release build is a GUI program, which has no console of its own.
 pub fn attach_console() {

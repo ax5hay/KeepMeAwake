@@ -187,6 +187,7 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         vec![listener],
     ));
     apply_startup_plan(&engine, &settings);
+    watch_sleep(&engine);
     // Launched by a command from a terminal: carry it out, quietly.
     let command = cli::command(&std::env::args().collect::<Vec<_>>());
     if let Some(command) = &command {
@@ -287,6 +288,32 @@ fn apply_startup_plan(engine: &Engine, settings: &Settings) {
         StartupPlan::DefaultDuration => default_plan(settings),
     };
     engine.set_plan(request);
+}
+
+/// Tells the engine when the machine sleeps and wakes, so a stretch is
+/// split at a sleep and a timer that ran out asleep is noticed at once.
+fn watch_sleep(engine: &Arc<Engine>) {
+    let engine = Arc::clone(engine);
+    let on: Box<dyn Fn(bool) + Send + Sync> = Box::new(move |asleep| {
+        let now = tray::now_unix_ms();
+        if asleep {
+            engine.slept(now);
+        } else {
+            engine.woke(now);
+        }
+    });
+    #[cfg(windows)]
+    let watched = crate::platform::windows::watch_sleep(on);
+    #[cfg(target_os = "macos")]
+    let watched = crate::platform::macos::watch_sleep(on);
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let watched: Result<(), crate::platform::PlatformError> = {
+        drop(on);
+        Err(crate::platform::PlatformError::Unsupported)
+    };
+    if let Err(err) = watched {
+        log::warn!("sleep and wake will not be noticed: {err}");
+    }
 }
 
 #[cfg(windows)]

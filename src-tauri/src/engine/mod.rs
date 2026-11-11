@@ -163,6 +163,11 @@ struct State {
     /// A condition was what held the laptop awake at the last evaluation,
     /// so a stretch that ends now ended because it cleared.
     watch_held: bool,
+    /// The machine went to sleep at this moment, Unix ms, and has not woken.
+    asleep_since: Option<u64>,
+    /// A sleep that just ended: from, to (Unix ms). The next step splits
+    /// any stretch that was up across it.
+    sleep_gap: Option<(u64, u64)>,
     shutdown: bool,
 }
 
@@ -255,6 +260,8 @@ impl Engine {
                 pids: Vec::new(),
                 watch_skip: false,
                 watch_held: false,
+                asleep_since: None,
+                sleep_gap: None,
                 shutdown: false,
             }),
             wake: Condvar::new(),
@@ -376,6 +383,25 @@ impl Engine {
                 st.guard_question = Question::Hours;
             }
         })
+    }
+
+    /// The machine is going to sleep (a closed lid, the power button, a
+    /// forced sleep on low battery): remembered until it wakes.
+    pub fn slept(&self, at_unix_ms: u64) {
+        let mut st = self.shared.state.lock();
+        st.asleep_since.get_or_insert(at_unix_ms);
+    }
+
+    /// The machine woke. The worker steps at once, so a timer that ran out
+    /// during the sleep is noticed now, and a stretch that was up across
+    /// the sleep is split at it.
+    pub fn woke(&self, at_unix_ms: u64) {
+        let mut st = self.shared.state.lock();
+        if let Some(from) = st.asleep_since.take() {
+            st.sleep_gap = Some((from, at_unix_ms.max(from)));
+        }
+        st.dirty = true;
+        self.shared.wake.notify_all();
     }
 
     /// Undoes [`Engine::skip_today`].
@@ -799,6 +825,7 @@ fn step(
     shared: &Shared,
 ) -> Vec<EngineEvent> {
     let mut events = Vec::new();
+    split_at_sleep(st, &mut events);
     rise_on_touch(st, probes.idle, now, unix_now);
     let was_due = st.due_end_unix;
     let was_active = st.session.is_active() || st.phase == Phase::Holding;
@@ -900,6 +927,28 @@ fn step(
     };
     events.insert(0, EngineEvent::Snapshot(build_snapshot(st, shared)));
     events
+}
+
+/// A stretch that was up across a sleep ended when the machine slept: it
+/// did not hold. If anything still wants the laptop awake, the step that
+/// follows starts a new one at the wake. A stretch whose own end (a timer,
+/// a window) fell during the sleep is left to end as that, when it was due.
+fn split_at_sleep(st: &mut State, events: &mut Vec<EngineEvent>) {
+    let Some((from, to)) = st.sleep_gap.take() else {
+        return;
+    };
+    if !st.awake {
+        return;
+    }
+    let ran_out_asleep = st.due_end_unix.is_some_and(|due| due > from && due <= to);
+    if ran_out_asleep {
+        return;
+    }
+    events.push(EngineEvent::SessionEnded {
+        ended: Ended::Sleep,
+        at_unix_ms: from,
+    });
+    st.awake = false;
 }
 
 /// What one step knows about a stretch that just ended.
@@ -2474,5 +2523,75 @@ mod tests {
         let now = r.clock.now();
         assert_eq!(r.engine.next_wake(), Some(now + policy::WATCH_POLL));
         assert!(r.activity.reads() > 0);
+    }
+
+    // Sleep detection
+
+    fn startings(events: &[EngineEvent]) -> Vec<u64> {
+        events
+            .iter()
+            .filter_map(|e| match e {
+                EngineEvent::SessionStarted { at_unix_ms, .. } => Some(*at_unix_ms),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_sleep_splits_an_always_session_in_two() {
+        let r = rig(watching(|_| {}));
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::Indefinite);
+        look(&r, 10);
+        r.engine.slept(t0 + 60_000);
+        r.clock.advance(Duration::from_secs(3600));
+        r.engine.woke(t0 + 3_660_000);
+        let events = events_until(
+            &r,
+            |e| matches!(e, EngineEvent::SessionStarted { at_unix_ms, .. } if *at_unix_ms > t0),
+        );
+        // The split's end comes before the new start, in the same step.
+        let ended: Vec<_> = events
+            .iter()
+            .filter_map(|e| match e {
+                EngineEvent::SessionEnded { ended, at_unix_ms } => Some((*ended, *at_unix_ms)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(ended[0], (Ended::Sleep, t0 + 60_000), "ended as it slept");
+        assert_eq!(
+            startings(&events).last(),
+            Some(&(t0 + 3_600_000)),
+            "started again at the wake"
+        );
+    }
+
+    #[test]
+    fn a_timer_that_ran_out_asleep_ends_as_a_timer_when_it_was_due() {
+        let r = rig(watching(|_| {}));
+        let t0 = r.clock.unix_ms();
+        r.engine.set_plan(PlanRequest::For { seconds: 600 });
+        look(&r, 10);
+        r.engine.slept(t0 + 60_000);
+        r.clock.advance(Duration::from_secs(3600));
+        r.engine.woke(t0 + 3_600_000);
+        let events = events_until(&r, |e| matches!(e, EngineEvent::SessionEnded { .. }));
+        assert!(matches!(
+            events.last(),
+            Some(EngineEvent::SessionEnded { ended: Ended::Timer, at_unix_ms }) if *at_unix_ms == t0 + 600_000
+        ));
+    }
+
+    #[test]
+    fn a_wake_with_nothing_up_says_nothing() {
+        let r = rig(watching(|_| {}));
+        let t0 = r.clock.unix_ms();
+        look(&r, 10);
+        r.engine.slept(t0);
+        r.clock.advance(Duration::from_secs(60));
+        r.engine.woke(t0 + 60_000);
+        let events = settled(&r, |_| true);
+        assert_eq!(endings(&events), Vec::<Ended>::new());
+        assert_eq!(startings(&events), Vec::<u64>::new());
     }
 }
