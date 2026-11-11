@@ -198,6 +198,20 @@ ring ahead. A past working day with nothing in it reads as leave on its own
 (switch that off on a machine you rarely use), and a day with under five
 minutes in it is not a day's work.
 
+What never counts as leave:
+
+| Day                                   | Reads as  | Why                                                                                             |
+| ------------------------------------- | --------- | ----------------------------------------------------------------------------------------------- |
+| not one of your **Working days**      | `Day off` | your weekend, however long: set the days in Settings → Almanac                                  |
+| a working day you never actually work | `Day off` | empty on that weekday in three or more of the weeks around it, in weeks you did work other days |
+| before the almanac's first day        | nothing   | it was not keeping count yet                                                                    |
+| a day you marked **Not a leave**      | nothing   | you said so                                                                                     |
+
+The second row is for a week that does not match the setting: if Working
+days says Monday to Friday and you have not worked a Friday in weeks, Fridays
+stop counting as leave without your changing anything. A whole week away
+still reads as leave, and so does one missed Friday among worked ones.
+
 ![Almanac → month, Paper](assets/almanac-month-light.png) ![Almanac → month, Night](assets/almanac-month-dark.png)
 
 **Putting a day right.** What is read from the keys can be wrong: a day
@@ -340,54 +354,69 @@ dark menu bar itself. Nothing to set.
 
 ## Settings
 
-| Section       | Setting                         | Notes                                                                               |
-| ------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
-| Startup       | Launch at sign-in               | registers under the current user; starts hidden                                     |
-|               | Open the window at launch       | only applies when you start it yourself                                             |
-|               | Begin as                        | Resting · Awake · Default length                                                    |
-| Waking        | Default length                  | what the sun, tray toggle and Space use. Always, or a stop                          |
-|               | Warn before sunset              | Off · 2m · 5m · 10m before a timer ends; 5m by default                              |
-|               | Overnight guard                 | Off · 4h · 6h · 8h without input before Always asks, then rests; 6h                 |
-|               | Keep the screen on              | same switch as on the home pane                                                     |
-| Schedule      | Keep a schedule                 | awake during these hours, resting outside them. Off by default                      |
-|               | Days                            | Monday first; weekdays by default                                                   |
-|               | From / Until                    | 9:00 am until 6:00 pm by default; overnight is fine; the same time twice is all day |
-| Almanac       | Keep an almanac                 | days, hours and nights, from your input. On by default; see Almanac above           |
-|               | Working days                    | Monday first; weekdays by default                                                   |
-|               | Working hours                   | 9:00 am until 6:00 pm by default; past midnight is fine                             |
-|               | Empty working days are leave    | on by default; off on a machine you rarely use                                      |
-|               | Morning whisper                 | the morning's whisper; on by default                                                |
-|               | Break reminder                  | Off · 1h · 90m · 2h at the machine without five minutes away; off by default        |
-|               | Sleep when I'm away             | Off · 30m · 1h · 2h of quiet at night before Always sets; off by default            |
-| AI            | Use AI                          | the master switch; off by default, and locked without a key                         |
-|               | Service                         | Claude · OpenAI · Other (any service in the OpenAI chat format)                     |
-|               | Model                           | empty for the service's smallest; or name one                                       |
-|               | Address                         | for Other: `https://…/v1`, or `http://localhost…`                                   |
-|               | API key                         | your own; kept in the OS credential store, never shown again                        |
-|               | This week, in words             | its own switch, also beside the feature in the Almanac                              |
-|               | Tell the sun                    | its own switch, also beside the feature on Home                                     |
-|               | The day, in a line              | its own switch, also beside the feature in the Almanac                              |
-|               | Ask the almanac                 | its own switch, also beside the feature in the Almanac                              |
-|               | Hide AI                         | off by default; on, only an Enable AI button is left                                |
-| Battery       | Pause below                     | Off, or 10–50%                                                                      |
-|               | Pause whenever unplugged        | strictest: on battery means resting                                                 |
-| Window        | Closing keeps it running        | off quits on close                                                                  |
-|               | Free memory when closed         | destroys the UI on close (default); off hides it for an instant reopen              |
-|               | Appearance                      | System · Paper · Night                                                              |
-| Notifications | When a timer ends               | a toast when a timed session sets on its own. On by default                         |
-|               | Battery pauses and resumes      | when the battery rule pauses the sun, and when the charger brings it back           |
-|               | Schedule starts and ends        | when a schedule window opens or closes                                              |
-| Hotkey        | Hotkey                          | `Ctrl+Alt+K` by default. Change records a new one; Off removes it                   |
-| History       |                                 | the last 30 times the sun was up; see below                                         |
-| Tips          |                                 | the keyboard and tray table                                                         |
-| About         | Check for updates automatically | once a day, from GitHub; on by default. See Updates below                           |
-|               |                                 | version, how it works, author, Source, Quit                                         |
+| Section       | Setting                            | Notes                                                                               |
+| ------------- | ---------------------------------- | ----------------------------------------------------------------------------------- |
+| Startup       | Launch at sign-in                  | registers under the current user; starts hidden                                     |
+|               | Open the window at launch          | only applies when you start it yourself                                             |
+|               | Begin as                           | Resting · Awake · Default length                                                    |
+| Waking        | Default length                     | what the sun, tray toggle and Space use. Always, or a stop                          |
+|               | Warn before sunset                 | Off · 2m · 5m · 10m before a timer ends; 5m by default                              |
+|               | Overnight guard                    | Off · 4h · 6h · 8h without input before Always asks, then rests; 6h                 |
+|               | Keep the screen on                 | same switch as on the home pane                                                     |
+| Schedule      | Keep a schedule                    | awake during these hours, resting outside them. Off by default                      |
+|               | Days                               | Monday first; weekdays by default                                                   |
+|               | From / Until                       | 9:00 am until 6:00 pm by default; overnight is fine; the same time twice is all day |
+| Almanac       | Keep an almanac                    | days, hours and nights, from your input. On by default; see Almanac above           |
+|               | Working days                       | Monday first; weekdays by default                                                   |
+|               | Working hours                      | 9:00 am until 6:00 pm by default; past midnight is fine                             |
+|               | Count missed working days as leave | on by default; off on a machine you rarely use. Weekends and days off never count   |
+|               | Morning whisper                    | the morning's whisper; on by default                                                |
+|               | Break reminder                     | Off · 1h · 90m · 2h at the machine without five minutes away; off by default        |
+|               | Sleep when I'm away                | Off · 30m · 1h · 2h of quiet at night before Always sets; off by default            |
+| AI            | Use AI                             | the master switch; off by default, and locked without a key                         |
+|               | Service                            | Claude · OpenAI · Other (any service in the OpenAI chat format)                     |
+|               | Model                              | empty for the service's smallest; or name one                                       |
+|               | Address                            | for Other: `https://…/v1`, or `http://localhost…`                                   |
+|               | API key                            | your own; kept in the OS credential store, never shown again                        |
+|               | This week, in words                | its own switch, also beside the feature in the Almanac                              |
+|               | Tell the sun                       | its own switch, also beside the feature on Home                                     |
+|               | The day, in a line                 | its own switch, also beside the feature in the Almanac                              |
+|               | Ask the almanac                    | its own switch, also beside the feature in the Almanac                              |
+|               | Hide AI                            | off by default; on, only an Enable AI button is left                                |
+| Battery       | Pause below                        | Off, or 10–50%                                                                      |
+|               | Pause whenever unplugged           | strictest: on battery means resting                                                 |
+| Window        | Closing keeps it running           | off quits on close                                                                  |
+|               | Free memory when closed            | destroys the UI on close (default); off hides it for an instant reopen              |
+| Theme         |                                    | System, Paper, Night and sixteen more; see Themes below                             |
+| Notifications | When a timer ends                  | a toast when a timed session sets on its own. On by default                         |
+|               | Battery pauses and resumes         | when the battery rule pauses the sun, and when the charger brings it back           |
+|               | Schedule starts and ends           | when a schedule window opens or closes                                              |
+| Hotkey        | Hotkey                             | `Ctrl+Alt+K` by default. Change records a new one; Off removes it                   |
+| History       |                                    | the last 30 times the sun was up; see below                                         |
+| Tips          |                                    | the keyboard and tray table                                                         |
+| About         | Check for updates automatically    | once a day, from GitHub; on by default. See Updates below                           |
+|               |                                    | version, how it works, author, Source, Quit                                         |
 
 ![Settings → Waking, Paper](assets/overnight-settings-light.png) ![Settings → Waking, Night](assets/overnight-settings-dark.png)
 
 ![Settings → Schedule, Paper](assets/schedule-settings-light.png) ![Settings → Schedule, Night](assets/schedule-settings-dark.png)
 
 ![Settings → Almanac, Paper](assets/almanac-settings-light.png) ![Settings → Almanac, Night](assets/almanac-settings-dark.png)
+
+## Themes
+
+Settings → Theme. Each swatch is a small horizon in that theme's colours;
+click one to wear it. **Back to System** returns to Paper by day and Night
+by night. A theme changes colours only.
+
+| Shelf    | Themes                                                                                    |
+| -------- | ----------------------------------------------------------------------------------------- |
+| Its own  | System (follows Windows or macOS), Paper, Night                                           |
+| Borrowed | Solarized Light, Solarized Dark, Gruvbox, Nord, Dracula, Catppuccin, Tokyo Night, Monokai |
+| Play     | Terminal, Blueprint, Pocket, Newsprint                                                    |
+| Loud     | Vaporwave, Hot Dog Stand, Bubblegum, Highlighter                                          |
+
+![Settings → Theme, Paper](assets/themes-picker-light.png)
 
 ## History
 

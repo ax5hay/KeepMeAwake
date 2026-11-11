@@ -5,6 +5,23 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+
+- Themes (Settings → Theme): the app's own System, Paper and Night, and
+  sixteen more. Borrowed from palettes people already work in: Solarized
+  Light and Dark, Gruvbox, Nord, Dracula, Catppuccin, Tokyo Night, Monokai.
+  To play with: Terminal, Blueprint, Pocket, Newsprint. Loud on purpose:
+  Vaporwave, Hot Dog Stand, Bubblegum, Highlighter. Each swatch is a small
+  horizon in its own colours. A theme changes colours only.
+
+### Changed
+
+- A working day you never actually work is a day off, not a leave every
+  week: if that weekday has been empty in three or more of the weeks around
+  it, in weeks you worked other days, it stops counting. One missed day and
+  a whole week away still read as leave. Weekends never counted and still
+  do not; the switch now says so (**Count missed working days as leave**).
+
 ## [0.5.0] - 2026-11-11
 
 AI, as a choice: off until you turn it on, with your own key, by the

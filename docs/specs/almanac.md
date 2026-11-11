@@ -90,6 +90,7 @@ What a day reads as:
 | still to come                                         | `Ahead`                                                                             |
 | a past working day with nothing in it, since it began | `Leave` (unless **Empty working days are leave** is off, or marked **Not a leave**) |
 | a past day that is not a working day, nothing in it   | `Rest`                                                                              |
+| a past working day, empty, on a weekday not worked    | `Rest`: see below                                                                   |
 | anything else with nothing in it                      | `Nothing` (today shows `0m`)                                                        |
 
 On the first open after a night, Home whispers it once:
@@ -98,6 +99,20 @@ On the first open after a night, Home whispers it once:
 With the almanac off, the pane says so and offers the switch.
 
 ## Added after the first build
+
+### A weekday nobody works
+
+The working days are a setting, and a setting can be wrong for a week: the
+default is Monday to Friday, and someone who works four days would get a
+leave every week. So an empty past working day reads as `Rest`
+(`Day.usual_off`) when the same weekday was empty in at least three
+(`OFF_FROM`) of the four weeks either side (`OFF_WEEKS`), counting only
+weeks in which some other day was worked, and in none of them was it worked
+or marked as leave; and the day's own week was worked. A week with nothing
+in it says nothing either way, so a holiday stays leave. Its detail line:
+`A day you do not usually work: a day off, not leave.` The switch is now
+labelled **Count missed working days as leave**, with the hint `Weekends
+and days off never count.`
 
 Asked for once the first build was in use, and built the same day.
 
@@ -154,7 +169,7 @@ Settings → new section **Almanac**, after **Schedule**.
 | `almanac.work_days`            | `[bool; 7]` | Monday–Friday | **Working days**: the schedule's day pills                                                     |
 | `almanac.start_minutes`        | `u16`       | `540`         | **Working hours**, two time fields: `Past midnight is fine. Time outside them counts as over.` |
 | `almanac.end_minutes`          | `u16`       | `1080`        |                                                                                                |
-| `almanac.empty_days_are_leave` | `bool`      | `true`        | **Empty working days are leave**: `Off on a machine you rarely use.`                           |
+| `almanac.empty_days_are_leave` | `bool`      | `true`        | **Count missed working days as leave**: `Weekends and days off never count.`                   |
 
 New fields with defaults, so `SETTINGS_VERSION` stays. An end at or before
 the start runs past midnight; equal ends mean the whole day.

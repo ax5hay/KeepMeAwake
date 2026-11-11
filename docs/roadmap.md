@@ -76,6 +76,13 @@ Built and checked on Windows; the Mac's checks are listed in [`HANDOFF.md`](HAND
 | Claude, as a choice: a week in words, a plan said in a sentence | [claude-integration.md](specs/claude-integration.md) | core, app, ui |
 | Check for an update now · Break reminder · Copy month as CSV    |                                                      | app, ui       |
 
+## Built for 0.6, not yet released
+
+| Feature                                                                     | Spec                           | Layers   |
+| --------------------------------------------------------------------------- | ------------------------------ | -------- |
+| Themes: the app's own, eight borrowed palettes, four to play, four loud     | [themes.md](specs/themes.md)   | core, ui |
+| Almanac: a weekday you never work reads as a day off, not a leave each week | [almanac.md](specs/almanac.md) | ui       |
+
 ## After 0.3
 
 Scoped enough to size; each gets a full spec when it is next in line.

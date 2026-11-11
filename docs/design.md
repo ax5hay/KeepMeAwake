@@ -62,6 +62,20 @@ that is rendered once and composited.
 Theme follows the system (Windows or macOS) by default; Settings offers Paper
 and Night by name.
 
+### Themes
+
+Paper and Night are the app's own. Settings → Theme offers sixteen more
+([spec](specs/themes.md)): eight borrowed from palettes people already work
+in, four to play with, four that are loud on purpose. A theme is the same
+tokens with other values, and the rules above hold in each: no gradients,
+and one accent, the sun. A loud theme is loud in its paper. The picker shows
+each as a small horizon in its own colours, because that is what choosing it
+changes.
+
+![The borrowed themes](assets/themes-borrowed.png)
+
+![The themes to play with, and the loud ones](assets/themes-play-loud.png)
+
 ## Type
 
 | Face                | Where                                                                                  | Why                                                   |

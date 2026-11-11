@@ -40,6 +40,7 @@ flowchart LR
 | [Overnight guard](overnight-guard.md)                        | 0.4     | platform, core, engine, app, ui    | M    |
 | [Almanac](almanac.md)                                        | 0.4     | core, app, ui                      | L    |
 | [Claude](claude-integration.md)                              | 0.5     | core, app, ui                      | M    |
+| [Themes](themes.md)                                          | 0.6     | core, ui                           | S    |
 | [macOS](macos.md)                                            | track   | build, platform, app, tray, ui, ci | L    |
 
 Each spec has the same sections: **Why**, **Experience** (exact copy and
