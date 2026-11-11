@@ -1,6 +1,6 @@
 # Small things
 
-Status: built on Windows; waits for the Mac.
+Status: shipped in 0.7.0, built on Windows; waits for the Mac.
 
 ## Why
 

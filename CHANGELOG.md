@@ -5,6 +5,14 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-12
+
+The small things: twelve details that nothing needs and that are there
+anyway. Built and checked on Windows; the Mac has compiled and tested it on
+CI. Ten were seen in a harness and the mini window in the real app; the
+shooting star, the sounds, a real print dialog and the system's colour
+picker have not been tried by hand yet.
+
 ### Added
 
 - A sun shaped by its theme: square pixels in Pocket, a ring around a core
@@ -282,7 +290,8 @@ First release. A twenty-line Python script became a desktop app.
   late-night line.
 - Settings persisted atomically; rotating log file.
 
-[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/ax5hay/KeepMeAwake/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.7.0
 [0.6.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.6.0
 [0.5.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.5.0
 [0.4.0]: https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.4.0

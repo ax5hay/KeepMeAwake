@@ -3,8 +3,8 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-12 · by Claude Fable 5.2 (Windows session: v0.6.0 released; the twelve small things built, unreleased)
-**Release:** [v0.6.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.6.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
+**Last updated:** 2026-11-12 · by Claude Fable 5.2 (Windows session: v0.7.0 released: the twelve small things)
+**Release:** [v0.7.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.7.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
 **Repo state:** `main` is green (`npm run verify` on Windows: vitest 212, cargo test 249;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
 **v0.3.0** carries session history, the sunset warning, the overnight guard, auto-update,
@@ -193,8 +193,9 @@ on Windows is listed under **Where to start**.
 | 2026-11-11 | AI by any service (Claude, OpenAI, other); product names back; v0.5.0 released (full, latest)              | Claude Fable 5.2 |
 | 2026-11-11 | Themes (27, on four shelves); a weekday nobody works reads as a day off; both unreleased                   | Claude Fable 5.2 |
 | 2026-11-12 | Windows installers redrawn; README rewritten; v0.6.0 released (full, latest)                               | Claude Fable 5.2 |
+| 2026-11-12 | Twelve small things built; v0.7.0 released (full, latest)                                                  | Claude Fable 5.2 |
 
-## Small things (unreleased, for 0.7)
+## Small things (released in 0.7.0)
 
 [Spec](specs/small-things.md). Twelve: a sun shaped by its theme, the moon,
 a shooting star, themes previewed on hover, a theme of your own, a theme

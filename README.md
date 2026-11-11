@@ -27,7 +27,7 @@ Nothing is typed for you, nothing moves, and it lets go the moment you say.
 ![Svelte 5](https://img.shields.io/badge/Svelte_5-FF3E00?style=flat-square&logo=svelte&logoColor=white)
 ![Fake keypresses](https://img.shields.io/badge/fake_keypresses-none-983729?style=flat-square)
 ![At rest](https://img.shields.io/badge/in_the_Windows_tray-about_5_MB-2d6a4f?style=flat-square)
-![Themes](https://img.shields.io/badge/themes-27-dca544?style=flat-square&labelColor=1c1b18)
+![Themes](https://img.shields.io/badge/themes-27_and_your_own-dca544?style=flat-square&labelColor=1c1b18)
 [![License](https://img.shields.io/badge/license-own,_see_LICENSE-5f5b52?style=flat-square)](LICENSE)
 
 **Jump to ·**
@@ -99,20 +99,21 @@ file on your machine. AI is off until you turn it on, with your own key.
 
 ## At a glance
 
-| Area               | What you get                                                                                                                                                          |
-| :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Control            | One sun. Click it, press <kbd>Space</kbd>, or use the tray (the menu bar on a Mac).                                                                                   |
-| Hotkey             | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> (<kbd>⌥</kbd><kbd>⌘</kbd><kbd>K</kbd> on a Mac) toggles from any app; record your own.                                    |
-| Time               | 30m · 1h · 2h · 4h · 8h · until a time of day. The sun sets as the time runs out, and warns before it does.                                                           |
-| Schedule           | Awake during chosen hours on chosen days, resting outside them.                                                                                                       |
-| Battery            | Pauses below a level (20% by default) or whenever unplugged; resumes when plugged in.                                                                                 |
-| Overnight          | Left on Always with nobody there, it asks, then rests. It can set with you at night and rise at your first touch.                                                     |
-| Almanac            | Your days at this machine: hours worked, time over, leave, and the night, read from when you were there.                                                              |
-| AI, if you want it | A day in a line, a week in words, a question about the month, a plan said in a sentence. Claude, OpenAI or any compatible service, with your own key. Off by default. |
-| Themes             | Paper and Night, and twenty-four more: borrowed, playful and loud.                                                                                                    |
-| Tray               | Left click opens the window; right click does everything else. Starts at sign-in, quietly.                                                                            |
-| Updates            | Checks GitHub once a day and when you ask; installs only when you say.                                                                                                |
-| Footprint          | About 5 MB in the tray on Windows, 16 MB on a Mac. The UI exists only while it is open.                                                                               |
+| Area               | What you get                                                                                                                                                                                                                        |
+| :----------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Control            | One sun. Click it, press <kbd>Space</kbd>, or use the tray (the menu bar on a Mac).                                                                                                                                                 |
+| Hotkey             | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> (<kbd>⌥</kbd><kbd>⌘</kbd><kbd>K</kbd> on a Mac) toggles from any app; record your own.                                                                                                  |
+| Time               | 30m · 1h · 2h · 4h · 8h · until a time of day. The sun sets as the time runs out, and warns before it does.                                                                                                                         |
+| Schedule           | Awake during chosen hours on chosen days, resting outside them.                                                                                                                                                                     |
+| Battery            | Pauses below a level (20% by default) or whenever unplugged; resumes when plugged in.                                                                                                                                               |
+| Overnight          | Left on Always with nobody there, it asks, then rests. It can set with you at night and rise at your first touch.                                                                                                                   |
+| Almanac            | Your days at this machine: hours worked, time over, leave, and the night, read from when you were there.                                                                                                                            |
+| AI, if you want it | A day in a line, a week in words, a question about the month, a plan said in a sentence. Claude, OpenAI or any compatible service, with your own key. Off by default.                                                               |
+| Themes             | Paper and Night, and twenty-four more: borrowed, playful and loud.                                                                                                                                                                  |
+| Small things       | A sun shaped by its theme, tonight's moon, a theme of your own to share as one line, a theme after dark, a mini window, a year looked back on, a month to the printer, `?` for every key. [All twelve](docs/guide.md#small-things). |
+| Tray               | Left click opens the window; right click does everything else. Starts at sign-in, quietly.                                                                                                                                          |
+| Updates            | Checks GitHub once a day and when you ask; installs only when you say.                                                                                                                                                              |
+| Footprint          | About 5 MB in the tray on Windows, 16 MB on a Mac. The UI exists only while it is open.                                                                                                                                             |
 
 ## Install
 
@@ -164,6 +165,18 @@ Everything has a default; nothing needs setting before the sun works.
 <img src="docs/assets/overnight-settings-light.png" alt="Settings, Paper" width="48%"/> <img src="docs/assets/schedule-settings-dark.png" alt="Settings, Night" width="48%"/>
 
 <img src="docs/assets/almanac-settings-light.png" alt="Almanac settings and the hotkey, Paper" width="48%"/> <img src="docs/assets/hotkey-dark.png" alt="Almanac settings and the hotkey, Night" width="48%"/>
+
+### Small things
+
+Nothing needs these; they are there anyway. Three suns drawn the way their
+theme would, the moon as it is tonight, a theme of your own, every key on
+one sheet, the credits, and a year looked back on:
+
+<img src="docs/assets/small-things.png" alt="Eight windows: a pixel sun, a ring sun, a halftone sun, the moon over Night, a theme of your own, the key sheet, the credits, and a year looked back on" width="100%"/>
+
+The mini window keeps the sun on top of other windows, and a month prints as a timesheet:
+
+<img src="docs/assets/small-mini-print.png" alt="The mini window, and a month laid out for the printer" width="100%"/>
 
 ### History and notifications
 
