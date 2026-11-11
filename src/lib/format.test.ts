@@ -277,6 +277,31 @@ describe('formatWhen', () => {
   });
 });
 
+describe('statusText while watching', () => {
+  it('names the condition holding the laptop awake', () => {
+    const watching: Snapshot = {
+      ...base,
+      mode: 'watching',
+      watch: { ...base.watch, reason: { kind: 'app', name: 'Xcode' } },
+    };
+    expect(statusText(watching, Date.now(), 'en-US')).toEqual({
+      title: 'Awake',
+      detail: 'While Xcode runs',
+    });
+  });
+
+  it('says what a skip waits for while resting', () => {
+    const skipped: Snapshot = {
+      ...base,
+      watch: { ...base.watch, reason: { kind: 'transfer' }, skipped: true },
+    };
+    expect(statusText(skipped, Date.now(), 'en-US')).toEqual({
+      title: 'Resting',
+      detail: 'Skipping until the network is quiet.',
+    });
+  });
+});
+
 describe('toggleWhisper', () => {
   const end = new Date(2026, 0, 1, 18, 0).getTime();
   const open = { ...base.schedule, enabled: true, in_window: true, window_end_unix_ms: end };
@@ -303,9 +328,7 @@ describe('batteryText', () => {
       'Plugged in',
     );
     const draining = { ...base.battery, on_ac: false, percent: 62, minutes_left: 190 };
-    expect(batteryText({ ...base, battery: draining })).toBe(
-      'On battery · 62% · about 3h 10m left',
-    );
+    expect(batteryText({ ...base, battery: draining })).toBe('62% · about 3h 10m left');
     // Plugged in, an estimate is not about the charge running out.
     expect(batteryText({ ...base, battery: { ...draining, on_ac: true } })).toBe(
       'Plugged in · 62%',

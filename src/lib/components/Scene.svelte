@@ -21,8 +21,11 @@
   const timed = $derived(mode === 'timed' || mode === 'scheduled');
   const awake = $derived(mode !== 'off' && !paused);
   const skipped = $derived(store.snapshot?.schedule.skipped ?? false);
+  const watchSkipped = $derived(store.snapshot?.watch.skipped ?? false);
   const label = $derived.by(() => {
     if (mode === 'scheduled') return "Skip today's schedule";
+    if (mode === 'watching') return 'Let it sleep until this ends';
+    if (mode === 'off' && watchSkipped) return 'Keep awake again';
     if (mode === 'off') return skipped ? 'Back on schedule' : 'Keep awake';
     return 'Let it sleep';
   });
@@ -244,7 +247,8 @@
 
   .scene[data-mode='indefinite'] .sky,
   .scene[data-mode='timed'] .sky,
-  .scene[data-mode='scheduled'] .sky {
+  .scene[data-mode='scheduled'] .sky,
+  .scene[data-mode='watching'] .sky {
     fill: var(--sky-on);
   }
 
@@ -262,7 +266,8 @@
 
   .scene[data-mode='indefinite'] .afterglow,
   .scene[data-mode='timed'] .afterglow,
-  .scene[data-mode='scheduled'] .afterglow {
+  .scene[data-mode='scheduled'] .afterglow,
+  .scene[data-mode='watching'] .afterglow {
     opacity: var(--afterglow-on);
   }
 
@@ -318,7 +323,8 @@
 
   .scene[data-mode='indefinite'] .ground,
   .scene[data-mode='timed'] .ground,
-  .scene[data-mode='scheduled'] .ground {
+  .scene[data-mode='scheduled'] .ground,
+  .scene[data-mode='watching'] .ground {
     fill: var(--ground-on);
   }
 

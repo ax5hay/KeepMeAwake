@@ -50,6 +50,10 @@ import {
   tipsWith,
   untilYouSay,
   timeLeft,
+  awakeWhile,
+  skippingUntil,
+  rate,
+  WATCH_ROWS,
 } from './copy';
 
 /** Every string that differs by platform, flattened. */
@@ -345,6 +349,53 @@ describe('almanac copy', () => {
   it('names no platform', () => {
     for (const text of [ALMANAC_FOOT, ALMANAC_CLOSED, ALMANAC_HINT, WORK_HOURS_HINT]) {
       expect(text).not.toMatch(/tray|taskbar|Windows|menu bar|macOS/i);
+    }
+  });
+});
+
+describe('stay awake while copy', () => {
+  const watch = {
+    reason: null,
+    skipped: false,
+    transfer_bps: 2_400_000,
+    cpu_percent: 54,
+    running: [],
+  };
+
+  it('names the reason, with its live reading', () => {
+    expect(awakeWhile({ kind: 'app', name: 'Xcode' }, watch)).toBe('While Xcode runs');
+    expect(awakeWhile({ kind: 'process', pid: 4120 }, watch)).toBe('While process 4120 runs');
+    expect(awakeWhile({ kind: 'transfer' }, watch)).toBe('While the network is busy · 2.4 MB/s');
+    expect(awakeWhile({ kind: 'transfer' }, { ...watch, transfer_bps: null })).toBe(
+      'While the network is busy',
+    );
+    expect(awakeWhile({ kind: 'busy' }, watch)).toBe('While the computer is busy · 54%');
+    expect(awakeWhile({ kind: 'full_screen' }, watch)).toBe('While something is full screen');
+    expect(awakeWhile({ kind: 'display' }, watch)).toBe('While a display is connected');
+    expect(awakeWhile({ kind: 'plugged_in' }, watch)).toBe('While plugged in');
+  });
+
+  it('says what a skip waits for', () => {
+    expect(skippingUntil({ kind: 'app', name: 'Xcode' })).toBe('Skipping until Xcode quits.');
+    expect(skippingUntil({ kind: 'transfer' })).toBe('Skipping until the network is quiet.');
+  });
+
+  it('shows rates the way a download dialog does', () => {
+    expect(rate(2_400_000)).toBe('2.4 MB/s');
+    expect(rate(640_000)).toBe('640 KB/s');
+    expect(rate(200)).toBe('1 KB/s');
+  });
+
+  it('fits a status line at 340 px with a long app name', () => {
+    expect(
+      awakeWhile({ kind: 'transfer' }, { ...watch, transfer_bps: 999_000_000 }).length,
+    ).toBeLessThanOrEqual(44);
+    expect(skippingUntil({ kind: 'display' }).length).toBeLessThanOrEqual(44);
+  });
+
+  it('names no platform', () => {
+    for (const row of Object.values(WATCH_ROWS)) {
+      expect(`${row.label} ${row.hint}`).not.toMatch(/tray|taskbar|Windows|menu bar|macOS/i);
     }
   });
 });

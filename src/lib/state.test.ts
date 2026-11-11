@@ -188,6 +188,7 @@ function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Alm
     })),
     getUpdate: vi.fn(async () => waiting),
     checkForUpdate: vi.fn(async () => waiting),
+    runningApps: vi.fn(async () => ['Arc', 'Xcode', 'zsh']),
     installUpdate: vi.fn(async () => {
       throw new Error('The update could not be installed: offline');
     }),

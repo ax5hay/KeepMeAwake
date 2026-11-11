@@ -288,6 +288,19 @@ export class AppStore {
   /** What the last check by hand found: nothing yet, looking, or nothing newer. */
   checked = $state<'idle' | 'checking' | 'newest'>('idle');
 
+  /** The apps running now, offered by the picker under Stay awake while…. */
+  runningApps = $state<string[]>([]);
+
+  /** Fetches the running apps for the picker; asked when its field is focused. */
+  async loadRunningApps(): Promise<void> {
+    try {
+      this.runningApps = await this.#api.runningApps();
+    } catch {
+      // The picker still takes a typed name.
+      this.runningApps = [];
+    }
+  }
+
   /** Asks for a newer release now, because someone asked. */
   async checkForUpdate(): Promise<void> {
     if (this.checked === 'checking') return;

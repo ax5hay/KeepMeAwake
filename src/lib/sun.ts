@@ -28,7 +28,8 @@ export interface Point {
 export function sunPosition(mode: Mode, progressValue: number): Point {
   const { centerX, horizonY, radius, setDepth } = SCENE;
   if (mode === 'off') return { x: centerX, y: horizonY + setDepth };
-  if (mode === 'indefinite') return { x: centerX, y: horizonY - radius };
+  // Always, and a watched condition: no end in sight, so the sun stands still.
+  if (mode === 'indefinite' || mode === 'watching') return { x: centerX, y: horizonY - radius };
   const p = Math.min(1, Math.max(0, progressValue));
   const phi = (p * Math.PI) / 2;
   return { x: centerX + radius * Math.sin(phi), y: horizonY - radius * Math.cos(phi) };

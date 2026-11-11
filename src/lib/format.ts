@@ -16,6 +16,8 @@ import {
   sunsetIn,
   untilYouSay,
   timeLeft,
+  awakeWhile,
+  skippingUntil,
 } from './copy';
 import { isMac } from './platform';
 import type { PauseReason, Snapshot, UpdateProgress } from './types';
@@ -122,6 +124,10 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
         detail: skipping(formatClock(schedule.window_end_unix_ms, locale)),
       };
     }
+    const { watch } = snapshot;
+    if (watch.skipped && watch.reason !== null) {
+      return { title: 'Resting', detail: skippingUntil(watch.reason) };
+    }
     // Down for the night, and waiting: it comes back without being asked.
     if (snapshot.rises_on_touch) return { title: 'Resting', detail: SET_WITH_THE_NIGHT };
     const resting = 'Your laptop sleeps as usual.';
@@ -148,6 +154,9 @@ export function statusText(snapshot: Snapshot, nowMs: number, locale?: string): 
   }
   if (snapshot.paused) {
     return { title: 'Paused', detail: `Not keeping awake while ${pauseText(snapshot.paused)}.` };
+  }
+  if (snapshot.mode === 'watching' && snapshot.watch.reason !== null) {
+    return { title: 'Awake', detail: awakeWhile(snapshot.watch.reason, snapshot.watch) };
   }
   const late = isLate(new Date(nowMs).getHours()) ? ` ${LATE_NIGHT}` : '';
   if (snapshot.mode === 'indefinite') {
@@ -192,9 +201,12 @@ export function downloadPercent(p: UpdateProgress): number | null {
 /** Battery line for the low-battery row. */
 export function batteryText(snapshot: Snapshot): string {
   const { on_ac, percent, minutes_left } = snapshot.battery;
+  // With an estimate the charge is running down: the time says so.
+  if (!on_ac && minutes_left !== null && percent !== null) {
+    return `${percent}% · ${timeLeft(minutes_left)}`;
+  }
   const source = on_ac ? 'Plugged in' : 'On battery';
-  const charge = percent === null ? source : `${source} · ${percent}%`;
-  return !on_ac && minutes_left !== null ? `${charge} · ${timeLeft(minutes_left)}` : charge;
+  return percent === null ? source : `${source} · ${percent}%`;
 }
 
 /**

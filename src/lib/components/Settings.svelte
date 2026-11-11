@@ -12,7 +12,9 @@
   import { THEMES, themeLabel } from '$lib/theme';
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
+  import WatchApps from './WatchApps.svelte';
   import {
+    WATCH_ROWS,
     AI_CHEAP,
     AI_ENABLE,
     AI_HIDDEN,
@@ -74,6 +76,7 @@
     Schedule,
     StartupPlan,
     Theme,
+    WatchSettings,
   } from '$lib/types';
 
   const settings = $derived(store.settings);
@@ -94,6 +97,19 @@
       if (minutes !== null) setAlmanac({ [field]: minutes });
     };
   }
+
+  function setWatch(patch: Partial<WatchSettings>) {
+    if (!settings) return;
+    void store.updateSettings({ watch: { ...settings.watch, ...patch } });
+  }
+
+  // Display and plugged in mean nothing on a desktop: its only displays are
+  // external, and it is always plugged in.
+  const watchRows = $derived(
+    (['transfers', 'busy', 'full_screen', 'display', 'plugged_in'] as const)
+      .filter((key) => hasBattery || (key !== 'display' && key !== 'plugged_in'))
+      .map((key) => ({ key })),
+  );
 
   function setNotifications(patch: Partial<Notifications>) {
     if (!settings) return;
@@ -326,6 +342,26 @@
           onchange={(v) => void store.updateSettings({ keep_display_on: v })}
         />
       </Row>
+    </section>
+
+    <section id="settings-watch">
+      <h2 class="eyebrow">Stay awake while…</h2>
+      <WatchApps
+        apps={settings.watch.apps}
+        running={store.snapshot?.watch.running ?? []}
+        choices={store.runningApps}
+        onfocus={() => void store.loadRunningApps()}
+        onchange={(apps) => setWatch({ apps })}
+      />
+      {#each watchRows as row (row.key)}
+        <Row label={WATCH_ROWS[row.key].label} hint={WATCH_ROWS[row.key].hint}>
+          <Switch
+            checked={settings.watch[row.key]}
+            label={WATCH_ROWS[row.key].label}
+            onchange={(v) => setWatch({ [row.key]: v })}
+          />
+        </Row>
+      {/each}
     </section>
 
     <section id="settings-schedule">

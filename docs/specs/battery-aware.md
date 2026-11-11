@@ -13,13 +13,13 @@ long have I got?": the OS already knows, so the app should say.
 
 ## Experience
 
-| Where                                                  | With a battery                                       | Without one |
-| ------------------------------------------------------ | ---------------------------------------------------- | ----------- |
-| Home → Pause on low battery                            | shown; detail `On battery · 62% · about 3h 10m left` | hidden      |
-| Settings → Battery                                     | shown                                                | hidden      |
-| Settings → Notifications → Battery pauses and resumes  | shown                                                | hidden      |
-| Tips (horizon)                                         | the battery tip is in the rotation                   | left out    |
-| Stay awake while… → plugged in, a display is connected | shown (see [stay-awake-while](stay-awake-while.md))  | hidden      |
+| Where                                                  | With a battery                                      | Without one |
+| ------------------------------------------------------ | --------------------------------------------------- | ----------- |
+| Home → Pause on low battery                            | shown; detail `Below 20% · 62% · about 3h 10m left` | hidden      |
+| Settings → Battery                                     | shown                                               | hidden      |
+| Settings → Notifications → Battery pauses and resumes  | shown                                               | hidden      |
+| Tips (horizon)                                         | the battery tip is in the rotation                  | left out    |
+| Stay awake while… → plugged in, a display is connected | shown (see [stay-awake-while](stay-awake-while.md)) | hidden      |
 
 The estimate is shown only on battery and only when the OS has one
 (`about 3h 10m left`, `about 45m left`). Plugged in, the row reads

@@ -6,6 +6,7 @@
  */
 
 import { isMac } from './platform';
+import type { WatchReason, WatchState } from './types';
 
 /** Who made this, and where to find more. Used in About and the wordmark. */
 export const AUTHOR = {
@@ -103,6 +104,83 @@ export function timeLeft(minutes: number): string {
   if (h === 0) return `about ${m}m left`;
   return m === 0 ? `about ${h}h left` : `about ${h}h ${m}m left`;
 }
+
+/** A network rate, the way a download dialog shows it: `640 KB/s`, `2.4 MB/s`. */
+export function rate(bytesPerSec: number): string {
+  if (bytesPerSec >= 1_000_000) return `${(bytesPerSec / 1_000_000).toFixed(1)} MB/s`;
+  return `${Math.max(1, Math.round(bytesPerSec / 1000))} KB/s`;
+}
+
+/**
+ * The status line while a watched condition keeps the laptop awake:
+ * `While Xcode runs`, `While the network is busy · 2.4 MB/s`. The tray says
+ * the same in `tray.rs`.
+ */
+export function awakeWhile(reason: WatchReason, watch: WatchState): string {
+  switch (reason.kind) {
+    case 'app':
+      return `While ${reason.name} runs`;
+    case 'process':
+      return `While process ${reason.pid} runs`;
+    case 'transfer':
+      return watch.transfer_bps === null
+        ? 'While the network is busy'
+        : `While the network is busy · ${rate(watch.transfer_bps)}`;
+    case 'busy':
+      return watch.cpu_percent === null
+        ? 'While the computer is busy'
+        : `While the computer is busy · ${watch.cpu_percent}%`;
+    case 'full_screen':
+      return 'While something is full screen';
+    case 'display':
+      return 'While a display is connected';
+    case 'plugged_in':
+      return 'While plugged in';
+  }
+}
+
+/** The resting line after the sun was clicked while a condition held. */
+export function skippingUntil(reason: WatchReason): string {
+  switch (reason.kind) {
+    case 'app':
+      return `Skipping until ${reason.name} quits.`;
+    case 'process':
+      return `Skipping until process ${reason.pid} ends.`;
+    case 'transfer':
+      return 'Skipping until the network is quiet.';
+    case 'busy':
+      return 'Skipping until the computer is calm.';
+    case 'full_screen':
+      return 'Skipping until full screen ends.';
+    case 'display':
+      return 'Skipping until the display is unplugged.';
+    case 'plugged_in':
+      return 'Skipping until it is unplugged.';
+  }
+}
+
+/** Settings → Stay awake while…, one row each. */
+export const WATCH_ROWS = {
+  apps: {
+    label: 'These apps are running',
+    hint: 'Pick from what is running now, or type a name.',
+  },
+  transfers: {
+    label: 'A download or upload is going',
+    hint: 'Over 64 KB/s, until it has been quiet for 2 minutes.',
+  },
+  busy: {
+    label: 'The computer is busy',
+    hint: 'Processor over 30%: a build, an export, a render.',
+  },
+  full_screen: { label: 'Something is full screen', hint: 'A video, a game or a presentation.' },
+  display: { label: 'An external display is connected', hint: 'At a desk with a monitor.' },
+  plugged_in: { label: 'Plugged in', hint: 'On battery it sleeps as usual.' },
+} as const;
+
+/** The field that adds an app, and its button. */
+export const ADD_APP = 'Add an app';
+export const ADD_APP_PLACEHOLDER = 'Xcode, cargo, Blender…';
 
 /** Settings → Schedule → From / Until. */
 export const SCHEDULE_HOURS_HINT = 'Can run past midnight. The same start and end means all day.';
@@ -223,7 +301,7 @@ export const UPDATES_HINT = 'Looks on GitHub once a day, and when you open this 
 
 /** A Settings section Home can open directly. */
 export type SettingsSection =
-  'waking' | 'schedule' | 'almanac' | 'ai' | 'history' | 'hotkey' | 'about';
+  'waking' | 'watch' | 'schedule' | 'almanac' | 'ai' | 'history' | 'hotkey' | 'about';
 
 /** One way from Home straight into a Settings section. */
 export interface Door {

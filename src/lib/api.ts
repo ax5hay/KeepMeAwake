@@ -50,6 +50,7 @@ export const api = {
   getUpdate: () => invoke<UpdateInfo | null>('get_update'),
   checkForUpdate: () => invoke<UpdateInfo | null>('check_for_update'),
   installUpdate: () => invoke('install_update'),
+  runningApps: () => invoke<string[]>('running_apps'),
   onSnapshot: (handler: (snapshot: Snapshot) => void): Promise<UnlistenFn> =>
     listen<Snapshot>(SNAPSHOT_EVENT, (event) => handler(event.payload)),
   onUpdate: (handler: (info: UpdateInfo) => void): Promise<UnlistenFn> =>
