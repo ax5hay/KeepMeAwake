@@ -68,8 +68,9 @@ stateDiagram-v2
 
 The schedule sits beside the session rather than inside it. The engine
 derives a fourth mode, `Scheduled`, when no manual session is on and a window
-is open and not skipped. Precedence, highest first: manual session → skip →
-schedule → resting.
+is open and not skipped, and a fifth, `Watching`, when neither holds but a
+watched condition does (stay awake while…). Precedence, highest first:
+manual session → skip → schedule → condition (unless skipped) → resting.
 
 ```mermaid
 stateDiagram-v2
@@ -89,15 +90,23 @@ with the window even across sleep.
 
 ### platform
 
-Five traits so the engine and the tray never call the OS directly.
+Six traits so the engine and the tray never call the OS directly, and a few free functions for the app.
 
-| Trait          | Windows                                            | macOS                                                                     | Test double      |
-| -------------- | -------------------------------------------------- | ------------------------------------------------------------------------- | ---------------- |
-| `PowerGuard`   | `PowerCreateRequest` + `PowerSetRequest` / `Clear` | two IOPMAssertions: `PreventUserIdleSystemSleep`, `…DisplaySleep`         | `FakePowerGuard` |
-| `BatteryProbe` | `GetSystemPowerStatus`                             | first source of `IOPSCopyPowerSourcesInfo`; none means mains              | `FakeBattery`    |
-| `IdleProbe`    | `GetLastInputInfo` − `GetTickCount`, wrapping      | `CGEventSourceSecondsSinceLastEventType`, HID state, any input            | `FakeIdle`       |
-| `Clock`        | `Instant::now`, `SystemTime`                       | same                                                                      | `ManualClock`    |
-| `TaskbarTheme` | `RegGetValueW` on `SystemUsesLightTheme`           | `DarkTaskbar` (unused: the menu bar icon is a template image macOS tints) | `FakeTaskbar`    |
+| Trait           | Windows                                                                                                                                                   | macOS                                                                                                                                                                          | Test double      |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| `PowerGuard`    | `PowerCreateRequest` + `PowerSetRequest` / `Clear`                                                                                                        | two IOPMAssertions: `PreventUserIdleSystemSleep`, `…DisplaySleep`                                                                                                              | `FakePowerGuard` |
+| `BatteryProbe`  | `GetSystemPowerStatus`, with `BatteryFlag` 128 as "no battery" and `BatteryLifeTime`                                                                      | the `InternalBattery` source of `IOPSCopyPowerSourcesInfo` (a UPS is not one), `IOPSGetTimeRemainingEstimate`; none means mains, `present: false`                              | `FakeBattery`    |
+| `ActivityProbe` | processes (toolhelp), `GetIfTable2` octets on hardware adapters, `GetSystemTimes`, `SHQueryUserNotificationState`, `QueryDisplayConfig` output technology | `proc_listallpids` + `proc_name`, `sysctl(NET_RT_IFLIST2)` on Ethernet/Wi-Fi, `host_statistics(HOST_CPU_LOAD_INFO)`, a layer-0 window covering a display, `CGDisplayIsBuiltin` | `FakeActivity`   |
+| `IdleProbe`     | `GetLastInputInfo` − `GetTickCount`, wrapping                                                                                                             | `CGEventSourceSecondsSinceLastEventType`, HID state, any input                                                                                                                 | `FakeIdle`       |
+| `Clock`         | `Instant::now`, `SystemTime`                                                                                                                              | same                                                                                                                                                                           | `ManualClock`    |
+| `TaskbarTheme`  | `RegGetValueW` on `SystemUsesLightTheme`                                                                                                                  | `DarkTaskbar` (unused: the menu bar icon is a template image macOS tints)                                                                                                      | `FakeTaskbar`    |
+
+Free functions beside them: `after_end` (Windows: `LockWorkStation`,
+`SC_MONITORPOWER`, `SetSuspendState` with the shutdown privilege; macOS:
+`pmset displaysleepnow` / `sleepnow`), `watch_sleep` (Windows:
+`PowerRegisterSuspendResumeNotification`; macOS: `IORegisterForSystemPower`
+on a thread in its own run loop), `pid_alive`, `list_processes`, and
+`attach_console` on Windows.
 
 `unsafe` lives only in `windows.rs` and `macos.rs`, each compiled only on its
 own OS. Every block carries a `SAFETY:` comment; clippy's
@@ -180,6 +189,23 @@ shrinking against the monotonic clock, so a machine that wakes itself in the
 night raises nothing. A command that starts or ends a session, or a day with
 nobody back, forgets it.
 
+**Stay awake while…** is `core::watch`, pure: a `Watcher` takes one set of
+readings a step and says which condition holds, working rates out between
+two readings at least 5 s apart and holding a transfer or a busy processor
+for `WATCH_LINGER` (2 minutes) after it drops. The engine reads the
+`ActivityProbe` only for what is switched on (`watch_step`), and wakes
+every `WATCH_POLL` (30 s) while anything is, sun up or down; with nothing on
+it reads nothing and the resting wait is untouched. `Engine::watch_pid`
+adds a process from the command line. A sun click while a condition holds
+sets `watch_skip` until it clears; a stretch ended by a condition clearing
+is `Ended::Watch`.
+
+**Sleep.** `Engine::slept` and `Engine::woke` come from the OS hook. At a
+wake the worker steps at once: a stretch that was up across the sleep ends
+as `Ended::Sleep` at the moment it slept (unless its own end, a timer or a
+window, fell inside the sleep: then that is how it ended), and starts again
+at the wake if anything still holds.
+
 ### app
 
 `app/mod.rs` builds the Tauri app. Plugins in order: single-instance (must be
@@ -218,6 +244,26 @@ flowchart LR
 The window does the rest (`lib/almanac.ts`, pure): days that turn over
 opposite the middle of the working hours, time over, nights as the quiet
 between two spans, leave. Nothing about a night is decided as it happens.
+
+`app/after_end.rs` hears every `SessionEnded`: for `timer`, `schedule` or
+`watch`, with **When it ends** set and the idle time at least a minute, it
+locks, turns the screen off or sleeps on a short-lived thread three seconds
+later, after the request is released and the toast shown.
+
+`app/cli.rs` is the command line. `run()` first asks `cli::early()`:
+`--status` (reads `status.txt`: the app's pid and its status line, checked
+alive), `--help`, mistakes, and `--run` (spawns the command, launches this
+binary again with `--while-pid <own pid>`, waits, exits with its code) are
+answered without Tauri. Any other command starts Tauri: the single-instance
+plugin carries it to the running app, whose callback applies it through
+the engine instead of showing the window; or this process becomes the app,
+launched hidden, and applies it after setup. The listener writes
+`status.txt` when the status line changes; `RunEvent::Exit` removes it.
+
+The window has three sizes: the usual one, mini (`set_mini`), and wide
+(`set_wide`, 1040 × 640, remembered as `Settings::wide`). Wide draws the
+day from history and the almanac (`lib/sky.ts`, pure) in `DaySky.svelte`,
+with the ledger in `Wide.svelte`.
 
 `app/ai.rs` is AI, by whichever service was chosen, and it is inert unless
 asked. `core::ai` builds the

@@ -11,6 +11,7 @@
 | CPU while resting              | 0 wake-ups          | 0 ms CPU in 60 s (almanac off)                               | 0 ms CPU in 60 s (almanac off)                   | the engine (and, on Windows, theme) threads block in the kernel             |
 | CPU while resting, almanac on  | 1 wake-up / min     | by design; to be measured                                    | by design; to be measured                        | one idle reading a minute, nothing else                                     |
 | CPU while awake                | 1 wake-up / 30 s    | 1 / 30 s                                                     | 20 ms CPU in 60 s (two polls)                    | battery poll only                                                           |
+| CPU, stay awake while… on      | 1 wake-up / 30 s    | by design; to be measured                                    | by design; to be measured                        | only the switched-on readings, each one system call                         |
 | CPU while resting, schedule on | ≤ 1 wake-up / 5 min | by design                                                    | by design                                        | the next window start, re-checked so sleep cannot make it late              |
 | Threads at rest                | no polling threads  | 30 (Tauri, WebView2 loader, plugins)                         | 14 resting, 18 awake                             | `keepmeawake-engine` (and `keepmeawake-theme`) sleep until woken            |
 | CPU, window open, idle         | ≤ 0.1%              | idle                                                         | 10 ms CPU in 30 s                                | no animation loops; 1 Hz clock only in a timed session                      |
@@ -55,6 +56,38 @@ night, the worker keeps one 30 s poll going (an idle reading and nothing
 else) until someone touches the machine, a session is started by hand, or a
 day has passed. That is a wake-up at rest too, and it exists only between a
 night that set the sun and the morning after.
+
+**Stay awake while…** costs nothing while every condition is off: nothing
+is read and the engine wakes no more than before (tested: no reading, no
+wake). With any condition on, the engine wakes every 30 s, sun up or down,
+and reads only what is switched on: the process list (one toolhelp
+snapshot, or `proc_listallpids` and a name per pid), the interface byte
+counters (`GetIfTable2`, or one `sysctl(NET_RT_IFLIST2)`), the processor
+counters (`GetSystemTimes`, or `host_statistics`), the full-screen state
+and the display list. Each is one system call measured in microseconds to
+a millisecond; rates come from two readings, so nothing samples faster
+than the poll. A process from the command line is checked the same way.
+To be measured on both machines with two conditions on.
+
+**When it ends** has no cost until a stretch ends on its own: then one
+idle reading and, if it acts, a thread that lives three seconds.
+
+**Sleep detection** adds one parked thread on macOS (`keepmeawake-sleep`,
+in its own run loop, woken only by the OS at a sleep or a wake) and none
+on Windows (the OS calls back on a thread of its own). One engine step per
+sleep and per wake.
+
+**The command line** writes `status.txt` (the pid and one line) when the
+status line changes, which is a handful of times a day, and removes it on
+quit. A command from a terminal is one more launch of the binary that
+hands its arguments over and exits.
+
+**The wide window** adds one timer while it is shown and visible: the sun
+moves with the clock once a minute. The day is one SVG of a few dozen
+paths, rebuilt when the history, the almanac, the size or the minute
+changes, never animated except the domes rising once as it opens (stilled
+by reduced motion). Its live readings come in the snapshot from the
+engine's poll; it asks for the history when the sun rises or sets.
 
 The sunset warning adds one engine wake per timed session, at the warning
 moment, and nothing in the window: the status line uses the 1 Hz clock a

@@ -5,6 +5,35 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Added
+
+- **Stay awake while…** (Settings): keep the laptop awake on its own while
+  an app runs, a download or upload is going, the processor is busy,
+  something is full screen, an external display is connected, or it is
+  plugged in. Each off until chosen; nothing is read while all are off.
+  Home says why it is awake (`While the network is busy · 2.4 MB/s`), and
+  clicking the sun lets it sleep until that condition clears.
+- **When it ends** (Settings → Staying awake): after a timer, the schedule
+  or a condition ends, lock, turn the screen off or sleep, if nobody has
+  touched the machine for a minute. The timer warning says what comes next.
+- **The wide window** (title bar, or Ctrl+E / ⌘E): the day drawn as a
+  horizon, each stretch kept awake a dome of light as tall as it was long,
+  with Now, Stay awake while and This week under it. It reopens wide.
+- **A command line**: `keepmeawake --for 2h`, `--until 18:30`, `--always`,
+  `--off`, `--toggle`, `--status`, and `--run CMD…` to stay awake while a
+  command runs.
+- **Time left on battery**: `Below 20% · 62% · about 3h 10m left`.
+- **Sleep detection**: a stretch that was up when the machine slept anyway
+  (a closed lid) ends in History as `sleep` when it slept, and a timer that
+  ran out asleep is noticed the moment it wakes.
+
+### Fixed
+
+- A Mac mini, an iMac or a desktop PC no longer offers battery rules,
+  battery notifications or the battery tip; a Mac with a UPS attached is no
+  longer read as having a battery.
+- `Until…` and `--until` round up, so 23:58 reads as 23:58, not 23:57.
+
 ### Changed
 
 - Plainer words wherever you read them: the window, the tray and menu bar,

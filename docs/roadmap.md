@@ -50,7 +50,10 @@ timeline
 | Overnight guard (from 0.4)                                       | [overnight-guard.md](specs/overnight-guard.md) | platform, engine, app, ui |
 | Home's doors into Settings, settings sliders, a pass over the UI |                                                | ui                        |
 
-## Next
+## Built for 0.8 (unreleased)
+
+Built on the Mac; the Windows paths are compiled and unit tested by CI, and
+both machines have hand checks left (see [`HANDOFF.md`](HANDOFF.md)).
 
 | Feature                                                                                       | Spec                                             | Layers                          |
 | --------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------- |
@@ -60,7 +63,12 @@ timeline
 | Command line, and awake while a command runs                                                  | [command-line.md](specs/command-line.md)         | core, platform, app             |
 | Sleep detection                                                                               | [sleep-detection.md](specs/sleep-detection.md)   | platform, engine, app           |
 | The wide window: the day drawn as a horizon, with everything under it                         | [wide-window.md](specs/wide-window.md)           | app, ui                         |
-| Winget and Scoop                                                                              | [winget-scoop.md](specs/winget-scoop.md)         | ci, docs                        |
+
+## Next
+
+| Feature          | Spec                                     | Layers   |
+| ---------------- | ---------------------------------------- | -------- |
+| Winget and Scoop | [winget-scoop.md](specs/winget-scoop.md) | ci, docs |
 
 macOS shipped in 0.2.0 as a pre-release, built on a Mac. The
 by-hand acceptance items that need a person at the Mac (menu bar click and
@@ -98,6 +106,10 @@ Built and checked on Windows; the Mac's checks are listed in [`HANDOFF.md`](HAND
 ## After 0.3
 
 Scoped enough to size; each gets a full spec when it is next in line.
+Since built, under **Built for 0.8** above: after the sun sets (as When it
+ends), sleep detection, presenting (full screen) and docked awareness, watch
+a process (as Stay awake while…), the energy estimate (as time left), the
+CLI, and the sky log (as the wide window's day).
 
 ### 0.4: the sun looks after you
 

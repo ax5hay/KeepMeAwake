@@ -130,7 +130,13 @@ has a dot under it; with a time set, the last one reads "Until 5:30 pm".
 | Keep the screen on   | the screen stays on, as well as the laptop       | the screen may dim and turn off; the laptop stays awake |
 | Pause on low battery | below 20% it pauses; plugging in starts it again | the battery level is ignored                            |
 
-The hint under the battery row shows the live reading ("Plugged in · 100%").
+The hint under the battery row shows the live reading ("Plugged in · 100%");
+on battery it says how long the charge will last, as the OS estimates it
+(`Below 20% · 62% · about 3h 10m left`).
+
+A Mac mini, an iMac or a desktop PC has no battery, so it is offered no
+battery rules at all: no battery row here, no Battery section or battery
+notifications in Settings, and no battery tip.
 
 ### Doors
 
@@ -339,6 +345,102 @@ button, **Enable AI**, which brings them back. Hide AI is off by default.
 
 ![AI hidden, Paper](assets/claude-hidden-light.png)
 
+## Stay awake while…
+
+Settings → **Stay awake while…** keeps the laptop awake on its own while
+something is going on, so there is nothing to remember to switch on.
+Everything here is off until you turn it on.
+
+![Stay awake while, in Settings](assets/watch-settings-light.png)
+
+| Row                              | Keeps it awake while                                                    |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| These apps are running           | any app on the list runs. Pick from what is running, or type a name     |
+| A download or upload is going    | more than 64 KB/s moves, and for 2 minutes after it goes quiet          |
+| The computer is busy             | the processor is over 30% (a build, an export), and for 2 minutes after |
+| Something is full screen         | a video, a game or a presentation fills a screen                        |
+| An external display is connected | a monitor is plugged in (laptops only)                                  |
+| Plugged in                       | the laptop is on mains power (laptops only)                             |
+
+A dot beside an app is in the sun's colour while it is running. Home says
+which condition is keeping it awake: `While Xcode runs`, `While the network
+is busy · 2.4 MB/s`. A stop on the rule, Always, or the schedule's hours
+come first; a condition takes over when they end.
+
+Clicking the sun while a condition holds lets the laptop sleep until that
+condition clears (`Skipping until Xcode quits.`); click again to undo.
+History lists each stretch, ending as `condition`.
+
+It looks every 30 seconds, and only at what is switched on; with nothing
+on, it looks at nothing.
+
+## When it ends
+
+Settings → Staying awake → **When it ends** decides what happens after a
+timer, the schedule's hours or a condition ends on its own:
+
+| Choice     | Windows                           | Mac                                                   |
+| ---------- | --------------------------------- | ----------------------------------------------------- |
+| Nothing    | the laptop sleeps in its own time | the same                                              |
+| Lock       | locks the screen                  | not offered: macOS has no public way to lock          |
+| Screen off | turns the screen off              | turns the screen off; locks it if a password is asked |
+| Sleep      | puts the laptop to sleep          | puts the Mac to sleep                                 |
+
+It only acts if nobody has touched the keyboard, mouse or trackpad for a
+minute, so someone working when the schedule ends at six is left alone. It
+never acts when you end it yourself, or when the battery or the overnight
+guard ended it. The timer warning says what is coming:
+`5 minutes left. Add 30 minutes from the tray or the window. Then it will sleep.`
+
+## The wide window
+
+The title bar's two-corners button (or Ctrl+E, ⌘E on a Mac) opens the
+window wide: 1040 × 640, down to 860 × 560. It reopens wide until you go
+back with the same button, the shortcut, or Esc.
+
+![The wide window, Paper](assets/wide-light.png)
+
+![The wide window, Night](assets/wide-dark.png)
+
+| Part               | Shows                                                                                                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The day            | today across the window. Each time it was kept awake rises from the line as a dome of light, as tall as it was long; the one running now climbs to the sun, which stands at now |
+| The sky            | the working hours lit, the rest the resting sky with its stars                                                                                                                  |
+| The line           | ink where you were at the machine, the night dotted under it (from the almanac)                                                                                                 |
+| Pointing at a dome | when it was, how long, and why it ended                                                                                                                                         |
+| Now                | the status, the lengths, and When it ends                                                                                                                                       |
+| Stay awake while   | each condition with a dot (off, on, or in the sun's colour when it is the reason), its live reading and its switch                                                              |
+| This week          | Monday to Sunday, each a small line with the time kept awake as ink, and its total; the battery and time left                                                                   |
+
+Click the sun in the day to turn staying awake on or off, as on Home.
+Settings and the Almanac open as a column under the same sky.
+
+## Command line
+
+The app can be driven from a terminal or a script:
+
+| Command                       | Does                                                                 |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `keepmeawake --for 2h`        | keep awake for a length: `30m`, `90m`, `1h30m`, or minutes           |
+| `keepmeawake --until 18:30`   | until a time today, or tomorrow if it has passed; `6:30pm` works too |
+| `keepmeawake --always`        | until turned off                                                     |
+| `keepmeawake --off`           | let it sleep                                                         |
+| `keepmeawake --toggle`        | what clicking the sun does                                           |
+| `keepmeawake --status`        | print what it is doing, or that it is not running                    |
+| `keepmeawake --run CMD ARGS…` | keep awake while the command runs; exits with its exit code          |
+| `keepmeawake --help`          | the list above                                                       |
+
+A command starts the app (hidden) if it is not running, and never opens
+the window. A mistake prints the list and exits with 2.
+
+| Where   | The program                                                                                                                                                                         |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mac     | `/Applications/KeepMeAwake.app/Contents/MacOS/keepmeawake`. To type just `keepmeawake`: `ln -s /Applications/KeepMeAwake.app/Contents/MacOS/keepmeawake /usr/local/bin/keepmeawake` |
+| Windows | `keepmeawake.exe`, in the folder the setup installed it to (under `%LOCALAPPDATA%`); add that folder to PATH to type just `keepmeawake`                                             |
+
+On Windows the program is a windowed app, so Command Prompt does not wait
+for `--run` to finish; in PowerShell, `keepmeawake --run … | Out-Null` waits.
+
 ## Keyboard
 
 | Windows    | macOS    | Does                                                                                |
@@ -350,6 +452,7 @@ button, **Enable AI**, which brings them back. Hide AI is off by default.
 |            | ⌘M       | minimise                                                                            |
 |            | ⌘Q       | quit                                                                                |
 | Ctrl+,     | ⌘,       | settings                                                                            |
+| Ctrl+E     | ⌘E       | the wide window, and back                                                           |
 | ?          | ?        | all keyboard shortcuts, on one sheet                                                |
 | Tab / ←→   | Tab / ←→ | move between lengths and controls                                                   |
 
@@ -481,14 +584,15 @@ kept):
 | length | `2h 28m`, `9h`, `5m`                                                        |
 | ended  | why it stopped, or `now` while it runs                                      |
 
-| Ended      | Means                                                                               |
-| ---------- | ----------------------------------------------------------------------------------- |
-| `you`      | you turned it off: the sun, a length, the tray or menu bar, the hotkey, or quitting |
-| `timer`    | a timer ran out                                                                     |
-| `schedule` | the scheduled hours it belonged to ended                                            |
-| `battery`  | it was paused for the battery and never started again before it ended               |
-| `idle`     | the overnight guard turned it off: hours with no input, and nobody answered         |
-| `sleep`    | it never ended cleanly: the laptop slept or shut down, or the app was killed        |
+| Ended       | Means                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------- |
+| `you`       | you turned it off: the sun, a length, the tray or menu bar, the hotkey, or quitting    |
+| `timer`     | a timer ran out                                                                        |
+| `schedule`  | the scheduled hours it belonged to ended                                               |
+| `battery`   | it was paused for the battery and never started again before it ended                  |
+| `idle`      | the overnight guard turned it off: hours with no input, and nobody answered            |
+| `sleep`     | the machine went to sleep anyway (a closed lid), or it shut down or the app was killed |
+| `condition` | what it stayed awake for went away: the app quit, the download finished                |
 
 Pauses show as a thin, indented line under their row:
 `paused 12:10 pm – 12:40 pm · battery`. Changing the length partway through
@@ -498,10 +602,12 @@ beside the settings and read only when Settings opens.
 
 ![Settings → History, Paper](assets/history-light.png) ![Settings → History, Night](assets/history-dark.png)
 
-The app does not yet notice the laptop going to sleep (0.4 on the roadmap). A
-timer or scheduled hours that ran out while the lid was shut are logged as
-ending when they were due, but a laptop that sleeps and wakes during the next
-day's scheduled hours shows one row across both days.
+The app notices the machine going to sleep anyway (a closed lid, the power
+button) and waking. A stretch that was up when it slept ends as `sleep` at
+that moment, and if anything still wants it awake on waking (Always, the
+schedule's hours, a condition), a new row starts then. A timer or
+scheduled hours that ran out while it slept end as `timer` or `schedule`,
+when they were due, and the window is right the moment the lid opens.
 
 ## Notifications
 

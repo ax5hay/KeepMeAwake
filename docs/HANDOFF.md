@@ -3,7 +3,7 @@
 The one page every agent or session reads first and updates last. Keep it
 short; link out for detail.
 
-**Last updated:** 2026-11-12 · by Claude Opus 5.5 (Mac session: repo admin tasks, a plain-words pass over every piece of copy; Windows checks it next)
+**Last updated:** 2026-11-12 · by Claude Opus 5.5 (Mac session: admin tasks, plain words, and six 0.8 features built on the Mac: battery aware, stay awake while, when it ends, a command line, sleep detection, the wide window. Windows checks them next)
 **Release:** [v0.7.0](https://github.com/ax5hay/KeepMeAwake/releases/tag/v0.7.0), a **full** release and the latest (0.3.0 was the first); `releases/latest/download/latest.json` serves it, so installs from here on are offered each new release. (v0.2.0 stays a pre-release.)
 **Repo state:** `main` is green (`npm run verify` on Windows: vitest 212, cargo test 249;
 the Mac runs its own platform tests in place of the Windows ones; CI green on both runners).
@@ -21,8 +21,8 @@ license, not MIT (see `LICENSE`).
 ```mermaid
 flowchart LR
     main["main (ax5hay/KeepMeAwake, public)"]
-    win["Windows PC<br/>Almanac built; next: live with it, then winget → after the sun sets"]
-    mac["Mac<br/>check the almanac, the guard, the doors, updates; hand acceptance left"]
+    win["Windows PC<br/>next: check the six 0.8 features (Windows paths are CI-only so far)"]
+    mac["Mac<br/>0.8 built here; hand checks left: a real lid close, a download, the wide window"]
     win -->|small commits| main
     mac -->|small commits| main
     main -->|pull first| win
@@ -114,6 +114,13 @@ Then walk the by-hand acceptance in [`specs/macos.md`](specs/macos.md):
 
 ### On the Windows PC (Windows track): start here
 
+**First: the 0.8 features built on the Mac** (see **0.8, built on the Mac**
+below). Their Windows paths were written against the `windows` 0.62
+signatures and compiled, linted and unit tested only by CI's
+`windows-latest`; no one has run them on a real PC. Pull, `npm run verify`,
+then `npm run dev` and walk each row of that section's table on Windows.
+Then the rest of this list.
+
 Development continues on Windows: what is left on the roadmap is mostly
 Windows-first. The Windows PC is set up as [`development.md`](development.md)
 describes; work through this in order.
@@ -182,6 +189,12 @@ apply there (see [`development.md`](development.md#two-machines-one-main)).
 
 | What                    | Built on | Waits for | Check there                                                                                                                                                              |
 | ----------------------- | -------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Battery aware           | Mac      | Windows   | a laptop: the estimate on battery; a desktop or VM: no battery row, section, notification or tip                                                                         |
+| Stay awake while…       | Mac      | Windows   | each condition raises the sun within 30 s and lets it go (apps by `.exe` name, a download, a build, full screen video, a monitor, mains)                                 |
+| When it ends            | Mac      | Windows   | Lock, Screen off, Sleep after a 2-minute timer while away; nothing while typing; Sleep may need the shutdown privilege (enabled in code)                                 |
+| Command line            | Mac      | Windows   | `keepmeawake.exe --status` prints in cmd and PowerShell (`AttachConsole`); `--for 1m`; `--run ping -n 20 localhost \| Out-Null`                                          |
+| Sleep detection         | Mac      | Windows   | Always, sleep from Start, wake: History shows two rows, the first `sleep`; also on the Mac with a real lid close                                                         |
+| The wide window         | Mac      | Windows   | Ctrl+E, the day and ledger in Segoe at 1040 and 860 wide, both themes; Esc back; reopens wide                                                                            |
 | Plain-words copy pass   | Mac      | Windows   | `npm run verify`; the tray menu (**Add 30 minutes**, **I'm here, stay awake**, **Until I turn it off**); a toast; the installer's welcome and finish (**All set**) pages |
 | Almanac                 | Windows  | Mac       | `npm run verify`; its acceptance (below) on the Mac; the title bar button and the pane in SF Pro at 340 px; a night across sleep                                         |
 | Overnight guard         | Windows  | Mac       | `npm run verify` (includes the real `MacIdle` reading); the guard's acceptance (below) on the Mac, menu bar item                                                         |
@@ -207,6 +220,12 @@ on Windows is listed under **Where to start**.
 | sunset-warning           | shared  | 6 of 6         | spec written and built on the Mac, reviewed, two review fixes in; checked on Windows; acceptance below          |
 | overnight-guard          | shared  | 7 of 7         | built on Windows, reviewed, two review fixes in; CI green on both runners; hand acceptance below                |
 | almanac                  | shared  | 7 of 7, then 4 | built on Windows, then extended; not yet reviewed, not yet lived with; acceptance below                         |
+| battery-aware            | shared  | 3 of 3         | built on the Mac; Windows decoding CI-tested                                                                    |
+| stay-awake-while         | shared  | 5 of 5         | built on the Mac; the Windows probe passed CI's real-reading test                                               |
+| when-it-ends             | shared  | 4 of 4         | built on the Mac; no action tried for real yet                                                                  |
+| command-line             | shared  | 4 of 4         | built and tried from a terminal on the Mac                                                                      |
+| sleep-detection          | shared  | 3 of 3         | built on the Mac; hooks never fired for real yet                                                                |
+| wide-window              | shared  | 3 of 3         | built on the Mac; seen in a browser harness only                                                                |
 
 ## Done this cycle
 
@@ -235,6 +254,38 @@ on Windows is listed under **Where to start**.
 | 2026-11-12 | Twelve small things built; v0.7.0 released (full, latest)                                                    | Claude Fable 5.2 |
 | 2026-11-12 | Mac: old clone reset to the rewritten history; repo About and topics set; README checked on github.com       | Claude Opus 5.5  |
 | 2026-11-12 | Plain words everywhere: window, tray, toasts, installer, README, guide, repo description; rules in design.md | Claude Opus 5.5  |
+| 2026-11-12 | 0.8 on the Mac: six specs and their builds (battery aware, stay awake while, when it ends, CLI, sleep, wide) | Claude Opus 5.5  |
+
+## 0.8, built on the Mac
+
+Six specs from the owner's ask ("give away the features paid keep-awake
+apps charge for, beautiful and light, and stop showing battery options on
+machines without a battery"). Each has its spec in `docs/specs/`.
+
+| Feature           | Checked on the Mac                                                                                                                            | Not yet checked                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Battery aware     | the real probe answers on this Mac (no battery: `present: false`, mains); the UI without a battery in a browser harness                       | a MacBook on battery (the estimate); anything on Windows                      |
+| Stay awake while… | engine tests with fakes; the real probe test on the Mac (processes, pid, CPU, interface bytes, displays) and on CI's Windows runner           | a real app, download and full screen raising the sun in the running app       |
+| When it ends      | the rules (`acts`) tested                                                                                                                     | any of the three actions for real, on either machine                          |
+| Command line      | the debug binary from a terminal: help, status, exit 2, `--run` passing exit code 7 through, `--for`/`--off` moving the assertions in `pmset` | the bundled `.app` path; anything on Windows                                  |
+| Sleep detection   | engine tests (split, timer due asleep, quiet wake)                                                                                            | a real sleep on either machine (the IOKit and Windows hooks have never fired) |
+| The wide window   | in a browser harness at 1040 × 640, Paper and Night (`docs/assets/wide-*.png`), domes, hover, the ledger                                      | the real window (sizing, `center`, the menu bar drop-down at 1040 wide)       |
+
+Decisions, each in its commit body: conditions sit below a manual session
+and the schedule; a sun click skips a condition until it clears; a
+transfer or busy spell holds 2 minutes after it drops (64 KB/s, 30%
+processor, fixed, no settings); display and plugged in never hold without a
+battery; When it ends acts only after a minute with no input and never for
+`you`, `battery` or `idle`; a Mac has no Lock (no public API); `--status`
+reads a file holding the app's pid, so a killed app reads as not running;
+`Until` now rounds up (a real bug, found from the command line). The
+browser harness used for the screenshots is a Vite dev server with a fake
+`__TAURI_INTERNALS__` and a fixed clock; it is not committed.
+
+Known gaps: on Windows the release binary is a GUI program, so cmd does not
+wait for `--run` (PowerShell does with `| Out-Null`); `--run` keeps the
+laptop awake up to 30 s after the command ends (the next poll); the wide
+window's sun moves once a minute.
 
 ## Plain words (unreleased)
 
@@ -574,6 +625,11 @@ Home's doors lead with a waiting update and drop the hotkey door to stay
 one line; the whisper is once per version, remembered in localStorage.
 
 ## Open questions for Akshay
+
+- Stay awake while…: the thresholds are fixed (64 KB/s, 30% processor, a
+  2-minute linger). Wanted as settings, or right as they are?
+- Should the wide window be the default on a desktop (no battery), where
+  the app is more likely left open on a big screen?
 
 - Claude's answers are capped hard (120, 300 and 200 tokens). If a real
   answer ever comes back cut off, which cap to raise, and by how much?

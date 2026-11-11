@@ -107,13 +107,17 @@ machine. AI is off until you turn it on, with your own key.
 | Hotkey             | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> (<kbd>⌥</kbd><kbd>⌘</kbd><kbd>K</kbd> on a Mac) turns it on or off from any app; you can pick your own keys.                                                                                                |
 | Time               | Stay awake for 30m · 1h · 2h · 4h · 8h, or until a time of day. A few minutes before the time runs out it warns you, so you can add 30 minutes.                                                                                                         |
 | Schedule           | Stays awake during set hours on set days; outside them the laptop sleeps as usual.                                                                                                                                                                      |
-| Battery            | Stops keeping it awake below a battery level (20% by default), or whenever unplugged; starts again when you plug in.                                                                                                                                    |
+| Stay awake while   | It keeps the laptop awake on its own while an app runs, a download or upload is going, the processor is busy, something is full screen, a monitor is plugged in, or it is on mains power. You pick which.                                               |
+| When it ends       | After a timer, the schedule or one of those ends, it can lock the screen, turn it off, or put the laptop to sleep, but only if you've been away for a minute.                                                                                           |
+| Battery            | Stops keeping it awake below a battery level (20% by default), or whenever unplugged; starts again when you plug in. On battery it says how long the charge will last. A desktop is offered no battery rules.                                           |
 | Overnight          | Left on **Always** with no input for hours, it asks if you are still there, then lets the laptop sleep. If you like, it can also let the laptop sleep when you leave for the night and turn back on when you return.                                    |
 | Almanac            | A diary it keeps for you: the hours you worked each day, extra hours, days off, and when you were away overnight, worked out from when you used the keyboard and mouse.                                                                                 |
 | AI, if you want it | A sentence about your day, a few about your week, answers to questions about your month, and timers typed in plain words ("until 6:30 pm"). Claude, OpenAI or any compatible service, with your own key. Off by default.                                |
 | Themes             | Paper and Night, plus twenty-four more: colour schemes from code editors, places, and loud ones. Or make your own.                                                                                                                                      |
+| Wide window        | <kbd>Ctrl</kbd>+<kbd>E</kbd> (<kbd>⌘</kbd><kbd>E</kbd> on a Mac) opens the whole day drawn as a horizon, each time it kept the laptop awake a dome of light, with what it is watching and the week underneath.                                          |
 | Small things       | A sun drawn to suit its theme, tonight's moon, your own theme to share as one line of text, a separate evening theme, a mini window, a year in review, a printable month, and `?` for all keyboard shortcuts. [All twelve](docs/guide.md#small-things). |
 | Tray               | Left click opens the window; right click opens a menu with everything else. Starts quietly when you sign in.                                                                                                                                            |
+| Command line       | `keepmeawake --for 2h`, `--until 18:30`, `--off`, `--status`, and `--run make` to stay awake while a command runs.                                                                                                                                      |
 | Updates            | Checks GitHub once a day and when you ask; installs only when you say.                                                                                                                                                                                  |
 | Footprint          | About 5 MB in the tray on Windows, 16 MB on a Mac. By default, the window takes no memory while it is closed.                                                                                                                                           |
 
@@ -147,6 +151,16 @@ A schedule keeps it awake during your hours. Left on overnight with no one aroun
 if you are still there before it lets the laptop sleep.
 
 <img src="docs/assets/schedule-home-light.png" alt="Home on a schedule, and asking overnight, Paper" width="48%"/> <img src="docs/assets/overnight-home-dark.png" alt="Home on a schedule, and asking overnight, Night" width="48%"/>
+
+### The wide window
+
+The whole day across the window: each time it kept the laptop awake rises from the horizon
+as a dome of light, as tall as it was long, and the sun stands at now. Under it, what it is
+doing, what it is watching, and the week.
+
+<img src="docs/assets/wide-light.png" alt="The wide window, Paper" width="100%"/>
+
+<img src="docs/assets/wide-dark.png" alt="The wide window, Night" width="100%"/>
 
 ### The Almanac
 
