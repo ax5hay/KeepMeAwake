@@ -110,6 +110,8 @@
   // The log is fetched each time Settings opens, never at launch, and again
   // when a stretch starts or ends while it is open, so a new row appears.
   const sunUp = $derived(store.snapshot?.mode !== 'off');
+  // A desktop has no battery: its rules are never offered.
+  const hasBattery = $derived(store.snapshot?.battery.present ?? false);
   const since = $derived(store.snapshot?.started_at_unix_ms ?? null);
   $effect(() => {
     if (store.view !== 'settings') return;
@@ -532,29 +534,29 @@
       {/if}
     </section>
 
-    <section>
-      <h2 class="eyebrow">Battery</h2>
-      <Row label="Pause below" hint="Resumes as soon as you plug in.">
-        <Stepper
-          options={batteryOptions}
-          value={settings.pause_below_battery_percent === null
-            ? 'off'
-            : String(settings.pause_below_battery_percent)}
-          label="Pause below battery level"
-          onchange={(v) =>
-            void store.updateSettings({
-              pause_below_battery_percent: v === 'off' ? null : Number(v),
-            })}
-        />
-      </Row>
-      <Row label="Pause whenever unplugged" hint="On battery, your laptop sleeps as usual.">
-        <Switch
-          checked={settings.pause_on_battery}
-          label="Pause whenever unplugged"
-          onchange={(v) => void store.updateSettings({ pause_on_battery: v })}
-        />
-      </Row>
-    </section>
+    {#if hasBattery}<section>
+        <h2 class="eyebrow">Battery</h2>
+        <Row label="Pause below" hint="Resumes as soon as you plug in.">
+          <Stepper
+            options={batteryOptions}
+            value={settings.pause_below_battery_percent === null
+              ? 'off'
+              : String(settings.pause_below_battery_percent)}
+            label="Pause below battery level"
+            onchange={(v) =>
+              void store.updateSettings({
+                pause_below_battery_percent: v === 'off' ? null : Number(v),
+              })}
+          />
+        </Row>
+        <Row label="Pause whenever unplugged" hint="On battery, your laptop sleeps as usual.">
+          <Switch
+            checked={settings.pause_on_battery}
+            label="Pause whenever unplugged"
+            onchange={(v) => void store.updateSettings({ pause_on_battery: v })}
+          />
+        </Row>
+      </section>{/if}
 
     <section>
       <h2 class="eyebrow">Window</h2>
@@ -652,13 +654,15 @@
           onchange={(v) => setNotifications({ timer: v })}
         />
       </Row>
-      <Row label="Battery pauses and resumes">
-        <Switch
-          checked={settings.notifications.battery}
-          label="Battery pauses and resumes"
-          onchange={(v) => setNotifications({ battery: v })}
-        />
-      </Row>
+      {#if hasBattery}
+        <Row label="Battery pauses and resumes">
+          <Switch
+            checked={settings.notifications.battery}
+            label="Battery pauses and resumes"
+            onchange={(v) => setNotifications({ battery: v })}
+          />
+        </Row>
+      {/if}
       <Row label="Schedule starts and ends">
         <Switch
           checked={settings.notifications.schedule}

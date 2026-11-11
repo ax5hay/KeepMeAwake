@@ -28,7 +28,7 @@ const base: Snapshot = {
   plan_secs: null,
   guards: { system: false, display: false },
   paused: null,
-  battery: { on_ac: true, percent: 80 },
+  battery: { on_ac: true, percent: 80, present: true, minutes_left: null },
   schedule: {
     enabled: false,
     in_window: false,
@@ -287,10 +287,20 @@ describe('toggleWhisper', () => {
 describe('batteryText', () => {
   it('names the source and charge', () => {
     expect(batteryText(base)).toBe('Plugged in · 80%');
-    expect(batteryText({ ...base, battery: { on_ac: false, percent: 42 } })).toBe(
+    expect(batteryText({ ...base, battery: { ...base.battery, on_ac: false, percent: 42 } })).toBe(
       'On battery · 42%',
     );
-    expect(batteryText({ ...base, battery: { on_ac: true, percent: null } })).toBe('Plugged in');
+    expect(batteryText({ ...base, battery: { ...base.battery, percent: null } })).toBe(
+      'Plugged in',
+    );
+    const draining = { ...base.battery, on_ac: false, percent: 62, minutes_left: 190 };
+    expect(batteryText({ ...base, battery: draining })).toBe(
+      'On battery · 62% · about 3h 10m left',
+    );
+    // Plugged in, an estimate is not about the charge running out.
+    expect(batteryText({ ...base, battery: { ...draining, on_ac: true } })).toBe(
+      'Plugged in · 62%',
+    );
   });
 });
 

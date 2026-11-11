@@ -115,13 +115,16 @@
         onchange={(v) => void store.updateSettings({ keep_display_on: v })}
       />
     </Row>
-    <Row label="Pause on low battery" hint={lowBatteryHint}>
-      <Switch
-        checked={lowBatteryOn}
-        label="Pause on low battery"
-        onchange={(v) => void store.updateSettings({ pause_below_battery_percent: v ? 20 : null })}
-      />
-    </Row>
+    {#if snapshot?.battery.present}
+      <Row label="Pause on low battery" hint={lowBatteryHint}>
+        <Switch
+          checked={lowBatteryOn}
+          label="Pause on low battery"
+          onchange={(v) =>
+            void store.updateSettings({ pause_below_battery_percent: v ? 20 : null })}
+        />
+      </Row>
+    {/if}
   </section>
 
   <nav class="doors" aria-label="More in Settings">

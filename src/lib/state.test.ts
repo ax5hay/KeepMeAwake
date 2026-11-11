@@ -12,7 +12,7 @@ const base: Snapshot = {
   plan_secs: null,
   guards: { system: false, display: false },
   paused: null,
-  battery: { on_ac: true, percent: 80 },
+  battery: { on_ac: true, percent: 80, present: true, minutes_left: null },
   schedule: {
     enabled: false,
     in_window: false,

@@ -85,7 +85,7 @@
   const constellationPath = stars.map((s, i) => `${i === 0 ? 'M' : 'L'} ${s.x} ${s.y}`).join(' ');
 
   function onHorizon() {
-    store.say(horizonTip(tip));
+    store.say(horizonTip(tip, store.snapshot?.battery.present ?? true));
     tip += 1;
   }
 

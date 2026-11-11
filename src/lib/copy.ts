@@ -22,8 +22,8 @@ export const CREDIT = `Made in the small hours by ${AUTHOR.name}.`;
  * Tips revealed by clicking the horizon line, in order, then around again.
  * The ones that name the tray, a shortcut or the OS read right on each.
  */
-export function horizonTips(mac: boolean): readonly string[] {
-  return [
+export function horizonTips(mac: boolean, battery = true): readonly string[] {
+  const tips = [
     'The sun is the switch. Click it, or press Space.',
     'Pick a length under the sun to stay awake for just that long.',
     mac
@@ -32,7 +32,7 @@ export function horizonTips(mac: boolean): readonly string[] {
     mac
       ? 'Right-click the sun in the menu bar for everything, no window needed.'
       : 'Right-click the sun in the tray for everything without opening this window.',
-    'Below 20% battery it pauses, and picks up again when you plug in.',
+    BATTERY_TIP,
     'Until… takes a time of day. A time already gone today means tomorrow.',
     mac
       ? '⌘, opens settings. Esc brings you back here.'
@@ -43,14 +43,19 @@ export function horizonTips(mac: boolean): readonly string[] {
     'The sun is not about daylight. Up means your laptop stays awake.',
     'To stay awake at set hours every day, use Settings → Schedule.',
   ];
+  return battery ? tips : tips.filter((tip) => tip !== BATTERY_TIP);
 }
 
-/** The horizon tips for this platform. */
-export const HORIZON_TIPS: readonly string[] = horizonTips(isMac);
+/** The one tip about the battery, left out on a machine without one. */
+const BATTERY_TIP = 'Below 20% battery it pauses, and picks up again when you plug in.';
 
-/** Tip `n` (0-based), wrapping. */
-export function horizonTip(n: number): string {
-  const tips = HORIZON_TIPS;
+/** The horizon tips for this platform, with a battery. */
+export const HORIZON_TIPS: readonly string[] = horizonTips(isMac);
+const NO_BATTERY_TIPS: readonly string[] = horizonTips(isMac, false);
+
+/** Tip `n` (0-based), wrapping; without a battery, the battery tip is left out. */
+export function horizonTip(n: number, battery = true): string {
+  const tips = battery ? HORIZON_TIPS : NO_BATTERY_TIPS;
   const index = ((n % tips.length) + tips.length) % tips.length;
   return tips[index] ?? '';
 }
@@ -89,6 +94,14 @@ export const LATE_NIGHT = 'It is late. Your laptop will stay awake.';
 /** Status detail while a schedule window holds the sun up. */
 export function onSchedule(time: string): string {
   return `Until ${time} · on schedule`;
+}
+
+/** `about 3h 10m left`, `about 45m left`: the OS's estimate of the charge left. */
+export function timeLeft(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `about ${m}m left`;
+  return m === 0 ? `about ${h}h left` : `about ${h}h ${m}m left`;
 }
 
 /** Settings → Schedule → From / Until. */

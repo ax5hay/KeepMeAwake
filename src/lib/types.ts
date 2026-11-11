@@ -198,6 +198,10 @@ export interface GuardState {
 export interface BatteryState {
   on_ac: boolean;
   percent: number | null;
+  /** A battery is fitted; `false` on a desktop, where no battery rule is offered. */
+  present: boolean;
+  /** The OS's estimate of the charge left, in minutes, while on battery. */
+  minutes_left: number | null;
 }
 
 export interface ScheduleState {

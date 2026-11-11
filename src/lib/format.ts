@@ -15,6 +15,7 @@ import {
   skipping,
   sunsetIn,
   untilYouSay,
+  timeLeft,
 } from './copy';
 import { isMac } from './platform';
 import type { PauseReason, Snapshot, UpdateProgress } from './types';
@@ -190,9 +191,10 @@ export function downloadPercent(p: UpdateProgress): number | null {
 
 /** Battery line for the low-battery row. */
 export function batteryText(snapshot: Snapshot): string {
-  const { on_ac, percent } = snapshot.battery;
+  const { on_ac, percent, minutes_left } = snapshot.battery;
   const source = on_ac ? 'Plugged in' : 'On battery';
-  return percent === null ? source : `${source} · ${percent}%`;
+  const charge = percent === null ? source : `${source} · ${percent}%`;
+  return !on_ac && minutes_left !== null ? `${charge} · ${timeLeft(minutes_left)}` : charge;
 }
 
 /**

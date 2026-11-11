@@ -49,6 +49,7 @@ import {
   tips,
   tipsWith,
   untilYouSay,
+  timeLeft,
 } from './copy';
 
 /** Every string that differs by platform, flattened. */
@@ -344,6 +345,23 @@ describe('almanac copy', () => {
   it('names no platform', () => {
     for (const text of [ALMANAC_FOOT, ALMANAC_CLOSED, ALMANAC_HINT, WORK_HOURS_HINT]) {
       expect(text).not.toMatch(/tray|taskbar|Windows|menu bar|macOS/i);
+    }
+  });
+});
+
+describe('battery copy', () => {
+  it('says the time left in hours and minutes', () => {
+    expect(timeLeft(190)).toBe('about 3h 10m left');
+    expect(timeLeft(45)).toBe('about 45m left');
+    expect(timeLeft(120)).toBe('about 2h left');
+  });
+
+  it('leaves the battery tip out on a machine without one', () => {
+    for (const mac of [true, false]) {
+      const with_ = horizonTips(mac);
+      const without = horizonTips(mac, false);
+      expect(without).toHaveLength(with_.length - 1);
+      for (const tip of without) expect(tip).not.toMatch(/battery|plug/i);
     }
   });
 });
