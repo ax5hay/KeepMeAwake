@@ -59,9 +59,17 @@
       "nsis": {
         "installMode": "currentUser",
         "languages": ["English"],
-        "displayLanguageSelector": false
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "sidebarImage": "../design/installer/nsis-sidebar.bmp",
+        "headerImage": "../design/installer/nsis-header.bmp",
+        "installerHooks": "windows/installer.nsh"
       },
-      "wix": { "language": "en-US" },
+      "wix": {
+        "language": "en-US",
+        "bannerPath": "../design/installer/wix-banner.bmp",
+        "dialogImagePath": "../design/installer/wix-dialog.bmp"
+      },
       "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true }
     },
     "macOS": {

@@ -14,6 +14,12 @@ Versions: [SemVer](https://semver.org).
   horizon in its own colours, and the arrow keys walk them. A theme changes
   colours only, and every one is measured to be readable.
 
+- The Windows installers wear the horizon: the setup's welcome and finish
+  pages, the header of the pages between, and the MSI's dialogs and banner
+  are drawn in Paper, in place of the stock installer art. The setup's
+  welcome and finish pages are paper-coloured and say what the app is, in
+  its own words, in place of the stock text.
+
 ### Changed
 
 - A working day you never actually work is a day off, not a leave every

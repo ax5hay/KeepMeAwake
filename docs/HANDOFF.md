@@ -208,6 +208,15 @@ on Windows is listed under **Where to start**.
   no Rust or settings change. Open: public holidays are still marked by hand
   (**Not a leave**), and alternate-week days off (every other Saturday) are
   not inferred.
+- **Installers**: `design/installer/` holds four pictures of the horizon
+  (`draw.py` draws the SVG and the BMP of each): NSIS sidebar and header,
+  MSI dialog and banner, set in `tauri.conf.json`. Shapes only, since the
+  installers scale bitmaps without smoothing. The setup's wording and paper
+  colour are in `src-tauri/windows/installer.nsh` (`installerHooks`: Tauri
+  includes it ahead of the pages). Built locally on Windows and the setup's
+  welcome page looked at (`docs/assets/installer-welcome.png`); the finish
+  page and the MSI's dialogs have not been seen, since that means installing. The DMG
+  background is unchanged.
 - Vitest now runs with `css: true`, because the theme tests read the
   stylesheets.
 

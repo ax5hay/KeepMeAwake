@@ -111,26 +111,27 @@ Rust-only loops are faster from `src-tauri`: `cargo test`, `cargo clippy`.
 
 ## Layout
 
-| Path                      | Holds                                                              |
-| ------------------------- | ------------------------------------------------------------------ |
-| `.githooks/`              | pre-commit (prettier, eslint, rustfmt on staged files), commit-msg |
-| `.github/`                | CI, release workflow, templates, Dependabot                        |
-| `design/`                 | SVG sources for icons; regenerate with `tauri icon`                |
-| `docs/`                   | this folder; `adr/` for decisions                                  |
-| `legacy/`                 | the original script, kept as a souvenir                            |
-| `src/`                    | Svelte UI                                                          |
-| `src/lib/api.ts`          | the only file that calls `invoke()`                                |
-| `src/lib/types.ts`        | mirrors of the Rust core types; keep in sync                       |
-| `src/lib/*.ts`            | pure helpers, each with a `.test.ts` beside it                     |
-| `src/lib/copy.ts`         | every piece of UI text that is more than a label                   |
-| `src/lib/components/`     | one component per file, styles scoped inside                       |
-| `src/styles/`             | `tokens.css` (palette, type, motion), `base.css` (reset)           |
-| `src-tauri/src/core/`     | pure domain, no I/O                                                |
-| `src-tauri/src/platform/` | OS traits; `windows.rs` and `macos.rs` hold the only `unsafe`      |
-| `src-tauri/src/engine/`   | worker thread and policy                                           |
-| `src-tauri/src/app/`      | Tauri shell: commands, tray, window                                |
-| `src-tauri/capabilities/` | IPC permissions; keep minimal                                      |
-| `src-tauri/icons/`        | generated; do not hand-edit                                        |
+| Path                      | Holds                                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------------------- |
+| `.githooks/`              | pre-commit (prettier, eslint, rustfmt on staged files), commit-msg                              |
+| `.github/`                | CI, release workflow, templates, Dependabot                                                     |
+| `design/`                 | SVG sources for icons; regenerate with `tauri icon`                                             |
+| `design/installer/`       | the Windows installers' pictures; `python design/installer/draw.py` redraws them (needs Pillow) |
+| `docs/`                   | this folder; `adr/` for decisions                                                               |
+| `legacy/`                 | the original script, kept as a souvenir                                                         |
+| `src/`                    | Svelte UI                                                                                       |
+| `src/lib/api.ts`          | the only file that calls `invoke()`                                                             |
+| `src/lib/types.ts`        | mirrors of the Rust core types; keep in sync                                                    |
+| `src/lib/*.ts`            | pure helpers, each with a `.test.ts` beside it                                                  |
+| `src/lib/copy.ts`         | every piece of UI text that is more than a label                                                |
+| `src/lib/components/`     | one component per file, styles scoped inside                                                    |
+| `src/styles/`             | `tokens.css` (palette, type, motion), `base.css` (reset)                                        |
+| `src-tauri/src/core/`     | pure domain, no I/O                                                                             |
+| `src-tauri/src/platform/` | OS traits; `windows.rs` and `macos.rs` hold the only `unsafe`                                   |
+| `src-tauri/src/engine/`   | worker thread and policy                                                                        |
+| `src-tauri/src/app/`      | Tauri shell: commands, tray, window                                                             |
+| `src-tauri/capabilities/` | IPC permissions; keep minimal                                                                   |
+| `src-tauri/icons/`        | generated; do not hand-edit                                                                     |
 
 ## Style
 
