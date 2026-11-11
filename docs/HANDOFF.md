@@ -40,12 +40,12 @@ can collide, so commit it small and push it soon.
 The Mac is signed in as the admin (the Windows PC's login can push and
 release but not change settings). What was left for the admin:
 
-| To do                                                  | Status                                                                                                                                            |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The repo's About text and topics                       | done on the Mac (admin login): 20 topics, and the description rewritten in plain words (see `gh repo view`)                                       |
-| The social preview image                               | **owner, by hand**: repo Settings → General → Social preview → upload `design/social-preview.png` (1280 × 640). No API; needs a signed-in browser |
-| Look at the README on github.com, in light and in dark | done: all five diagrams render, no broken images. Light reads well. Dark has three faults, below                                                  |
-| Update an installed copy to 0.7.0                      | **not done**: no installed copy on the Mac. Install the 0.6.0 DMG, then Settings → About → **Check for updates**                                  |
+| To do                                                  | Status                                                                                                               |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| The repo's About text and topics                       | done on the Mac (admin login): 20 topics, and the description rewritten in plain words (see `gh repo view`)          |
+| The social preview image                               | done: `design/social-preview.png` uploaded from the owner's signed-in browser; the repo page serves it as `og:image` |
+| Look at the README on github.com, in light and in dark | done: all five diagrams render, no broken images. Light reads well. Dark has three faults, below                     |
+| Update an installed copy to 0.7.0                      | **not done**: no installed copy on the Mac. Install the 0.6.0 DMG, then Settings → About → **Check for updates**     |
 
 The README's diagrams in GitHub's dark mode (they wear Paper's colours on a
 dark page):
@@ -658,8 +658,6 @@ one line; the whisper is once per version, remembered in localStorage.
 - The macOS menu bar footprint (16–17 MB `phys_footprint`) is over the 12 MB
   budget written for Windows. A macOS line in the budget, or work to cut it?
 - Should a second click on the menu bar icon hide the window, like a popover?
-- Upload `design/social-preview.png` under GitHub → Settings → General →
-  Social preview (the API cannot).
 - The new `LICENSE` is a plain-words personal license, not legal advice; if
   the project ever earns money, have a lawyer read it.
 - Confirm the default for **Check for updates automatically** (auto-update spec says on).
