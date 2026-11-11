@@ -8,8 +8,10 @@
    * one by one, and the reflection ripples.
    */
   import { RIPPLE, horizonTip, starWhisper } from '$lib/copy';
+  import { moonLine, moonLit, moonPath, moonPhase } from '$lib/moon';
   import { store } from '$lib/state.svelte';
   import { SCENE, remainingArcPath, sunPosition } from '$lib/sun';
+  import { sunShape } from '$lib/theme';
 
   const mode = $derived(store.snapshot?.mode ?? 'off');
   const paused = $derived(store.snapshot?.paused !== null && store.snapshot !== null);
@@ -37,6 +39,42 @@
     { x: 298, y: 26, r: 0.8 },
     { x: 338, y: 86, r: 1 },
   ];
+
+  /** The sun as this theme draws it. */
+  const shape = $derived(sunShape(store.palette));
+
+  /** A pixel sun: eight rows of square cells, as a handheld draws a circle. */
+  const PIXEL_ROWS = [4, 6, 8, 8, 8, 8, 6, 4];
+  const cell = (sunRadius * 2) / PIXEL_ROWS.length;
+
+  /** A halftone sun: dots on a printer's grid, smaller towards the edge. */
+  const HALFTONE = (() => {
+    const step = sunRadius / 3.3;
+    const dots: Array<{ x: number; y: number; r: number }> = [];
+    for (let row = -4; row <= 4; row += 1) {
+      for (let column = -4; column <= 4; column += 1) {
+        const x = (column + (row % 2 === 0 ? 0 : 0.5)) * step;
+        const y = row * step * 0.87;
+        const away = Math.hypot(x, y) / sunRadius;
+        if (away <= 1) dots.push({ x, y, r: step * (0.6 - 0.3 * away * away) });
+      }
+    }
+    return dots;
+  })();
+
+  /** Night has tonight's moon in its resting sky, as it is. */
+  const MOON = { x: 318, y: 56, r: 8 };
+  const phase = moonPhase(Date.now());
+  const moonShown = $derived(store.palette === 'dark');
+
+  /**
+   * Once in a long while, as the window opens on a resting sky, a star
+   * falls: one CSS animation, played once. Never with reduced motion.
+   */
+  const SHOOTING_STAR_ODDS = 1 / 30;
+  const shooting =
+    Math.random() < SHOOTING_STAR_ODDS &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let tip = $state(0);
   let lit = $state<boolean[]>(stars.map(() => false));
@@ -97,6 +135,19 @@
         <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
         <circle class="star-hit" cx={star.x} cy={star.y} r="9" onclick={() => onStar(i)} />
       {/each}
+      {#if moonShown}
+        <g class="moon" transform="translate({MOON.x} {MOON.y})">
+          <circle class="moon-dark" r={MOON.r} />
+          {#if moonLit(phase) >= 0.03}
+            <path class="moon-lit" d={moonPath(phase, MOON.r)} />
+          {/if}
+          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+          <circle class="star-hit" r="13" onclick={() => store.say(moonLine(phase))} />
+        </g>
+      {/if}
+      {#if shooting}
+        <line class="shooting" x1="250" y1="22" x2="282" y2="34" />
+      {/if}
     </g>
 
     {#if timed}
@@ -105,7 +156,26 @@
 
     <g class="sun" style="transform: translate({sun.x}px, {sun.y}px)">
       <circle class="halo" r={sunRadius + 10} />
-      <circle class="disc" r={sunRadius} />
+      {#if shape === 'pixel'}
+        {#each PIXEL_ROWS as cells, row (row)}
+          <rect
+            class="disc"
+            x={(-cells * cell) / 2}
+            y={-sunRadius + row * cell}
+            width={cells * cell}
+            height={cell + 0.3}
+          />
+        {/each}
+      {:else if shape === 'ring'}
+        <circle class="ring" r={sunRadius - 3} />
+        <circle class="disc" r={sunRadius * 0.42} />
+      {:else if shape === 'halftone'}
+        {#each HALFTONE as dot (`${dot.x} ${dot.y}`)}
+          <circle class="disc" cx={dot.x} cy={dot.y} r={dot.r} />
+        {/each}
+      {:else}
+        <circle class="disc" r={sunRadius} />
+      {/if}
       {#if paused}
         <rect class="cloud" x={-sunRadius - 4} y="-3" width={sunRadius * 2 + 8} height="6" rx="3" />
       {/if}
@@ -276,6 +346,50 @@
 
   .scene[data-paused='true'] .disc {
     fill: var(--sun-dim);
+  }
+
+  /* Thermal's sun: a ring around a white-hot core. */
+  .ring {
+    fill: none;
+    stroke: var(--sun);
+    stroke-width: 6;
+    transition: stroke var(--t-slow) var(--ease);
+  }
+
+  .scene[data-paused='true'] .ring {
+    stroke: var(--sun-dim);
+  }
+
+  /* Tonight's moon: its dark side barely there, its lit side ink. */
+  .moon-dark {
+    fill: var(--ink);
+    opacity: 0.12;
+  }
+
+  .moon-lit {
+    fill: var(--ink);
+  }
+
+  .shooting {
+    stroke: var(--ink);
+    stroke-width: 1;
+    stroke-linecap: round;
+    opacity: 0;
+    animation: fall 1100ms var(--ease-out) 1400ms 1 both;
+  }
+
+  @keyframes fall {
+    0% {
+      opacity: 0;
+      transform: translate(-70px, -26px);
+    }
+    25% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(46px, 18px);
+    }
   }
 
   .halo {

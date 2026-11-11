@@ -5,6 +5,11 @@
  * status detail (tips, easter eggs). Everything derived is computed from pure
  * helpers in format.ts.
  */
+import { tick } from 'svelte';
+
+import { chime } from './sound';
+import type { Palette } from './theme';
+import type { Theme } from './types';
 import { formatWorked, hoursLength, read, type Reading } from './almanac';
 import { api, type Api } from './api';
 import { gateOf, stateOf, type AiFeature, type AiState, type Gate } from './ai';
@@ -63,6 +68,13 @@ const ALMANAC_FRESH_MS = 55_000;
 
 export type View = 'home' | 'settings' | 'almanac';
 
+/** What can be laid over the window. */
+export type Sheet = 'keys' | 'credits' | 'year';
+
+/** The sun is up and nothing has paused it. */
+const isAwake = (snapshot: Snapshot): boolean =>
+  snapshot.mode !== 'off' && snapshot.paused === null;
+
 /** How long the morning's whisper stays: it has two times in it to read. */
 export const NIGHT_WHISPER_MS = 7000;
 
@@ -89,6 +101,18 @@ export class AppStore {
   section = $state<SettingsSection | null>(null);
   /** A newer release, as the daily check found it. */
   update = $state<UpdateInfo | null>(null);
+  /** The palette the window wears now: what `system` or the evening came to. */
+  palette = $state<Palette>('light');
+  /** A theme being looked at, not chosen: worn while the pointer is on its swatch. */
+  preview = $state<Theme | null>(null);
+  /** A sheet laid over the window: the keys, the credits, or a year looked back on. */
+  sheet = $state<Sheet | null>(null);
+  /** The year the year sheet shows. */
+  sheetYear = $state(0);
+  /** The window is the sun alone, small and on top. */
+  mini = $state(false);
+  /** The month laid out for the printer, if one has been asked for. */
+  printing = $state<{ year: number; month: number } | null>(null);
   /** While installing: `null` until it starts, then the percent (or -1 while the size is unknown). */
   installing = $state<number | null>(null);
 
@@ -336,6 +360,38 @@ export class AppStore {
     return this.snapshot?.settings ?? null;
   }
 
+  /** The window as the sun alone, or back to all of it. */
+  async setMini(on: boolean): Promise<void> {
+    try {
+      await this.#api.setMini(on);
+      this.mini = on;
+      this.sheet = null;
+      if (on) this.view = 'home';
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  /** Lays `year`'s review over the window. */
+  openYear(year: number): void {
+    this.sheetYear = year;
+    this.sheet = 'year';
+  }
+
+  /**
+   * Sends a month to the printer: lays it out (the print stylesheet shows
+   * nothing else), then opens the system's dialog once it is on the page.
+   */
+  async printMonth(year: number, month: number): Promise<void> {
+    this.printing = { year, month };
+    await tick();
+    try {
+      await this.#api.printWindow();
+    } catch {
+      this.error = 'The month could not be sent to a printer.';
+    }
+  }
+
   /** Opens Settings, at `section` if given, else where it was left. */
   openSettings(section: SettingsSection | null = null): void {
     this.section = section;
@@ -498,6 +554,16 @@ export class AppStore {
   }
 
   #accept(snapshot: Snapshot): void {
+    const before = this.snapshot;
+    // The sun's two notes, if asked for, and only from a window that is open.
+    if (
+      before &&
+      snapshot.settings.sounds &&
+      document.visibilityState === 'visible' &&
+      isAwake(before) !== isAwake(snapshot)
+    ) {
+      chime(isAwake(snapshot));
+    }
     this.snapshot = snapshot;
     this.now = Date.now();
     this.#syncTicker();

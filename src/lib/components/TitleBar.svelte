@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getCurrentWindow } from '@tauri-apps/api/window';
 
-  import { ALMANAC_TITLE, CREDIT, PLATFORM_COPY } from '$lib/copy';
+  import { ALMANAC_TITLE, CREDIT, MINI_TITLE, PLATFORM_COPY } from '$lib/copy';
   import { store } from '$lib/state.svelte';
 
   const win = getCurrentWindow();
@@ -19,6 +19,19 @@
   </div>
 
   <nav aria-label="Window">
+    <button
+      type="button"
+      class="ctl"
+      aria-label="Mini window"
+      title={MINI_TITLE}
+      onclick={() => void store.setMini(true)}
+    >
+      <!-- A small window in the corner of a large one. -->
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="2.5" y="3.5" width="11" height="9" rx="1.4" />
+        <rect class="solid" x="8" y="7.5" width="4" height="3.5" rx="0.6" />
+      </svg>
+    </button>
     <button
       type="button"
       class="ctl"

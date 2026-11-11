@@ -9,7 +9,7 @@
   import Row from './Row.svelte';
   import Segmented from './Segmented.svelte';
   import ThemePicker from './ThemePicker.svelte';
-  import { themeLabel } from '$lib/theme';
+  import { THEMES, themeLabel } from '$lib/theme';
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
   import {
@@ -33,6 +33,11 @@
     AI_PROMISE,
     ALMANAC_HINT,
     THEME_HINT,
+    AFTER_DARK,
+    AFTER_DARK_HINT,
+    CREDITS_LINK,
+    SOUNDS,
+    SOUNDS_HINT,
     THEME_RESET,
     BREAK_HINT,
     AUTHOR,
@@ -61,7 +66,15 @@
   import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
   import { isMac } from '$lib/platform';
   import { store } from '$lib/state.svelte';
-  import type { AlmanacSettings, Provider, Notifications, Schedule, StartupPlan } from '$lib/types';
+  import type {
+    AfterDark,
+    AlmanacSettings,
+    Provider,
+    Notifications,
+    Schedule,
+    StartupPlan,
+    Theme,
+  } from '$lib/types';
 
   const settings = $derived(store.settings);
 
@@ -219,6 +232,16 @@
     { value: '60', label: '1h' },
     { value: '120', label: '2h' },
   ];
+
+  function setAfterDark(patch: Partial<AfterDark>) {
+    if (!settings) return;
+    void store.updateSettings({ after_dark: { ...settings.after_dark, ...patch } });
+  }
+
+  const setDarkTime = (field: 'from_minutes' | 'until_minutes') => (event: Event) => {
+    const minutes = timeToMinutes((event.currentTarget as HTMLInputElement).value);
+    if (minutes !== null) setAfterDark({ [field]: minutes });
+  };
 
   const startupOptions: ReadonlyArray<{ value: StartupPlan; label: string }> = [
     { value: 'off', label: 'Resting' },
@@ -567,8 +590,57 @@
       </Row>
       <ThemePicker
         value={settings.theme}
+        own={settings.own_theme}
         onchange={(theme) => void store.updateSettings({ theme })}
+        onpreview={(theme) => (store.preview = theme)}
+        onown={(own_theme) => void store.updateSettings({ own_theme })}
       />
+      <Row label={AFTER_DARK} hint={AFTER_DARK_HINT}>
+        <Switch
+          checked={settings.after_dark.enabled}
+          label={AFTER_DARK}
+          onchange={(enabled) => setAfterDark({ enabled })}
+        />
+      </Row>
+      {#if settings.after_dark.enabled}
+        <Row label="Wear">
+          <select
+            class="select"
+            aria-label="The theme after dark"
+            value={settings.after_dark.theme}
+            onchange={(event) => setAfterDark({ theme: event.currentTarget.value as Theme })}
+          >
+            {#each THEMES as theme (theme.id)}
+              {#if theme.id !== 'system'}
+                <option value={theme.id}>{theme.label}</option>
+              {/if}
+            {/each}
+          </select>
+        </Row>
+        <Row label="From, until">
+          <div class="times">
+            <input
+              type="time"
+              aria-label="The evening starts"
+              value={minutesToTime(settings.after_dark.from_minutes)}
+              onchange={setDarkTime('from_minutes')}
+            />
+            <input
+              type="time"
+              aria-label="The morning starts"
+              value={minutesToTime(settings.after_dark.until_minutes)}
+              onchange={setDarkTime('until_minutes')}
+            />
+          </div>
+        </Row>
+      {/if}
+      <Row label={SOUNDS} hint={SOUNDS_HINT}>
+        <Switch
+          checked={settings.sounds}
+          label={SOUNDS}
+          onchange={(sounds) => void store.updateSettings({ sounds })}
+        />
+      </Row>
     </section>
 
     <section>
@@ -619,7 +691,12 @@
           <dd>{tip.does}</dd>
         {/each}
       </dl>
-      <p class="hint whisper">There are a few more things to find in the sky.</p>
+      <p class="hint whisper">
+        There are a few more things to find in the sky.
+        <button type="button" class="link" onclick={() => (store.sheet = 'keys')}>
+          Every key, on one sheet
+        </button>
+      </p>
     </section>
 
     <section class="about" id="settings-about">
@@ -678,6 +755,9 @@
       </p>
       <p class="links">
         <a href={AUTHOR.repo} onclick={open(AUTHOR.repo)}>Source</a>
+        <button type="button" class="link" onclick={() => (store.sheet = 'credits')}>
+          {CREDITS_LINK}
+        </button>
         <button type="button" class="quit" onclick={() => void store.quit()}>
           Quit Keep me awake
         </button>
@@ -687,6 +767,17 @@
 </div>
 
 <style>
+  .select {
+    max-width: 150px;
+    padding: 3px 6px;
+    border-radius: var(--radius-sm);
+    background: var(--paper);
+    box-shadow: inset 0 0 0 1px var(--hair-strong);
+    font: inherit;
+    font-size: 12px;
+    color: var(--ink);
+  }
+
   .link {
     padding: 3px 0;
     font-size: 12px;

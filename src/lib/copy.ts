@@ -387,6 +387,83 @@ export const ALMANAC_BEGINS = 'The first day is being written.';
 /** Settings → Almanac → Keep an almanac. */
 export const ALMANAC_HINT = 'Your hours, leave and nights.';
 
+/** The sheet `?` lays over the window. */
+export const KEYS_TITLE = 'Keys';
+export const KEYS_FOOT = 'In the theme picker, the arrows walk the themes.';
+
+/** The sheet behind Settings → About → Credits. */
+export const CREDITS_TITLE = 'Credits';
+export const CREDITS_LINK = 'Credits and history';
+
+/** How the app got here, newest first. */
+export const VERSIONS: ReadonlyArray<{ name: string; when: string; what: string }> = [
+  {
+    name: '0.7',
+    when: 'Nov 2026',
+    what: 'The small things: a theme of your own, the moon, a mini window, a year looked back on.',
+  },
+  { name: '0.6', when: 'Nov 2026', what: 'Themes, and an installer that looks like the app.' },
+  { name: '0.5', when: 'Nov 2026', what: 'AI, as a choice. Checking for updates when you ask.' },
+  { name: '0.4', when: 'Nov 2026', what: 'The Almanac: days, hours, leave and nights.' },
+  { name: '0.3', when: 'Nov 2026', what: 'History, the overnight guard, updates of its own.' },
+  { name: '0.2', when: 'Nov 2026', what: 'A schedule, a hotkey, notifications.' },
+  { name: '0.1', when: '2026', what: 'One sun, a tray icon, timers and battery rules.' },
+  { name: 'Before', when: '', what: 'A script that pressed a key every few minutes.' },
+];
+
+/** What it is made with, and whose palettes it borrows. */
+export const CREDITS: ReadonlyArray<{ what: string; by: string }> = [
+  { what: 'Fraunces', by: 'Undercase Type, under the Open Font License' },
+  { what: 'Tauri · Rust · Svelte', by: 'their makers and communities' },
+  { what: 'Solarized', by: 'Ethan Schoonover' },
+  { what: 'Gruvbox', by: 'Pavel Pertsev' },
+  { what: 'Nord', by: 'Sven Greb and Arctic Ice Studio' },
+  { what: 'Dracula', by: 'Zeno Rocha' },
+  { what: 'Catppuccin', by: 'the Catppuccin community' },
+  { what: 'Tokyo Night', by: 'enkia' },
+  { what: 'Monokai', by: 'Wimer Hazenberg' },
+];
+
+/** A year, looked back on: the sheet's title and its link in the Almanac. */
+export function yearTitle(year: number): string {
+  return `${year}, looked back on`;
+}
+export const YEAR_LINK = 'Look back';
+export const YEAR_EMPTY = 'Nothing was kept in this year.';
+
+/** `1 day`, `9 days in a row`. */
+export function daysInARow(count: number): string {
+  return count === 1 ? '1 day' : `${count} days in a row`;
+}
+
+/** The Almanac's foot: the open month, to the printer. */
+export const PRINT_MONTH = 'Print month';
+
+/** The title bar's way into the mini window, and the mini window's way back. */
+export const MINI_TITLE = 'Mini window: the sun alone, on top';
+export const MINI_BACK = 'Back to the whole window';
+
+/** Settings → Theme → After dark. */
+export const AFTER_DARK = 'After dark';
+export const AFTER_DARK_HINT = 'Another theme for the evening.';
+
+/** Settings → Sounds. */
+export const SOUNDS = 'Sounds';
+export const SOUNDS_HINT = 'A soft note as the sun rises and sets, while this window is open.';
+
+/** A theme of one's own: its five colours, and the line that shares it. */
+export const OWN_PART_LABELS = {
+  paper: 'Paper',
+  ink: 'Ink',
+  sun: 'Sun',
+  sky: 'Sky',
+  ground: 'Ground',
+} as const;
+export const OWN_CODE_HINT = 'This line is your theme. Paste one here to wear it.';
+export const OWN_CODE_BAD = 'That is not a theme: sun: and five colours.';
+export const OWN_COPY = 'Copy';
+export const OWN_COPIED = 'Copied';
+
 /** Settings → Theme, under the name of the one worn. */
 export const THEME_HINT = 'Colours only. The sun stays the one accent.';
 
@@ -537,6 +614,7 @@ export function tips(mac: boolean): readonly Tip[] {
       { keys: 'Space', does: 'Toggle awake and resting' },
       { keys: 'Esc', does: 'Back, or close the window' },
       { keys: '⌘,', does: 'Settings' },
+      { keys: '?', does: 'Every key, on one sheet' },
       { keys: '⌘W', does: 'Close to the menu bar' },
       { keys: '⌘Q', does: 'Quit' },
       { keys: 'Menu bar · click', does: 'Open this window' },
@@ -548,6 +626,7 @@ export function tips(mac: boolean): readonly Tip[] {
     { keys: 'Space', does: 'Toggle awake and resting' },
     { keys: 'Esc', does: 'Back, or close to the tray' },
     { keys: 'Ctrl+,', does: 'Settings' },
+    { keys: '?', does: 'Every key, on one sheet' },
     { keys: 'Tray · left click', does: 'Open this window' },
     { keys: 'Tray · right click', does: 'Every action, no window' },
     { keys: 'Horizon', does: 'Click the line for a tip' },

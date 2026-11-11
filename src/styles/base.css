@@ -113,3 +113,20 @@ input[type='time'] {
   pointer-events: none;
   box-shadow: inset 0 0 0 1px var(--hair);
 }
+
+/* To a printer goes the month's timesheet (Timesheet.svelte) and nothing
+   else: the window itself is not a document. */
+@media print {
+  html,
+  body,
+  #app {
+    display: block;
+    height: auto;
+    overflow: visible;
+    background: #fff;
+  }
+
+  #app > :not(.timesheet) {
+    display: none !important;
+  }
+}

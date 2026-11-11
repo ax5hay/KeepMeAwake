@@ -40,7 +40,25 @@ export type Theme =
   | 'bubblegum'
   | 'highlighter'
   | 'grape_soda'
-  | 'hi_vis';
+  | 'hi_vis'
+  | 'own';
+
+/** A theme of one's own: five colours, each `#rrggbb`. */
+export interface OwnTheme {
+  paper: string;
+  ink: string;
+  sun: string;
+  sky: string;
+  ground: string;
+}
+
+/** Another theme from `from_minutes` until `until_minutes`, past midnight or not. */
+export interface AfterDark {
+  enabled: boolean;
+  theme: Theme;
+  from_minutes: number;
+  until_minutes: number;
+}
 
 export type StartupPlan = 'off' | 'indefinite' | 'default_duration';
 
@@ -65,6 +83,12 @@ export interface Settings {
   overnight_guard_hours: number | null;
   almanac: AlmanacSettings;
   ai: AiSettings;
+  /** The five colours of the `own` theme. */
+  own_theme: OwnTheme;
+  /** A second theme for the evening. */
+  after_dark: AfterDark;
+  /** A soft note when the sun rises and sets, while the window is open. */
+  sounds: boolean;
   /** Ask GitHub once a day for a newer release. */
   check_for_updates: boolean;
   /** When it last asked, Unix ms; 0 for never. Written by the app, not the UI. */

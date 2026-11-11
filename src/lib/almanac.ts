@@ -611,6 +611,62 @@ export function formatWorked(ms: number): string {
   return h === 0 ? `${m}m` : `${h}h ${String(m).padStart(2, '0')}m`;
 }
 
+/** A year, looked back on. */
+export interface YearReview {
+  year: number;
+  /** Days worked, their hours, the part outside working hours, and leave. */
+  days: number;
+  worked_ms: number;
+  over_ms: number;
+  leaves: number;
+  /** Hours worked in each month, January first. */
+  months: number[];
+  /** The month with the most in it, 0 to 11, or `null` in an empty year. */
+  busiest: number | null;
+  /** The longest day worked. */
+  longest: Day | null;
+  /** The day that started earliest, and the one that ended latest, by the clock of its own day. */
+  earliest: Day | null;
+  latest: Day | null;
+  /** The most days worked in a row. */
+  run: number;
+}
+
+/** What `year` came to, from the days of it the almanac holds. */
+export function yearReview(reading: Reading, year: number): YearReview {
+  const days = yearOf(reading, year);
+  const sum = tally(days);
+  const months = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(
+    (month) => tally(monthOf(reading, year, month)).worked_ms,
+  );
+  const most = Math.max(...months);
+  const worked = days.filter((day) => day.kind === 'worked');
+  const best = (score: (day: Day) => number): Day | null =>
+    worked.reduce<Day | null>(
+      (top, day) => (top === null || score(day) > score(top) ? day : top),
+      null,
+    );
+  let run = 0;
+  let current = 0;
+  for (const day of days) {
+    current = day.kind === 'worked' ? current + 1 : 0;
+    run = Math.max(run, current);
+  }
+  return {
+    year,
+    days: sum.days,
+    worked_ms: sum.worked_ms,
+    over_ms: sum.over_ms,
+    leaves: sum.leaves,
+    months,
+    busiest: most > 0 ? months.indexOf(most) : null,
+    longest: best((day) => day.worked_ms),
+    earliest: best((day) => -((day.first ?? day.end) - day.start)),
+    latest: best((day) => (day.last ?? day.start) - day.start),
+    run,
+  };
+}
+
 /** `142h`, `31h 20m`: a total over many days; minutes only while they still matter. */
 export function formatTotal(ms: number): string {
   const minutes = Math.max(0, Math.floor(ms / MINUTE));

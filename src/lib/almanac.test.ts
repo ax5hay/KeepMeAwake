@@ -24,6 +24,7 @@ import {
   weekDigest,
   weekOf,
   yearOf,
+  yearReview,
 } from './almanac';
 import type { Almanac, AlmanacSettings, Mark, Span } from './types';
 
@@ -218,6 +219,33 @@ describe('a weekday that is not worked', () => {
     const marked = read(book(monToThu, { '2026-10-16': 'leave' }), office, now);
     expect(marked.dayAt(october(16, 12)).kind).toBe('leave');
     expect(marked.dayAt(october(9, 12)).kind).toBe('leave');
+  });
+});
+
+describe('a year, looked back on', () => {
+  it('finds its longest day, its edges, its fullest month and its longest run', () => {
+    const spans = [
+      span(at(9, 9), at(9, 17)),
+      span(at(10, 7, 30), at(10, 13)),
+      span(at(11, 10), at(11, 22, 15)),
+      span(at(13, 9), at(13, 12)),
+    ];
+    const reading = read(book(spans, { '2026-11-12': 'leave' }), office, at(16, 12));
+    const review = yearReview(reading, 2026);
+    expect(review.days).toBe(4);
+    expect(review.leaves).toBe(1);
+    expect(review.worked_ms).toBe((8 + 5.5 + 12.25 + 3) * HOUR);
+    expect(review.busiest).toBe(10);
+    expect(review.months[10]).toBe(review.worked_ms);
+    expect(review.longest?.key).toBe('2026-11-11');
+    expect(review.earliest?.key).toBe('2026-11-10');
+    expect(review.latest?.key).toBe('2026-11-11');
+    expect(review.run).toBe(3);
+  });
+
+  it('is empty for a year with nothing in it', () => {
+    const review = yearReview(read(book([]), office, at(16, 12)), 2025);
+    expect(review).toMatchObject({ days: 0, busiest: null, longest: null, run: 0 });
   });
 });
 

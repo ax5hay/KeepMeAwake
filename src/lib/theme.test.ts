@@ -3,7 +3,22 @@ import { describe, expect, it } from 'vitest';
 import themes from '../styles/themes.css?raw';
 import tokens from '../styles/tokens.css?raw';
 
-import { resolveTheme, SHELVES, themeLabel, THEMES } from './theme';
+import {
+  DEFAULT_OWN,
+  isAfterDark,
+  mix,
+  msToTurn,
+  ownTokens,
+  parseThemeCode,
+  resolveTheme,
+  SHELVES,
+  sunShape,
+  themeAt,
+  themeCode,
+  themeLabel,
+  THEMES,
+  wear,
+} from './theme';
 
 const css = `${tokens}
 ${themes}`;
@@ -63,6 +78,73 @@ describe('resolveTheme', () => {
   });
 });
 
+describe('a theme after dark', () => {
+  const evening = { enabled: true, theme: 'dark' as const, from_minutes: 1140, until_minutes: 420 };
+
+  it('is worn from the evening until the morning, across midnight', () => {
+    expect(themeAt('mars', evening, 1139)).toBe('mars');
+    expect(themeAt('mars', evening, 1140)).toBe('dark');
+    expect(themeAt('mars', evening, 30)).toBe('dark');
+    expect(themeAt('mars', evening, 420)).toBe('mars');
+    expect(themeAt('mars', { ...evening, enabled: false }, 30)).toBe('mars');
+    expect(isAfterDark({ ...evening, from_minutes: 60, until_minutes: 120 }, 90)).toBe(true);
+    expect(isAfterDark({ ...evening, from_minutes: 60, until_minutes: 60 }, 60)).toBe(false);
+  });
+
+  it('knows how long until it next turns over', () => {
+    expect(msToTurn(evening, new Date(2026, 10, 12, 18, 59, 30))).toBe(30_000);
+    expect(msToTurn(evening, new Date(2026, 10, 12, 19, 0, 0))).toBe(12 * 3_600_000);
+    expect(msToTurn(evening, new Date(2026, 10, 12, 6, 0, 0))).toBe(3_600_000);
+    expect(msToTurn({ ...evening, enabled: false }, new Date())).toBeNull();
+  });
+});
+
+describe('a theme of your own', () => {
+  it('works every token out from five colours', () => {
+    const tokens = ownTokens(DEFAULT_OWN);
+    for (const token of TOKENS) expect(tokens[`--${token}`], token).toBeTruthy();
+    expect(tokens['--paper']).toBe('#f4f0e7');
+    expect(tokens['color-scheme']).toBe('light');
+    expect(mix('#000000', '#ffffff', 0.5)).toBe('#808080');
+    const night = ownTokens({ ...DEFAULT_OWN, paper: '#101216', ink: '#ebe4d6' });
+    expect(night['color-scheme']).toBe('dark');
+    expect(night['--grain-blend']).toBe('screen');
+    expect(contrast(night['--ink-2'] ?? '', '#101216')).toBeGreaterThan(4);
+  });
+
+  it('is shared as one line and read back from one', () => {
+    const code = themeCode(DEFAULT_OWN);
+    expect(code).toBe('sun:f4f0e7-1c1b18-dca544-dfe8ea-e8dfca');
+    expect(parseThemeCode(`  ${code.toUpperCase().replace('SUN', 'sun')} `)).toEqual(DEFAULT_OWN);
+    expect(parseThemeCode('sun:f4f0e7-1c1b18')).toBeNull();
+    expect(parseThemeCode('sun:f4f0e7-1c1b18-dca544-dfe8ea-e8dfzz')).toBeNull();
+    expect(parseThemeCode('red; } body { display: none')).toBeNull();
+  });
+
+  it('is put on as tokens, and taken off again', () => {
+    const root = document.createElement('div');
+    wear(root, 'own', { ...DEFAULT_OWN, sun: '#ff0000' });
+    expect(root.dataset['theme']).toBe('own');
+    expect(root.style.getPropertyValue('--sun')).toBe('#ff0000');
+    wear(root, 'mars', DEFAULT_OWN);
+    expect(root.dataset['theme']).toBe('mars');
+    expect(root.style.getPropertyValue('--sun')).toBe('');
+    // Colours that are not colours are never written into a style.
+    wear(root, 'own', { ...DEFAULT_OWN, sun: 'red' });
+    expect(root.style.getPropertyValue('--sun')).toBe('');
+  });
+});
+
+describe('the sun a theme draws', () => {
+  it('is a disc, but for three', () => {
+    expect(sunShape('light')).toBe('disc');
+    expect(sunShape('pocket')).toBe('pixel');
+    expect(sunShape('thermal')).toBe('ring');
+    expect(sunShape('risograph')).toBe('halftone');
+    expect(sunShape('own')).toBe('disc');
+  });
+});
+
 describe('the themes', () => {
   it('are each listed once, with a name', () => {
     const ids = THEMES.map((theme) => theme.id);
@@ -75,7 +157,7 @@ describe('the themes', () => {
 
   it('each have a palette in the stylesheet that sets every token', () => {
     for (const { id } of THEMES) {
-      if (id === 'system') continue;
+      if (id === 'system' || id === 'own') continue;
       const block = blockOf(id);
       expect(block, id).not.toBeNull();
       for (const token of TOKENS) expect(block, `${id} --${token}`).toContain(`--${token}:`);
@@ -85,7 +167,7 @@ describe('the themes', () => {
 
   it('can each be read: ink on paper, and the sun against its sky and ground', () => {
     for (const { id } of THEMES) {
-      if (id === 'system') continue;
+      if (id === 'system' || id === 'own') continue;
       const block = blockOf(id) ?? '';
       const of = (token: string) => {
         const found = new RegExp(`--${token}: (#[0-9a-f]{6});`).exec(block);

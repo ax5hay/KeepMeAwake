@@ -50,6 +50,8 @@
     DAY_READ,
     DAY_WORDS,
     MARK_LEAVE,
+    PRINT_MONTH,
+    YEAR_LINK,
     NOBODY_HERE,
     NOT_A_LEAVE,
     TELL_ASK,
@@ -489,7 +491,12 @@
       <dl class="tally">
         {#if year}
           <dt>{shown.year}</dt>
-          <dd>{leavesTaken(year.leaves)} · {daysWorked(year.days)} worked</dd>
+          <dd>
+            {leavesTaken(year.leaves)} · {daysWorked(year.days)} worked
+            <button type="button" class="link" onclick={() => store.openYear(shown.year)}>
+              {YEAR_LINK}
+            </button>
+          </dd>
         {/if}
         {#if usual}
           <dt>Usual night</dt>
@@ -508,6 +515,13 @@
       <p class="links">
         <button type="button" class="link" onclick={() => void copyMonth()}>
           {copied ? COPIED : COPY_MONTH}
+        </button>
+        <button
+          type="button"
+          class="link"
+          onclick={() => void store.printMonth(shown.year, shown.month)}
+        >
+          {PRINT_MONTH}
         </button>
       </p>
     </section>

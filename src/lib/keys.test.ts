@@ -38,4 +38,12 @@ describe('windowAction', () => {
   it('ignores everything else', () => {
     expect(windowAction(key('k'), 'BODY', true)).toBeNull();
   });
+
+  it('opens the key sheet on ?, but not while typing', () => {
+    const press = { key: '?', ctrlKey: false, metaKey: false, altKey: false, shiftKey: true };
+    expect(windowAction(press, 'BODY', false)).toBe('keys');
+    expect(windowAction(press, 'BODY', true)).toBe('keys');
+    expect(windowAction(press, 'INPUT', false)).toBeNull();
+    expect(windowAction({ ...press, ctrlKey: true }, 'BODY', false)).toBeNull();
+  });
 });

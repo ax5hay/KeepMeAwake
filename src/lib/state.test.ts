@@ -67,6 +67,15 @@ const base: Snapshot = {
       model: '',
       base_url: '',
     },
+    own_theme: {
+      paper: '#f4f0e7',
+      ink: '#1c1b18',
+      sun: '#dca544',
+      sky: '#dfe8ea',
+      ground: '#e8dfca',
+    },
+    after_dark: { enabled: false, theme: 'dark', from_minutes: 1140, until_minutes: 420 },
+    sounds: false,
     check_for_updates: true,
     last_update_check_unix_ms: 0,
   },
@@ -122,6 +131,8 @@ function fakeApi(initial: Snapshot, waiting: UpdateInfo | null = null, kept: Alm
       return current;
     }),
     quit: vi.fn(async () => undefined),
+    setMini: vi.fn(async () => undefined),
+    printWindow: vi.fn(async () => undefined),
     extendSession: vi.fn(async () => current),
     keepItUp: vi.fn(async () => {
       current = { ...current, guard_rests_at_unix_ms: null };
