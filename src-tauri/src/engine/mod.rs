@@ -88,7 +88,7 @@ pub enum EngineEvent {
     },
 }
 
-/// How much "Give it another 30m" adds to a timed session.
+/// How much "Add 30 minutes" adds to a timed session.
 pub const EXTEND_BY: Duration = Duration::from_secs(30 * 60);
 
 /// Receives engine events. Called off the engine lock, so it may call back
@@ -140,7 +140,7 @@ struct State {
     /// While the overnight guard is asking: when the session ends unless
     /// someone answers, Unix ms.
     guard_rests_at: Option<u64>,
-    /// The start of the session someone said Keep it up for; the guard
+    /// The start of the session someone said I'm here for; the guard
     /// leaves that session alone.
     guard_dismissed_for: Option<Instant>,
     /// Whose question is pending: the guard's hours, or the night's.
@@ -560,7 +560,7 @@ struct Probes<'a> {
 }
 
 /// The guard is watching the current session: Always, the guard or Set
-/// with me on, and nobody said Keep it up for this session.
+/// with me on, and nobody said I'm here for this session.
 fn guard_watches(st: &State) -> bool {
     st.session.mode() == Mode::Indefinite
         && (st.settings.overnight_guard_hours.is_some() || night_rest(&st.settings).is_some())
@@ -614,7 +614,7 @@ fn rise_on_touch(st: &mut State, idle: &dyn IdleProbe, now: Instant, unix_now: u
 }
 
 /// The overnight guard, for one step. While an Always session runs, the
-/// guard is on and nobody said Keep it up for this session, it reads how
+/// guard is on and nobody said I'm here for this session, it reads how
 /// long since the last input: at the guard's time it asks (once), below it
 /// any question is withdrawn, and a question left unanswered past its
 /// grace ends the session. Returns when the session rested, Unix ms, if

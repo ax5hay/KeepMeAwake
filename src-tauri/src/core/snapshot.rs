@@ -88,7 +88,7 @@ pub struct Snapshot {
     /// The sun set with the night and rises again at the next touch.
     pub rises_on_touch: bool,
     /// The overnight guard is watching this session: an Always session,
-    /// the guard on, and nobody said Keep it up for it.
+    /// the guard on, and nobody said I'm here for it.
     pub guard_watching: bool,
     /// User preferences, so the UI has a single source of truth.
     pub settings: Settings,

@@ -57,12 +57,12 @@ const ID_SKIP: &str = "skip";
 const ID_EXTEND: &str = "extend";
 
 /// The tray item that pushes a timed session's end later.
-pub const EXTEND_LABEL: &str = "Give it another 30m";
+pub const EXTEND_LABEL: &str = "Add 30 minutes";
 const ID_KEEP: &str = "keep";
 const ID_UPDATE: &str = "update";
 
 /// The tray item that answers the overnight guard.
-pub const KEEP_LABEL: &str = "Keep it up";
+pub const KEEP_LABEL: &str = "I'm here, stay awake";
 const ID_INDEFINITE: &str = "indefinite";
 const ID_OPEN: &str = "open";
 const ID_QUIT: &str = "quit";
@@ -202,7 +202,13 @@ fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &Snapshot) -> tauri::Res
             None::<&str>,
         )?);
     }
-    let indefinite = MenuItem::with_id(app, ID_INDEFINITE, "Indefinitely", true, None::<&str>)?;
+    let indefinite = MenuItem::with_id(
+        app,
+        ID_INDEFINITE,
+        "Until I turn it off",
+        true,
+        None::<&str>,
+    )?;
     let mut submenu_items: Vec<&dyn tauri::menu::IsMenuItem<R>> = Vec::new();
     for item in &duration_items {
         submenu_items.push(item);
@@ -562,7 +568,7 @@ mod tests {
     fn the_extend_item_shows_only_inside_the_warning() {
         let mut timed = snap(Mode::Timed, Some(300), None);
         timed.plan_secs = Some(600);
-        assert_eq!(extend_label(&timed), Some("Give it another 30m"));
+        assert_eq!(extend_label(&timed), Some("Add 30 minutes"));
         timed.remaining_secs = Some(301);
         assert_eq!(extend_label(&timed), None, "not yet");
         timed.remaining_secs = Some(60);
@@ -586,7 +592,7 @@ mod tests {
         };
         assert_eq!(extend_label(&held), None);
         held.schedule.skipped = true;
-        assert_eq!(extend_label(&held), Some("Give it another 30m"), "skipped");
+        assert_eq!(extend_label(&held), Some("Add 30 minutes"), "skipped");
     }
 
     #[test]
@@ -594,7 +600,7 @@ mod tests {
         let mut always = snap(Mode::Indefinite, None, None);
         assert_eq!(keep_label(&always), None);
         always.guard_rests_at_unix_ms = Some(1_000);
-        assert_eq!(keep_label(&always), Some("Keep it up"));
+        assert_eq!(keep_label(&always), Some("I'm here, stay awake"));
     }
 
     #[test]

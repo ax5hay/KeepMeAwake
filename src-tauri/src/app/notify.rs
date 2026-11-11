@@ -15,21 +15,21 @@ use crate::core::{Mode, PauseReason, Snapshot};
 use crate::engine::EngineEvent;
 
 /// Title when a timed session ends.
-pub const TIMER_TITLE: &str = "The sun has set";
+pub const TIMER_TITLE: &str = "Timer done";
 /// Title when the battery rule pauses the sun.
 pub const PAUSED_TITLE: &str = "Paused for the battery";
 /// Title when the charger brings it back.
-pub const RESUMED_TITLE: &str = "Back up";
+pub const RESUMED_TITLE: &str = "Awake again";
 /// Body when the charger brings it back.
-pub const RESUMED_BODY: &str = "Charger connected. The sun is up again.";
+pub const RESUMED_BODY: &str = "Charger connected. Keeping your laptop awake again.";
 /// Title when a schedule window opens.
-pub const SCHEDULE_STARTED_TITLE: &str = "On schedule";
+pub const SCHEDULE_STARTED_TITLE: &str = "Schedule started";
 /// Title of the toast a few minutes before a timed session ends.
-pub const SUNSET_TITLE: &str = "The sun sets soon";
+pub const SUNSET_TITLE: &str = "Timer ends soon";
 /// Title when a schedule window closes.
-pub const SCHEDULE_ENDED_TITLE: &str = "Off schedule";
+pub const SCHEDULE_ENDED_TITLE: &str = "Schedule ended";
 /// Title when the overnight guard asks whether anyone is there.
-pub const OVERNIGHT_TITLE: &str = "Nobody around";
+pub const OVERNIGHT_TITLE: &str = "Still there?";
 
 /// Title of the toast when Sleep when I'm away is about to set the sun for the night.
 pub const NIGHT_TITLE: &str = "Away for the night";
@@ -75,7 +75,7 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
             toast(
                 TIMER_TITLE,
                 format!(
-                    "Resting now. {}, as asked.",
+                    "Kept awake for {}, as asked. Your laptop sleeps as usual now.",
                     tray::format_duration(*plan_secs)
                 ),
             )
@@ -93,7 +93,7 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
             };
             toast(
                 SUNSET_TITLE,
-                format!("In {mins} {unit}. Give it another 30m from {place} or the window."),
+                format!("{mins} {unit} left. Add 30 minutes from {place} or the window."),
             )
         }
         EngineEvent::Paused(PauseReason::LowBattery | PauseReason::OnBattery, battery)
@@ -101,11 +101,8 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
         {
             let at = battery
                 .percent
-                .map_or_else(|| "on battery".to_owned(), |p| format!("at {p}%"));
-            toast(
-                PAUSED_TITLE,
-                format!("Holding off {at}. Plug in to resume."),
-            )
+                .map_or_else(|| "On battery".to_owned(), |p| format!("Battery at {p}%"));
+            toast(PAUSED_TITLE, format!("{at}. Plug in to keep it awake."))
         }
         // Resuming because a rule was relaxed is not the charger; say nothing.
         EngineEvent::Resumed if switches.battery && snapshot.battery.on_ac => {
@@ -124,8 +121,13 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
             if switches.schedule && snapshot.mode == Mode::Off =>
         {
             let body = next_start_unix_ms.map_or_else(
-                || "Resting.".to_owned(),
-                |next| format!("Resting until {}.", tray::when(next, now_unix_ms)),
+                || "Your laptop sleeps as usual.".to_owned(),
+                |next| {
+                    format!(
+                        "Your laptop sleeps as usual until {}.",
+                        tray::when(next, now_unix_ms)
+                    )
+                },
             );
             toast(SCHEDULE_ENDED_TITLE, body)
         }
@@ -141,7 +143,7 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
                 return toast(
                     NIGHT_TITLE,
                     format!(
-                        "The laptop will sleep at {rests} unless you're back. Always resumes when you return."
+                        "Your laptop can sleep at {rests} unless you're back. Always comes back on when you return."
                     ),
                 );
             }
@@ -152,7 +154,9 @@ pub fn body_for(event: &EngineEvent, snapshot: &Snapshot, now_unix_ms: u64) -> O
             let unit = if hours == 1 { "hour" } else { "hours" };
             toast(
                 OVERNIGHT_TITLE,
-                format!("No input for {hours} {unit}. Resting at {rests} unless you're back."),
+                format!(
+                    "No input for {hours} {unit}. Your laptop can sleep at {rests} unless you're back."
+                ),
             )
         }
         _ => None,
@@ -248,14 +252,14 @@ mod tests {
         assert_eq!(
             body(&ended, &snapshot(Mode::Off, ALL)),
             Some((
-                "The sun has set",
-                "Resting now. 2h 00m, as asked.".to_owned()
+                "Timer done",
+                "Kept awake for 2h 00m, as asked. Your laptop sleeps as usual now.".to_owned()
             ))
         );
         let short = EngineEvent::TimerEnded { plan_secs: 1800 };
         assert_eq!(
             body(&short, &snapshot(Mode::Off, ALL)).map(|t| t.1),
-            Some("Resting now. 30m, as asked.".to_owned())
+            Some("Kept awake for 30m, as asked. Your laptop sleeps as usual now.".to_owned())
         );
     }
 
@@ -273,8 +277,8 @@ mod tests {
         assert_eq!(
             body(&soon, &snapshot(Mode::Timed, ALL)),
             Some((
-                "The sun sets soon",
-                format!("In 5 minutes. Give it another 30m from {place} or the window.")
+                "Timer ends soon",
+                format!("5 minutes left. Add 30 minutes from {place} or the window.")
             ))
         );
         let last = EngineEvent::SunsetSoon {
@@ -283,7 +287,7 @@ mod tests {
         };
         assert!(
             body(&last, &snapshot(Mode::Timed, ALL))
-                .is_some_and(|t| t.1.starts_with("In 1 minute."))
+                .is_some_and(|t| t.1.starts_with("1 minute left."))
         );
         assert_eq!(
             body(&soon, &snapshot(Mode::Timed, NONE)),
@@ -312,14 +316,14 @@ mod tests {
             body(&paused, &snapshot(Mode::Indefinite, ALL)),
             Some((
                 "Paused for the battery",
-                "Holding off at 18%. Plug in to resume.".to_owned()
+                "Battery at 18%. Plug in to keep it awake.".to_owned()
             ))
         );
         assert_eq!(
             body(&EngineEvent::Resumed, &snapshot(Mode::Indefinite, ALL)),
             Some((
-                "Back up",
-                "Charger connected. The sun is up again.".to_owned()
+                "Awake again",
+                "Charger connected. Keeping your laptop awake again.".to_owned()
             ))
         );
         let mut unplugged = snapshot(Mode::Indefinite, ALL);
@@ -336,14 +340,17 @@ mod tests {
         };
         assert_eq!(
             body(&started, &snapshot(Mode::Scheduled, ALL)),
-            Some(("On schedule", "Awake until 6:00 pm.".to_owned()))
+            Some(("Schedule started", "Awake until 6:00 pm.".to_owned()))
         );
         let ended = EngineEvent::ScheduleEnded {
             next_start_unix_ms: Some(local_ms(3, 9, 0)),
         };
         assert_eq!(
             body(&ended, &snapshot(Mode::Off, ALL)),
-            Some(("Off schedule", "Resting until 9:00 am.".to_owned()))
+            Some((
+                "Schedule ended",
+                "Your laptop sleeps as usual until 9:00 am.".to_owned()
+            ))
         );
         // A manual session outlasting the window: nothing changed for you.
         assert_eq!(body(&ended, &snapshot(Mode::Timed, ALL)), None);
@@ -367,8 +374,9 @@ mod tests {
         assert_eq!(
             body_for(&ask, &asking, local_ms(3, 3, 2)).map(|t| (t.title, t.body)),
             Some((
-                "Nobody around",
-                "No input for 6 hours. Resting at 3:12 am unless you're back.".to_owned()
+                "Still there?",
+                "No input for 6 hours. Your laptop can sleep at 3:12 am unless you're back."
+                    .to_owned()
             )),
             "shown with every switch off: it belongs to the guard"
         );
@@ -382,7 +390,7 @@ mod tests {
             body_for(&ask, &asking, local_ms(3, 3, 2)).map(|t| (t.title, t.body)),
             Some((
                 "Away for the night",
-                "The laptop will sleep at 3:12 am unless you're back. Always resumes when you return.".to_owned()
+                "Your laptop can sleep at 3:12 am unless you're back. Always comes back on when you return.".to_owned()
             )),
             "Sleep when I'm away says what it will do, and that it comes back"
         );
