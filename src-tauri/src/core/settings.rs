@@ -67,11 +67,13 @@ pub enum Theme {
     GrapeSoda,
     /// Safety orange over asphalt, the sun reflective.
     HiVis,
+    /// The user's own five colours: see [`OwnTheme`].
+    Own,
 }
 
 impl Theme {
     /// Every theme, in the order the picker shows them.
-    pub const ALL: [Self; 27] = [
+    pub const ALL: [Self; 28] = [
         Self::System,
         Self::Light,
         Self::Dark,
@@ -99,7 +101,101 @@ impl Theme {
         Self::Highlighter,
         Self::GrapeSoda,
         Self::HiVis,
+        Self::Own,
     ];
+}
+
+/// A theme of one's own: five colours, each `#rrggbb`, from which the window
+/// works out the rest. The defaults are Paper's.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "snake_case")]
+pub struct OwnTheme {
+    /// The window's background.
+    pub paper: String,
+    /// Text and the horizon line.
+    pub ink: String,
+    /// The sun: the one accent.
+    pub sun: String,
+    /// The sky while awake.
+    pub sky: String,
+    /// The ground while awake.
+    pub ground: String,
+}
+
+impl Default for OwnTheme {
+    fn default() -> Self {
+        Self {
+            paper: "#f4f0e7".to_owned(),
+            ink: "#1c1b18".to_owned(),
+            sun: "#dca544".to_owned(),
+            sky: "#dfe8ea".to_owned(),
+            ground: "#e8dfca".to_owned(),
+        }
+    }
+}
+
+/// Whether `text` is a colour as the window writes one: `#` and six hex digits.
+fn is_colour(text: &str) -> bool {
+    text.len() == 7
+        && text.starts_with('#')
+        && text[1..].bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+impl OwnTheme {
+    /// Lower case, and anything that is not a colour back to its default:
+    /// these strings go into the window's stylesheet.
+    #[must_use]
+    pub fn sanitized(self) -> Self {
+        let default = Self::default();
+        let tidy = |colour: String, fallback: String| {
+            let colour = colour.trim().to_ascii_lowercase();
+            if is_colour(&colour) { colour } else { fallback }
+        };
+        Self {
+            paper: tidy(self.paper, default.paper),
+            ink: tidy(self.ink, default.ink),
+            sun: tidy(self.sun, default.sun),
+            sky: tidy(self.sky, default.sky),
+            ground: tidy(self.ground, default.ground),
+        }
+    }
+}
+
+/// Another theme for the evening: worn from `from_minutes` until
+/// `until_minutes` (minutes after local midnight, past midnight is fine) in
+/// place of the chosen one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "snake_case")]
+pub struct AfterDark {
+    /// Off, the chosen theme is worn all day.
+    pub enabled: bool,
+    /// The theme worn after dark.
+    pub theme: Theme,
+    /// When the evening starts.
+    pub from_minutes: u16,
+    /// When the morning starts.
+    pub until_minutes: u16,
+}
+
+impl Default for AfterDark {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            theme: Theme::Dark,
+            from_minutes: 19 * 60,
+            until_minutes: 7 * 60,
+        }
+    }
+}
+
+impl AfterDark {
+    /// Times inside the day.
+    #[must_use]
+    pub fn sanitized(mut self) -> Self {
+        self.from_minutes = self.from_minutes.min(LAST_MINUTE);
+        self.until_minutes = self.until_minutes.min(LAST_MINUTE);
+        self
+    }
 }
 
 /// What happens when the app launches.
@@ -164,6 +260,12 @@ pub struct Settings {
     pub almanac: AlmanacSettings,
     /// Claude: the master switch and one switch per feature.
     pub ai: AiSettings,
+    /// The five colours of the `Own` theme.
+    pub own_theme: OwnTheme,
+    /// A second theme for the evening.
+    pub after_dark: AfterDark,
+    /// A soft note when the sun rises and sets, while the window is open.
+    pub sounds: bool,
     /// Ask GitHub once a day whether a newer release exists.
     pub check_for_updates: bool,
     /// When that was last asked, Unix ms; 0 for never. Written by the app,
@@ -425,6 +527,9 @@ impl Default for Settings {
             overnight_guard_hours: Some(6),
             almanac: AlmanacSettings::default(),
             ai: AiSettings::default(),
+            own_theme: OwnTheme::default(),
+            after_dark: AfterDark::default(),
+            sounds: false,
             check_for_updates: true,
             last_update_check_unix_ms: 0,
         }
@@ -453,6 +558,8 @@ impl Settings {
         self.schedule = self.schedule.sanitized();
         self.almanac = self.almanac.sanitized();
         self.ai = self.ai.sanitized();
+        self.own_theme = self.own_theme.sanitized();
+        self.after_dark = self.after_dark.sanitized();
         self
     }
 }
@@ -785,6 +892,52 @@ mod tests {
             serde_json::to_string(&Theme::System).unwrap(),
             r#""system""#
         );
+    }
+
+    #[test]
+    fn a_theme_of_ones_own_keeps_only_colours() {
+        let s = Settings::default();
+        assert_eq!(s.own_theme, OwnTheme::default());
+        assert!(
+            !s.after_dark.enabled && !s.sounds,
+            "nothing new is on unasked"
+        );
+        let old: Settings = serde_json::from_str(r#"{"version":1}"#).unwrap();
+        assert_eq!(
+            old.own_theme,
+            OwnTheme::default(),
+            "a missing field defaults"
+        );
+        let wild = OwnTheme {
+            paper: " #AABBCC ".to_owned(),
+            ink: "red".to_owned(),
+            sun: "#12345".to_owned(),
+            sky: "#12345g".to_owned(),
+            ground: "url(x);}".to_owned(),
+        }
+        .sanitized();
+        let default = OwnTheme::default();
+        assert_eq!(wild.paper, "#aabbcc");
+        assert_eq!(
+            (wild.ink, wild.sun, wild.sky, wild.ground),
+            (default.ink, default.sun, default.sky, default.ground),
+            "nothing but a colour reaches the stylesheet"
+        );
+    }
+
+    #[test]
+    fn after_dark_defaults_to_night_from_seven_to_seven_and_is_clamped() {
+        let a = AfterDark::default();
+        assert_eq!(
+            (a.theme, a.from_minutes, a.until_minutes),
+            (Theme::Dark, 1140, 420)
+        );
+        let wild = AfterDark {
+            from_minutes: 5000,
+            ..a
+        }
+        .sanitized();
+        assert_eq!(wild.from_minutes, LAST_MINUTE);
     }
 
     #[test]

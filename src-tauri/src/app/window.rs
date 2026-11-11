@@ -16,6 +16,9 @@ use super::AppState;
 /// Label of the one and only window, matching `tauri.conf.json`.
 pub const MAIN: &str = "main";
 
+/// The window as the sun alone, in points: the scene and one line under it.
+pub const MINI: (f64, f64) = (220.0, 178.0);
+
 /// How long to wait for the UI to call `show()` before forcing it.
 const SHOW_FALLBACK: Duration = Duration::from_millis(2500);
 
@@ -148,6 +151,37 @@ fn place_under(window: &WebviewWindow, icon: tauri::Rect) {
 #[allow(clippy::cast_possible_truncation)] // screen coordinates are far inside i32
 fn pixel(value: f64) -> i32 {
     value.round() as i32
+}
+
+/// Makes `window` the sun alone, small and above other windows, or puts it
+/// back as the configuration has it. The limits are moved before the size
+/// on the way down and after it on the way up, so neither refuses the other.
+pub fn set_mini(app: &AppHandle, window: &WebviewWindow, on: bool) -> tauri::Result<()> {
+    use tauri::{LogicalSize, Size};
+
+    let size = |width: f64, height: f64| Size::Logical(LogicalSize::new(width, height));
+    if on {
+        window.set_min_size(Some(size(MINI.0, MINI.1)))?;
+        window.set_size(size(MINI.0, MINI.1))?;
+        window.set_max_size(Some(size(MINI.0, MINI.1)))?;
+    } else {
+        let config = app
+            .config()
+            .app
+            .windows
+            .iter()
+            .find(|w| w.label == MAIN)
+            .cloned()
+            .ok_or_else(|| tauri::Error::WindowNotFound)?;
+        let limit = |width: Option<f64>, height: Option<f64>| match (width, height) {
+            (Some(width), Some(height)) => Some(size(width, height)),
+            _ => None,
+        };
+        window.set_max_size(limit(config.max_width, config.max_height))?;
+        window.set_size(size(config.width, config.height))?;
+        window.set_min_size(limit(config.min_width, config.min_height))?;
+    }
+    window.set_always_on_top(on)
 }
 
 fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {

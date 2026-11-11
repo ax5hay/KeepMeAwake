@@ -278,6 +278,19 @@ pub async fn install_update(app: AppHandle) -> Result<(), String> {
     super::update::install(app).await
 }
 
+/// The window as the sun alone, small and on top, or back as it was.
+#[tauri::command]
+pub fn set_mini(app: AppHandle, window: tauri::WebviewWindow, on: bool) -> Result<(), String> {
+    super::window::set_mini(&app, &window, on).map_err(|err| err.to_string())
+}
+
+/// Opens the system's print dialog on the window: the month's timesheet is
+/// all its print stylesheet shows.
+#[tauri::command]
+pub fn print_window(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.print().map_err(|err| err.to_string())
+}
+
 /// Exit the application completely (not just hide to tray).
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {

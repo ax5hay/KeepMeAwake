@@ -90,6 +90,8 @@ pub fn run() {
             commands::resume_schedule,
             commands::update_settings,
             commands::quit_app,
+            commands::set_mini,
+            commands::print_window,
             commands::get_history,
             commands::clear_history,
             commands::get_almanac,
