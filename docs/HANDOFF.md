@@ -359,8 +359,8 @@ sounds, a mini window, credits.
   the harness with seeded data) and five Mermaid diagrams in Paper's colours
   (an `init` block per diagram; all five were rendered with Mermaid 11
   before pushing). The repo's description and topics were brought up to date.
-  Not done, because only the owner can: upload `design/social-preview.png`
-  as the social preview in the repo's settings.
+  The social preview (`design/social-preview.png`) was uploaded on
+  2026-11-12.
 - Vitest now runs with `css: true`, because the theme tests read the
   stylesheets.
 
