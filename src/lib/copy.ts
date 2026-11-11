@@ -6,7 +6,7 @@
  */
 
 import { isMac } from './platform';
-import type { WatchReason, WatchState } from './types';
+import type { AfterEnd, WatchReason, WatchState } from './types';
 
 /** Who made this, and where to find more. Used in About and the wordmark. */
 export const AUTHOR = {
@@ -177,6 +177,25 @@ export const WATCH_ROWS = {
   display: { label: 'An external display is connected', hint: 'At a desk with a monitor.' },
   plugged_in: { label: 'Plugged in', hint: 'On battery it sleeps as usual.' },
 } as const;
+
+/** Settings → Staying awake → When it ends. */
+export const AFTER_END = 'When it ends';
+export function afterEndHint(mac: boolean, action: AfterEnd): string {
+  if (mac && action === 'screen_off') {
+    return 'Locks too, if your Mac asks for a password on wake.';
+  }
+  return "After a timer, the schedule or a condition ends, if you've been away a minute.";
+}
+
+/** The choices: a Mac has no public way to lock. */
+export function afterEndOptions(mac: boolean): ReadonlyArray<{ value: AfterEnd; label: string }> {
+  return [
+    { value: 'nothing', label: 'Nothing' },
+    ...(mac ? [] : [{ value: 'lock' as const, label: 'Lock' }]),
+    { value: 'screen_off', label: 'Screen off' },
+    { value: 'sleep', label: 'Sleep' },
+  ];
+}
 
 /** The field that adds an app, and its button. */
 export const ADD_APP = 'Add an app';

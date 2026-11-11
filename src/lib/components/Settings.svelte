@@ -14,6 +14,9 @@
   import Switch from './Switch.svelte';
   import WatchApps from './WatchApps.svelte';
   import {
+    AFTER_END,
+    afterEndHint,
+    afterEndOptions,
     WATCH_ROWS,
     AI_CHEAP,
     AI_ENABLE,
@@ -324,6 +327,17 @@
             void store.updateSettings({ sunset_warning_mins: v === 'off' ? null : Number(v) })}
         />
       </Row>
+      <!-- Four choices do not fit beside a label at 340 px: they go under it. -->
+      <div class="stacked">
+        <div class="label">{AFTER_END}</div>
+        <p class="hint">{afterEndHint(isMac, settings.after_end)}</p>
+        <Segmented
+          options={afterEndOptions(isMac)}
+          value={isMac && settings.after_end === 'lock' ? 'screen_off' : settings.after_end}
+          label={AFTER_END}
+          onchange={(v) => void store.updateSettings({ after_end: v })}
+        />
+      </div>
       <Row label="Overnight guard" hint={OVERNIGHT_GUARD_HINT}>
         <Segmented
           options={withCurrent(guardOptions, settings.overnight_guard_hours, 'h')}
@@ -896,6 +910,19 @@
 
   .field input::placeholder {
     color: var(--ink-3);
+  }
+
+  .stacked {
+    padding: 11px 0;
+    border-top: 1px solid var(--hair);
+  }
+
+  .stacked .label {
+    color: var(--ink);
+  }
+
+  .stacked .hint {
+    margin: 4px 0 10px;
   }
 
   .keyform {

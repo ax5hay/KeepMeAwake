@@ -54,6 +54,8 @@ import {
   skippingUntil,
   rate,
   WATCH_ROWS,
+  afterEndOptions,
+  afterEndHint,
 } from './copy';
 
 /** Every string that differs by platform, flattened. */
@@ -397,6 +399,24 @@ describe('stay awake while copy', () => {
     for (const row of Object.values(WATCH_ROWS)) {
       expect(`${row.label} ${row.hint}`).not.toMatch(/tray|taskbar|Windows|menu bar|macOS/i);
     }
+  });
+});
+
+describe('when it ends', () => {
+  it('offers lock only where there is a public way to lock', () => {
+    expect(afterEndOptions(false).map((o) => o.value)).toEqual([
+      'nothing',
+      'lock',
+      'screen_off',
+      'sleep',
+    ]);
+    expect(afterEndOptions(true).map((o) => o.value)).toEqual(['nothing', 'screen_off', 'sleep']);
+  });
+
+  it('says on a Mac that the screen going off locks it', () => {
+    expect(afterEndHint(true, 'screen_off')).toMatch(/password/);
+    expect(afterEndHint(false, 'screen_off')).toMatch(/away a minute/);
+    expect(afterEndHint(true, 'sleep')).not.toMatch(/Windows|tray/);
   });
 });
 
