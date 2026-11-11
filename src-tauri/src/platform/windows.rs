@@ -199,33 +199,39 @@ pub fn list_processes() -> Vec<String> {
     names
 }
 
+/// The process with this id is running. Also how `--status` tells a
+/// running app from a status file left behind by one that was killed.
+pub fn pid_alive(pid: u32) -> bool {
+    use windows::Win32::Foundation::STILL_ACTIVE;
+    use windows::Win32::System::Threading::{
+        GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+    if pid == 0 {
+        return false;
+    }
+    // SAFETY: plain values in; the handle is closed below.
+    let Ok(process) = (unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) })
+    else {
+        return false;
+    };
+    let mut code: u32 = 0;
+    // SAFETY: `process` is an open handle with query rights and `code`
+    // is a writable u32.
+    let read = unsafe { GetExitCodeProcess(process, &raw mut code) }.is_ok();
+    // SAFETY: opened above, closed exactly once.
+    unsafe {
+        let _ = CloseHandle(process);
+    }
+    read && i32::try_from(code).is_ok_and(|code| code == STILL_ACTIVE.0)
+}
+
 impl ActivityProbe for WindowsActivity {
     fn processes(&self) -> Vec<String> {
         list_processes()
     }
 
     fn alive(&self, pid: u32) -> bool {
-        use windows::Win32::Foundation::STILL_ACTIVE;
-        use windows::Win32::System::Threading::{
-            GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
-        };
-        if pid == 0 {
-            return false;
-        }
-        // SAFETY: plain values in; the handle is closed below.
-        let Ok(process) = (unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) })
-        else {
-            return false;
-        };
-        let mut code: u32 = 0;
-        // SAFETY: `process` is an open handle with query rights and `code`
-        // is a writable u32.
-        let read = unsafe { GetExitCodeProcess(process, &raw mut code) }.is_ok();
-        // SAFETY: opened above, closed exactly once.
-        unsafe {
-            let _ = CloseHandle(process);
-        }
-        read && i32::try_from(code).is_ok_and(|code| code == STILL_ACTIVE.0)
+        pid_alive(pid)
     }
 
     fn transferred(&self) -> Option<u64> {
@@ -340,6 +346,15 @@ impl ActivityProbe for WindowsActivity {
                 && tech != DISPLAYCONFIG_OUTPUT_TECHNOLOGY_LVDS
         })
     }
+}
+
+/// Lets a command-line run print to the terminal it was started from. The
+/// release build is a GUI program, which has no console of its own.
+pub fn attach_console() {
+    use windows::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole};
+    // SAFETY: a plain value; failing (no parent console) leaves output
+    // going nowhere, as before.
+    let _ = unsafe { AttachConsole(ATTACH_PARENT_PROCESS) };
 }
 
 /// Locks, turns the screen off or sleeps: each the documented request for

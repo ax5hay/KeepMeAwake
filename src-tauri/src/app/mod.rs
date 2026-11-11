@@ -5,6 +5,7 @@
 pub mod after_end;
 pub mod ai;
 pub mod almanac;
+pub mod cli;
 pub mod commands;
 pub mod history;
 pub mod hotkey;
@@ -57,10 +58,18 @@ pub struct AppState {
 
 /// Builds and runs the application. Blocks until exit.
 pub fn run() {
+    // `--status`, `--help`, `--run` and mistakes are answered here.
+    if let Some(code) = cli::early() {
+        std::process::exit(code);
+    }
     let app = tauri::Builder::default()
         // Must be first so a second launch is intercepted before anything else runs.
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            window::show_main(app.clone());
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // A command from a terminal is carried out, not a window opened.
+            match (cli::command(&argv), app.try_state::<AppState>()) {
+                (Some(command), Some(state)) => cli::apply(&state.engine, &command),
+                _ => window::show_main(app.clone()),
+            }
         }))
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![HIDDEN_FLAG])))
         .plugin(tauri_plugin_opener::init())
@@ -123,6 +132,7 @@ pub fn run() {
             code: None, api, ..
         } => api.prevent_exit(),
         RunEvent::Exit => {
+            cli::forget();
             if let Some(state) = app.try_state::<AppState>() {
                 state.almanac.flush();
                 state.engine.shutdown();
@@ -177,6 +187,11 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         vec![listener],
     ));
     apply_startup_plan(&engine, &settings);
+    // Launched by a command from a terminal: carry it out, quietly.
+    let command = cli::command(&std::env::args().collect::<Vec<_>>());
+    if let Some(command) = &command {
+        cli::apply(&engine, command);
+    }
 
     // The almanac is kept beside the engine, not by it: who is at the
     // machine is noted with the sun up or down alike.
@@ -211,7 +226,7 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         log::warn!("hotkey not registered at launch: {err}");
     }
 
-    let launched_hidden = std::env::args().any(|a| a == HIDDEN_FLAG);
+    let launched_hidden = std::env::args().any(|a| a == HIDDEN_FLAG) || command.is_some();
     if !(launched_hidden || settings.start_hidden) {
         window::open_at_startup(app)?;
     }
@@ -223,6 +238,7 @@ fn on_engine_event(handle: &AppHandle, event: &EngineEvent) {
     match event {
         EngineEvent::Snapshot(snapshot) => {
             tray::refresh(handle, snapshot);
+            cli::note(snapshot);
             if let Err(err) = handle.emit(SNAPSHOT_EVENT, snapshot) {
                 log::debug!("no UI to receive snapshot: {err}");
             }

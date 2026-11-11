@@ -2,6 +2,7 @@
 
 pub mod ai;
 pub mod almanac;
+pub mod cli;
 pub mod history;
 pub mod placement;
 pub mod plan;

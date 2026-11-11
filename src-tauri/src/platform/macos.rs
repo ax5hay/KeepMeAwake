@@ -384,16 +384,7 @@ impl ActivityProbe for MacActivity {
     }
 
     fn alive(&self, pid: u32) -> bool {
-        // pid 0 would ask about the whole process group: never.
-        let Ok(pid) = libc::pid_t::try_from(pid) else {
-            return false;
-        };
-        if pid <= 0 {
-            return false;
-        }
-        // SAFETY: signal 0 sends nothing; it only checks the pid exists.
-        let sent = unsafe { libc::kill(pid, 0) };
-        sent == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+        pid_alive(pid)
     }
 
     fn transferred(&self) -> Option<u64> {
@@ -526,6 +517,21 @@ impl ActivityProbe for MacActivity {
             // SAFETY: a display id from CGGetActiveDisplayList.
             .any(|id| unsafe { CGDisplayIsBuiltin(*id) } == 0)
     }
+}
+
+/// The process with this id is running. Also how `--status` tells a
+/// running app from a status file left behind by one that was killed.
+pub fn pid_alive(pid: u32) -> bool {
+    // pid 0 would ask about the whole process group: never.
+    let Ok(pid) = libc::pid_t::try_from(pid) else {
+        return false;
+    };
+    if pid <= 0 {
+        return false;
+    }
+    // SAFETY: signal 0 sends nothing; it only checks the pid exists.
+    let sent = unsafe { libc::kill(pid, 0) };
+    sent == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
 }
 
 /// The displays in use now.
