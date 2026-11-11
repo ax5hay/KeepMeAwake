@@ -285,7 +285,7 @@ pub fn decode_power_status(ac_line: u8, flag: u8, percent: u8, life_secs: u32) -
         Some(percent.min(100))
     };
     // `u32::MAX` is "unknown", which is also what Windows says on mains.
-    let minutes_left = (!on_ac && life_secs != u32::MAX).then(|| life_secs / 60);
+    let minutes_left = (!on_ac && life_secs != u32::MAX).then_some(life_secs / 60);
     BatteryState {
         on_ac,
         percent,
