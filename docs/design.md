@@ -199,13 +199,28 @@ what the laptop is doing ("Resting", "Awake"), not what the app is doing. Hints
 explain consequences, never restate the label. All copy that is more than a
 label lives in `src/lib/copy.ts` and is tested for length and tone.
 
-The scene has a voice (the sun sets, a whisper, the night is yours) and
-keeps it: that is the picture. Anything a person has to act on or
-understand says what it means in plain words first: a label names the
-thing it switches, a line of detail gives the fact, a hint gives the
-consequence. `Started 9:02 am · ended 6:40 pm`, not first light; `Sleep
-when I'm away`, not set with me. If a line needs the metaphor explained to
-be understood, it is the wrong line.
+The scene has a voice (a whisper, the stars, still water) and keeps it:
+that is the picture. Anything a person has to act on or understand says
+what it means in plain words first: a label names the thing it switches, a
+line of detail gives the fact, a hint gives the consequence. Nobody should
+have to solve a puzzle to do a simple thing. If a line needs the metaphor
+explained to be understood, it is the wrong line.
+
+| Say                                   | Not                                            |
+| ------------------------------------- | ---------------------------------------------- |
+| `Ends in 5 minutes.`                  | `The sun sets in 5 minutes.`                   |
+| `Add 30 minutes`                      | `Give it another 30m`                          |
+| `No input for 6h. Sleeps at 3:12 am.` | `Nobody here for 6 hours. Resting at 3:12 am.` |
+| `I'm here` (answering that line)      | `Keep it up`                                   |
+| `Stops Always if you're away.`        | `Ends an untouched Always.`                    |
+| `Timer done` (a toast)                | `The sun has set`                              |
+| `2026 in review`                      | `2026, looked back on`                         |
+| `Started 9:02 am · ended 6:40 pm`     | first light                                    |
+
+The sun is the button, so "click the sun" is plain. What the sun _does_
+(rises, sets) is not: say what the laptop does instead (stays awake, sleeps
+as usual). Flair goes where nobody has to act on it: the easter eggs, the
+credits, a whisper that needs no answer.
 
 Between the two sit the product's own names, and those are kept: the
 Almanac, Ask the almanac, The day in a line, This week in words, Tell the

@@ -8,10 +8,10 @@
 
 # Keep me awake
 
-**A sun for your laptop. While it is up, the machine stays awake.**
+**A sun for your laptop. Click it and your laptop stays awake; click it again and it sleeps as usual.**
 
-It asks the operating system to stay awake, the way a video player does.<br/>
-Nothing is typed for you, nothing moves, and it lets go the moment you say.
+It asks Windows or macOS to stay awake, the same way a video player does.<br/>
+No fake keypresses, no mouse jiggling, and it stops the moment you turn it off.
 
 <br/>
 
@@ -45,7 +45,7 @@ Nothing is typed for you, nothing moves, and it lets go the moment you say.
 
 | Section                                   | What it covers                                       |
 | :---------------------------------------- | :--------------------------------------------------- |
-| [The idea](#the-idea)                     | Why a power request, and why a sun                   |
+| [The idea](#the-idea)                     | Why it asks the system, and why a sun                |
 | [At a glance](#at-a-glance)               | Everything it does, in one table                     |
 | [Install](#install)                       | Windows and macOS, and what the installer looks like |
 | [A tour in pictures](#a-tour-in-pictures) | Home, the Almanac, Settings, History, AI, updates    |
@@ -66,7 +66,7 @@ focus, it ran in a console, and Windows had no idea why the laptop never slept.
 
 Keep me awake holds a Windows **power request** (on a Mac, an IOKit **power assertion**):
 the API the system provides for exactly this. It shows up by name in `powercfg /requests` or
-`pmset -g assertions`, and it is released the instant the sun is turned off or the app exits.
+`pmset -g assertions`, and it is released the instant you turn the sun off or quit the app.
 
 <table>
 <tr>
@@ -74,24 +74,26 @@ the API the system provides for exactly this. It shows up by name in `powercfg /
 
 ### One sun
 
-The whole control is a sun on a horizon. Up, the laptop is awake. Click it and it sets.
-A timed session sets on its own, and you can watch it go down.
+The whole app is one button: a sun on a horizon. While the sun is up, your laptop stays
+awake. Click it and the sun goes down, and your laptop sleeps as usual. Set a timer and you
+can watch the sun sink as the time runs out.
 
 </td>
 <td width="33%" valign="top">
 
 ### Out of the way
 
-One native process in the tray (about 5 MB on Windows), with no polling. The window does not exist
-until you open it, and is destroyed when you close it.
+One small process in the tray (the menu bar on a Mac), about 5 MB on Windows, that never
+polls. The window only exists while it is open, and is freed when you close it.
 
 </td>
 <td width="33%" valign="top">
 
 ### Yours
 
-No account, no telemetry, no network at rest. What it records about your days stays in a
-file on your machine. AI is off until you turn it on, with your own key.
+No account and no tracking. Nothing goes over the network unless it is checking for updates
+or you ask an AI feature something. What it records about your days stays in a file on your
+machine. AI is off until you turn it on, with your own key.
 
 </td>
 </tr>
@@ -99,21 +101,21 @@ file on your machine. AI is off until you turn it on, with your own key.
 
 ## At a glance
 
-| Area               | What you get                                                                                                                                                                                                                        |
-| :----------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Control            | One sun. Click it, press <kbd>Space</kbd>, or use the tray (the menu bar on a Mac).                                                                                                                                                 |
-| Hotkey             | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> (<kbd>⌥</kbd><kbd>⌘</kbd><kbd>K</kbd> on a Mac) toggles from any app; record your own.                                                                                                  |
-| Time               | 30m · 1h · 2h · 4h · 8h · until a time of day. The sun sets as the time runs out, and warns before it does.                                                                                                                         |
-| Schedule           | Awake during chosen hours on chosen days, resting outside them.                                                                                                                                                                     |
-| Battery            | Pauses below a level (20% by default) or whenever unplugged; resumes when plugged in.                                                                                                                                               |
-| Overnight          | Left on Always with nobody there, it asks, then rests. It can set with you at night and rise at your first touch.                                                                                                                   |
-| Almanac            | Your days at this machine: hours worked, time over, leave, and the night, read from when you were there.                                                                                                                            |
-| AI, if you want it | A day in a line, a week in words, a question about the month, a plan said in a sentence. Claude, OpenAI or any compatible service, with your own key. Off by default.                                                               |
-| Themes             | Paper and Night, and twenty-four more: borrowed, playful and loud.                                                                                                                                                                  |
-| Small things       | A sun shaped by its theme, tonight's moon, a theme of your own to share as one line, a theme after dark, a mini window, a year looked back on, a month to the printer, `?` for every key. [All twelve](docs/guide.md#small-things). |
-| Tray               | Left click opens the window; right click does everything else. Starts at sign-in, quietly.                                                                                                                                          |
-| Updates            | Checks GitHub once a day and when you ask; installs only when you say.                                                                                                                                                              |
-| Footprint          | About 5 MB in the tray on Windows, 16 MB on a Mac. The UI exists only while it is open.                                                                                                                                             |
+| Area               | What you get                                                                                                                                                                                                                                            |
+| :----------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Control            | One sun. Click it, press <kbd>Space</kbd>, or use the tray (the menu bar on a Mac).                                                                                                                                                                     |
+| Hotkey             | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> (<kbd>⌥</kbd><kbd>⌘</kbd><kbd>K</kbd> on a Mac) turns it on or off from any app; you can pick your own keys.                                                                                                |
+| Time               | Stay awake for 30m · 1h · 2h · 4h · 8h, or until a time of day. A few minutes before the time runs out it warns you, so you can add 30 minutes.                                                                                                         |
+| Schedule           | Stays awake during set hours on set days; outside them the laptop sleeps as usual.                                                                                                                                                                      |
+| Battery            | Stops keeping it awake below a battery level (20% by default), or whenever unplugged; starts again when you plug in.                                                                                                                                    |
+| Overnight          | Left on **Always** with no input for hours, it asks if you are still there, then lets the laptop sleep. If you like, it can also let the laptop sleep when you leave for the night and turn back on when you return.                                    |
+| Almanac            | A diary it keeps for you: the hours you worked each day, extra hours, days off, and when you were away overnight, worked out from when you used the keyboard and mouse.                                                                                 |
+| AI, if you want it | A sentence about your day, a few about your week, answers to questions about your month, and timers typed in plain words ("until 6:30 pm"). Claude, OpenAI or any compatible service, with your own key. Off by default.                                |
+| Themes             | Paper and Night, plus twenty-four more: colour schemes from code editors, places, and loud ones. Or make your own.                                                                                                                                      |
+| Small things       | A sun drawn to suit its theme, tonight's moon, your own theme to share as one line of text, a separate evening theme, a mini window, a year in review, a printable month, and `?` for all keyboard shortcuts. [All twelve](docs/guide.md#small-things). |
+| Tray               | Left click opens the window; right click opens a menu with everything else. Starts quietly when you sign in.                                                                                                                                            |
+| Updates            | Checks GitHub once a day and when you ask; installs only when you say.                                                                                                                                                                                  |
+| Footprint          | About 5 MB in the tray on Windows, 16 MB on a Mac. By default, the window takes no memory while it is closed.                                                                                                                                           |
 
 ## Install
 
@@ -123,8 +125,7 @@ file on your machine. AI is off until you turn it on, with your own key.
 | macOS 12+ on Apple Silicon | the `.dmg`; drag the sun to Applications                                                                          | not notarized yet, so macOS asks once: [the steps](docs/guide.md#installing-on-a-mac) |
 | From source                | [Development](#development)                                                                                       | Node 22+, Rust 1.90+                                                                  |
 
-The Windows setup wears the same horizon as the app, and says what it is installing in the
-app's own words:
+The Windows setup uses the same horizon as the app, and says plainly what it is installing:
 
 <p align="center">
   <img src="docs/assets/installer-welcome.png" alt="The Windows setup's welcome page: the horizon down the left, and a paper-coloured page that says what Keep me awake does" width="62%"/>
@@ -136,31 +137,34 @@ Every pane, in Paper and in Night.
 
 ### Home
 
-The sun is the switch. Under it: today's hours as a strip, the status, the rule for how
-long, and two rows for the screen and the battery.
+The sun is the switch. Under it: today's hours as a strip, what the laptop is doing right
+now, a row of lengths to choose from (30m, 1h, … Until…), and two switches for the screen and
+the battery.
 
 <img src="docs/assets/home-light.png" alt="Home, Paper" width="48%"/> <img src="docs/assets/resting-dark.png" alt="Home, Night" width="48%"/>
 
-A schedule keeps it up during your hours; left alone overnight, it asks before it rests.
+A schedule keeps it awake during your hours. Left on overnight with no one around, it asks
+if you are still there before it lets the laptop sleep.
 
 <img src="docs/assets/schedule-home-light.png" alt="Home on a schedule, and asking overnight, Paper" width="48%"/> <img src="docs/assets/overnight-home-dark.png" alt="Home on a schedule, and asking overnight, Night" width="48%"/>
 
 ### The Almanac
 
-Days, hours, leave and nights, read from when you were at the machine. Nothing to start or
-stop. A weekend is a day off, a missed working day is leave, and a weekday you never work
-stops counting as leave by itself.
+The open book in the title bar. It records your working hours, days off and nights away,
+from when you used the keyboard and mouse; there is nothing to start or stop. Weekends count
+as days off, a missed working day counts as leave, and a weekday you never work stops
+counting as leave on its own.
 
 <img src="docs/assets/almanac-light.png" alt="The Almanac, Paper" width="48%"/> <img src="docs/assets/almanac-dark.png" alt="The Almanac, Night" width="48%"/>
 
 The month is a calendar: a bar under each day worked, a ring for leave, the sun on today.
-Any day can be put right by hand.
+You can correct any day by hand.
 
 <img src="docs/assets/almanac-month-light.png" alt="The month, and correcting a day, Paper" width="48%"/> <img src="docs/assets/almanac-correct-dark.png" alt="The month, and correcting a day, Night" width="48%"/>
 
 ### Settings
 
-Everything has a default; nothing needs setting before the sun works.
+Everything has a sensible default, so you can click the sun without setting anything first.
 
 <img src="docs/assets/overnight-settings-light.png" alt="Settings, Paper" width="48%"/> <img src="docs/assets/schedule-settings-dark.png" alt="Settings, Night" width="48%"/>
 
@@ -168,26 +172,28 @@ Everything has a default; nothing needs setting before the sun works.
 
 ### Small things
 
-Nothing needs these; they are there anyway. Three suns drawn the way their
-theme would, the moon as it is tonight, a theme of your own, every key on
-one sheet, the credits, and a year looked back on:
+Extras you never need but might enjoy: suns drawn to match their theme, the
+moon as it is tonight, a theme of your own, all keyboard shortcuts on one
+sheet, the credits, and a year in review:
 
-<img src="docs/assets/small-things.png" alt="Eight windows: a pixel sun, a ring sun, a halftone sun, the moon over Night, a theme of your own, the key sheet, the credits, and a year looked back on" width="100%"/>
+<img src="docs/assets/small-things.png" alt="Eight windows: a pixel sun, a ring sun, a halftone sun, the moon over Night, a theme of your own, the keyboard shortcuts, the credits, and a year in review" width="100%"/>
 
-The mini window keeps the sun on top of other windows, and a month prints as a timesheet:
+The mini window shows just the sun, above your other windows, and a month prints as a
+timesheet:
 
 <img src="docs/assets/small-mini-print.png" alt="The mini window, and a month laid out for the printer" width="100%"/>
 
 ### History and notifications
 
-The last thirty times the sun was up, and toasts for the moments you choose.
+The last thirty times it kept your laptop awake, and notifications for the moments you choose.
 
 <img src="docs/assets/history-light.png" alt="History and notifications, Paper" width="48%"/> <img src="docs/assets/notifications-dark.png" alt="History and notifications, Night" width="48%"/>
 
 ### AI, as a choice
 
-Three locks, each visible: a key of your own, a master switch, and a switch per feature.
-Every feature says what it sends and to whom before you click.
+Nothing is sent until three things are true, and you can see each one: you added a key of
+your own, the main AI switch is on, and that feature's own switch is on. Every feature says
+what it sends, and to whom, before you click.
 
 <img src="docs/assets/claude-settings-light.png" alt="AI settings, and a week in words, Paper" width="48%"/> <img src="docs/assets/claude-week-dark.png" alt="AI settings, and a week in words, Night" width="48%"/>
 
@@ -199,18 +205,19 @@ Every feature says what it sends and to whom before you click.
 
 ## Themes
 
-Settings → Theme. A theme changes colours only: the horizon, the type and the layout do not
-move, and the sun stays the one accent. Every theme is measured from the stylesheet by a
-test, so text is readable and the sun is visible in all of them.
+Settings → Theme. A theme changes the colours and nothing else: everything stays where it
+is, and the sun is still the one bright spot. A test checks every theme, so the text is
+readable and the sun stands out in all of them.
 
 <p align="center">
   <img src="docs/assets/themes-picker-light.png" alt="The theme picker: four shelves of small horizons, one per theme" width="38%"/>
-  <img src="docs/assets/themes-picker-dark.png" alt="The same picker, worn in Deep Sea" width="38%"/>
+  <img src="docs/assets/themes-picker-dark.png" alt="The same picker, shown in Deep Sea" width="38%"/>
 </p>
 
-### Its own
+### Standard
 
-Paper by day, Night by night. **System** moves between the two with Windows or macOS.
+Paper for daytime, Night for after dark. **System** follows your light or dark mode,
+switching between the two whenever Windows or macOS does.
 
 <table>
 <tr>
@@ -219,9 +226,9 @@ Paper by day, Night by night. **System** moves between the two with Windows or m
 </tr>
 </table>
 
-### Borrowed
+### Editors
 
-From the editor you already live in.
+Colour schemes from code editors, which you may already know.
 
 <table>
 <tr>
@@ -238,9 +245,9 @@ From the editor you already live in.
 </tr>
 </table>
 
-### Play
+### Places
 
-Somewhere else the horizon could be.
+The same horizon, somewhere else: an old terminal, a blueprint, a handheld game, the sea floor.
 
 <table>
 <tr>
@@ -259,7 +266,7 @@ Somewhere else the horizon could be.
 
 ### Loud
 
-On purpose.
+Bright and bold, on purpose.
 
 <table>
 <tr>
@@ -388,34 +395,34 @@ flowchart LR
 
 ## What it never does
 
-| It never                               | Because                                                                                               |
-| :------------------------------------- | :---------------------------------------------------------------------------------------------------- |
-| types, clicks or moves anything        | it holds a power request; input injection is ruled out by [ADR 0002](docs/adr/0002-power-requests.md) |
-| keeps the machine up after you stop it | the request is released on stop and on exit, and Windows drops it if the process dies                 |
-| drains a battery unasked               | it pauses below 20% by default, or whenever unplugged if you choose                                   |
-| phones home                            | at rest there is no network; the only requests are the update check and AI you clicked                |
-| sends your days anywhere               | the almanac is a file on your machine; AI gets only what a feature says, when you click it            |
-| shows your API key again               | it goes into Windows Credential Manager or the macOS Keychain, and never back to the window           |
-| installs an update on its own          | it tells you one exists; you say when                                                                 |
+| It never                                     | Because                                                                                               |
+| :------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| types, clicks or moves anything              | it holds a power request; input injection is ruled out by [ADR 0002](docs/adr/0002-power-requests.md) |
+| keeps the laptop awake after you turn it off | the request is released when you turn it off or quit, and the system drops it if the app crashes      |
+| drains your battery without asking           | it pauses below 20% by default, or whenever unplugged if you choose                                   |
+| phones home                                  | nothing goes over the network except the update check and AI features you click                       |
+| sends your days anywhere                     | the almanac is a file on your machine; AI gets only what a feature says, when you click it            |
+| shows your API key again                     | it goes into Windows Credential Manager or the macOS Keychain, and never back to the window           |
+| installs an update on its own                | it tells you one exists; you say when                                                                 |
 
 ## Use
 
 The [field guide](docs/guide.md) covers every control, including the things that are not
 labelled. The short version:
 
-| Want to…                        | Do…                                                                                         |
-| :------------------------------ | :------------------------------------------------------------------------------------------ |
-| keep the laptop awake           | click the sun, or press <kbd>Space</kbd>                                                    |
-| for a fixed time                | pick a stop on the rule under the status                                                    |
-| until a time of day             | pick **Until…** and type a time                                                             |
-| let it sleep again              | click the sun again                                                                         |
-| keep it up during working hours | Settings → **Schedule**                                                                     |
-| toggle from another app         | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> (<kbd>⌥</kbd><kbd>⌘</kbd><kbd>K</kbd> on a Mac) |
-| get the window out of the way   | <kbd>Esc</kbd> or ×; the sun stays up in the tray                                           |
-| do all of this without a window | right-click the sun in the tray                                                             |
-| change defaults                 | the sliders, or <kbd>Ctrl</kbd>+<kbd>,</kbd> (<kbd>⌘</kbd><kbd>,</kbd> on a Mac)            |
-| see your days, hours and leave  | the open book in the title bar: the Almanac                                                 |
-| wear another theme              | Settings → **Theme**                                                                        |
+| Want to…                           | Do…                                                                                                    |
+| :--------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| keep the laptop awake              | click the sun, or press <kbd>Space</kbd>                                                               |
+| for a fixed time                   | pick a length (30m, 1h, …) in the row under the status                                                 |
+| until a time of day                | pick **Until…** and type a time                                                                        |
+| let it sleep again                 | click the sun again                                                                                    |
+| keep it awake during working hours | Settings → **Schedule**                                                                                |
+| turn it on or off from another app | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>K</kbd> (<kbd>⌥</kbd><kbd>⌘</kbd><kbd>K</kbd> on a Mac)            |
+| get the window out of the way      | <kbd>Esc</kbd> or ×; it keeps running in the tray (the menu bar on a Mac)                              |
+| do all of this without a window    | right-click the sun in the tray or menu bar                                                            |
+| change settings                    | the sliders icon in the title bar, or <kbd>Ctrl</kbd>+<kbd>,</kbd> (<kbd>⌘</kbd><kbd>,</kbd> on a Mac) |
+| see your days, hours and leave     | the open book in the title bar: the Almanac                                                            |
+| change the theme                   | Settings → **Theme**                                                                                   |
 
 <details>
 <summary><b>Where it keeps things</b></summary>

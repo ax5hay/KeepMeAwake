@@ -5,6 +5,19 @@ Versions: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+### Changed
+
+- Plainer words wherever you read them: the window, the tray and menu bar,
+  notifications, the Windows installer, the README and the guide. Each
+  line now says what your laptop does rather than what the sun does:
+  `Ends in 5 minutes.` instead of `The sun sets in 5 minutes.`,
+  **Add 30 minutes** instead of **Give it another 30m**, **I'm here**
+  instead of **Keep it up**, and toasts titled **Timer done**, **Timer
+  ends soon**, **Still there?**. Settings → Waking is now **Staying awake**,
+  and **Warn before sunset** is **Timer warning**. The
+  Almanac and the other named features keep their names. Settings files
+  are unchanged.
+
 ## [0.7.0] - 2026-11-12
 
 The small things: twelve details that nothing needs and that are there
