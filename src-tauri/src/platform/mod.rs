@@ -8,6 +8,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use thiserror::Error;
 
+use crate::core::watch::CpuTicks;
 use crate::core::{BatteryState, GuardState};
 
 #[cfg(target_os = "macos")]
@@ -86,6 +87,51 @@ impl IdleProbe for NoIdle {
     }
 }
 
+/// What the machine is doing, for stay awake while…. Read-only: it lists
+/// and counts, and never touches another process.
+pub trait ActivityProbe: Send {
+    /// The names of the processes running now, as the OS gives them
+    /// (`cargo.exe`, `Xcode`). Duplicates are fine.
+    fn processes(&self) -> Vec<String>;
+    /// The process with this id is still running.
+    fn alive(&self, pid: u32) -> bool;
+    /// Bytes received and sent since boot over real interfaces (loopback
+    /// and virtual adapters left out), or `None` when unknown.
+    fn transferred(&self) -> Option<u64>;
+    /// Processor time since boot, or `None` when unknown.
+    fn cpu(&self) -> Option<CpuTicks>;
+    /// Another app is full screen: a video, a game, a presentation.
+    fn full_screen(&self) -> bool;
+    /// A display other than the built-in one is connected.
+    fn external_display(&self) -> bool;
+}
+
+/// For platforms that cannot say: nothing is running, nothing moves, so
+/// no condition ever holds.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct NoActivity;
+
+impl ActivityProbe for NoActivity {
+    fn processes(&self) -> Vec<String> {
+        Vec::new()
+    }
+    fn alive(&self, _pid: u32) -> bool {
+        false
+    }
+    fn transferred(&self) -> Option<u64> {
+        None
+    }
+    fn cpu(&self) -> Option<CpuTicks> {
+        None
+    }
+    fn full_screen(&self) -> bool {
+        false
+    }
+    fn external_display(&self) -> bool {
+        false
+    }
+}
+
 /// Monotonic and wall clocks, injectable for tests.
 pub trait Clock: Send {
     /// Monotonic now.
@@ -152,9 +198,63 @@ pub mod fakes {
     use std::time::{Duration, Instant};
 
     use super::{
-        BatteryProbe, BatteryState, Clock, GuardState, IdleProbe, PlatformError, PowerGuard,
-        TaskbarTheme,
+        ActivityProbe, BatteryProbe, BatteryState, Clock, CpuTicks, GuardState, IdleProbe,
+        PlatformError, PowerGuard, TaskbarTheme,
     };
+
+    /// What the fake machine is doing; the test sets it.
+    #[derive(Debug, Clone, Default)]
+    pub struct Activity {
+        pub processes: Vec<String>,
+        pub alive: Vec<u32>,
+        pub transferred: Option<u64>,
+        pub cpu: Option<CpuTicks>,
+        pub full_screen: bool,
+        pub display: bool,
+        /// How many times the machine was read, any reading.
+        pub reads: u32,
+    }
+
+    /// An activity probe the test controls, counting its reads.
+    #[derive(Debug, Clone, Default)]
+    pub struct FakeActivity(pub Arc<Mutex<Activity>>);
+
+    impl FakeActivity {
+        pub fn set(&self, f: impl FnOnce(&mut Activity)) {
+            f(&mut self.0.lock().unwrap());
+        }
+
+        pub fn reads(&self) -> u32 {
+            self.0.lock().unwrap().reads
+        }
+
+        fn read<T>(&self, f: impl FnOnce(&Activity) -> T) -> T {
+            let mut a = self.0.lock().unwrap();
+            a.reads += 1;
+            f(&a)
+        }
+    }
+
+    impl ActivityProbe for FakeActivity {
+        fn processes(&self) -> Vec<String> {
+            self.read(|a| a.processes.clone())
+        }
+        fn alive(&self, pid: u32) -> bool {
+            self.read(|a| a.alive.contains(&pid))
+        }
+        fn transferred(&self) -> Option<u64> {
+            self.read(|a| a.transferred)
+        }
+        fn cpu(&self) -> Option<CpuTicks> {
+            self.read(|a| a.cpu)
+        }
+        fn full_screen(&self) -> bool {
+            self.read(|a| a.full_screen)
+        }
+        fn external_display(&self) -> bool {
+            self.read(|a| a.display)
+        }
+    }
 
     /// An idle reading the test sets; starts unknown.
     #[derive(Debug, Clone, Default)]

@@ -1,6 +1,7 @@
 //! User preferences. Persisted as JSON; every field has a default so older
 //! files keep loading after new fields are added.
 
+use super::watch::WatchSettings;
 use serde::{Deserialize, Serialize};
 
 /// Current on-disk schema version. Bump when a field changes meaning.
@@ -271,6 +272,9 @@ pub struct Settings {
     /// When that was last asked, Unix ms; 0 for never. Written by the app,
     /// not the UI.
     pub last_update_check_unix_ms: u64,
+    /// Stay awake while…: conditions that keep the laptop awake on their
+    /// own. All off until chosen.
+    pub watch: WatchSettings,
 }
 
 /// The hotkey a fresh install gets: `⌘⌥K` on a Mac, `Ctrl+Alt+K` elsewhere.
@@ -532,6 +536,7 @@ impl Default for Settings {
             sounds: false,
             check_for_updates: true,
             last_update_check_unix_ms: 0,
+            watch: WatchSettings::default(),
         }
     }
 }
@@ -560,6 +565,7 @@ impl Settings {
         self.ai = self.ai.sanitized();
         self.own_theme = self.own_theme.sanitized();
         self.after_dark = self.after_dark.sanitized();
+        self.watch = self.watch.sanitized();
         self
     }
 }

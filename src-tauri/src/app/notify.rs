@@ -225,6 +225,7 @@ mod tests {
             guard_night: false,
             rises_on_touch: false,
             guard_watching: false,
+            watch: crate::core::WatchState::default(),
             settings: Settings {
                 notifications: switches,
                 ..Settings::default()

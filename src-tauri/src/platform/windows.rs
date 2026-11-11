@@ -35,7 +35,8 @@ use windows::Win32::System::Threading::{
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
 use windows::core::{PCWSTR, PWSTR, w};
 
-use super::{BatteryProbe, IdleProbe, PlatformError, PowerGuard, TaskbarTheme};
+use super::{ActivityProbe, BatteryProbe, IdleProbe, PlatformError, PowerGuard, TaskbarTheme};
+use crate::core::watch::CpuTicks;
 use crate::core::{BatteryState, GuardState};
 
 /// Text Windows shows next to our process in `powercfg /requests`.
@@ -156,6 +157,210 @@ impl BatteryProbe for WindowsBattery {
             status.BatteryLifeTime,
         )
     }
+}
+
+/// What the PC is doing, for stay awake while…. Every reading is a single
+/// read-only call; nothing here touches another process.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct WindowsActivity;
+
+/// `IF_TYPE_SOFTWARE_LOOPBACK`: the loopback adapter's `Type`.
+const LOOPBACK: u32 = 24;
+
+/// The names of every process running now. Also what the app picker
+/// offers, so it needs no probe of its own.
+pub fn list_processes() -> Vec<String> {
+    use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW,
+        TH32CS_SNAPPROCESS,
+    };
+    // SAFETY: plain flags in; the handle is closed below on every path.
+    let Ok(snapshot) = (unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) }) else {
+        return Vec::new();
+    };
+    let mut names = Vec::new();
+    let mut entry = PROCESSENTRY32W {
+        dwSize: u32::try_from(size_of::<PROCESSENTRY32W>()).unwrap_or(0),
+        ..PROCESSENTRY32W::default()
+    };
+    // SAFETY: `entry` is a valid, writable struct whose `dwSize` says
+    // how large it is, as the toolhelp functions require.
+    let mut more = unsafe { Process32FirstW(snapshot, &raw mut entry) }.is_ok();
+    while more {
+        names.push(wide_to_string(&entry.szExeFile));
+        // SAFETY: as above; the snapshot handle is still open.
+        more = unsafe { Process32NextW(snapshot, &raw mut entry) }.is_ok();
+    }
+    // SAFETY: the snapshot handle came from CreateToolhelp32Snapshot and
+    // is closed exactly once.
+    unsafe {
+        let _ = CloseHandle(snapshot);
+    }
+    names
+}
+
+impl ActivityProbe for WindowsActivity {
+    fn processes(&self) -> Vec<String> {
+        list_processes()
+    }
+
+    fn alive(&self, pid: u32) -> bool {
+        use windows::Win32::Foundation::STILL_ACTIVE;
+        use windows::Win32::System::Threading::{
+            GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+        };
+        if pid == 0 {
+            return false;
+        }
+        // SAFETY: plain values in; the handle is closed below.
+        let Ok(process) = (unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) })
+        else {
+            return false;
+        };
+        let mut code: u32 = 0;
+        // SAFETY: `process` is an open handle with query rights and `code`
+        // is a writable u32.
+        let read = unsafe { GetExitCodeProcess(process, &raw mut code) }.is_ok();
+        // SAFETY: opened above, closed exactly once.
+        unsafe {
+            let _ = CloseHandle(process);
+        }
+        read && i32::try_from(code).is_ok_and(|code| code == STILL_ACTIVE.0)
+    }
+
+    fn transferred(&self) -> Option<u64> {
+        use windows::Win32::NetworkManagement::IpHelper::{
+            FreeMibTable, GetIfTable2, MIB_IF_TABLE2,
+        };
+        let mut table: *mut MIB_IF_TABLE2 = std::ptr::null_mut();
+        // SAFETY: `table` is a writable pointer the call fills with a table
+        // it allocates; it is freed with FreeMibTable below.
+        if unsafe { GetIfTable2(&raw mut table) }.is_err() || table.is_null() {
+            return None;
+        }
+        // SAFETY: on success `table` points at a MIB_IF_TABLE2 whose `Table`
+        // runs on for `NumEntries` rows (a C flexible array).
+        let rows = unsafe {
+            let count = usize::try_from((*table).NumEntries).unwrap_or(0);
+            std::slice::from_raw_parts(
+                (&raw const (*table).Table)
+                    .cast::<windows::Win32::NetworkManagement::IpHelper::MIB_IF_ROW2>(),
+                count,
+            )
+        };
+        let total = rows
+            .iter()
+            // Real adapters only: loopback, VPNs and virtual switches would
+            // count the same bytes twice.
+            .filter(|row| row.Type != LOOPBACK && row.InterfaceAndOperStatusFlags._bitfield & 1 == 1)
+            .fold(0_u64, |sum, row| {
+                sum.saturating_add(row.InOctets).saturating_add(row.OutOctets)
+            });
+        // SAFETY: allocated by GetIfTable2, freed exactly once, not used after.
+        unsafe { FreeMibTable(table.cast_const().cast()) };
+        Some(total)
+    }
+
+    fn cpu(&self) -> Option<CpuTicks> {
+        use windows::Win32::Foundation::FILETIME;
+        use windows::Win32::System::Threading::GetSystemTimes;
+        let mut idle = FILETIME::default();
+        let mut kernel = FILETIME::default();
+        let mut user = FILETIME::default();
+        // SAFETY: three valid, writable FILETIMEs.
+        unsafe {
+            GetSystemTimes(
+                Some(&raw mut idle),
+                Some(&raw mut kernel),
+                Some(&raw mut user),
+            )
+        }
+        .ok()?;
+        Some(cpu_ticks(ticks(idle), ticks(kernel), ticks(user)))
+    }
+
+    fn full_screen(&self) -> bool {
+        use windows::Win32::UI::Shell::{
+            QUNS_BUSY, QUNS_PRESENTATION_MODE, QUNS_RUNNING_D3D_FULL_SCREEN,
+            SHQueryUserNotificationState,
+        };
+        // SAFETY: no arguments; returns the state by value.
+        unsafe { SHQueryUserNotificationState() }.is_ok_and(|state| {
+            state == QUNS_BUSY
+                || state == QUNS_RUNNING_D3D_FULL_SCREEN
+                || state == QUNS_PRESENTATION_MODE
+        })
+    }
+
+    fn external_display(&self) -> bool {
+        use windows::Win32::Devices::Display::{
+            DISPLAYCONFIG_MODE_INFO, DISPLAYCONFIG_OUTPUT_TECHNOLOGY_DISPLAYPORT_EMBEDDED,
+            DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL, DISPLAYCONFIG_OUTPUT_TECHNOLOGY_LVDS,
+            DISPLAYCONFIG_OUTPUT_TECHNOLOGY_UDI_EMBEDDED, DISPLAYCONFIG_PATH_INFO,
+            GetDisplayConfigBufferSizes, QDC_ONLY_ACTIVE_PATHS, QueryDisplayConfig,
+        };
+        let mut paths_len: u32 = 0;
+        let mut modes_len: u32 = 0;
+        // SAFETY: two writable counts.
+        let sized = unsafe {
+            GetDisplayConfigBufferSizes(
+                QDC_ONLY_ACTIVE_PATHS,
+                &raw mut paths_len,
+                &raw mut modes_len,
+            )
+        };
+        if sized.is_err() {
+            return false;
+        }
+        let mut paths =
+            vec![DISPLAYCONFIG_PATH_INFO::default(); usize::try_from(paths_len).unwrap_or(0)];
+        let mut modes =
+            vec![DISPLAYCONFIG_MODE_INFO::default(); usize::try_from(modes_len).unwrap_or(0)];
+        // SAFETY: the buffers hold exactly the counts passed, which the call
+        // may lower to what it wrote.
+        let queried = unsafe {
+            QueryDisplayConfig(
+                QDC_ONLY_ACTIVE_PATHS,
+                &raw mut paths_len,
+                paths.as_mut_ptr(),
+                &raw mut modes_len,
+                modes.as_mut_ptr(),
+                None,
+            )
+        };
+        if queried.is_err() {
+            return false;
+        }
+        paths.truncate(usize::try_from(paths_len).unwrap_or(0));
+        paths.iter().any(|path| {
+            let tech = path.targetInfo.outputTechnology;
+            tech != DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL
+                && tech != DISPLAYCONFIG_OUTPUT_TECHNOLOGY_DISPLAYPORT_EMBEDDED
+                && tech != DISPLAYCONFIG_OUTPUT_TECHNOLOGY_UDI_EMBEDDED
+                && tech != DISPLAYCONFIG_OUTPUT_TECHNOLOGY_LVDS
+        })
+    }
+}
+
+/// A FILETIME's two halves as one count of 100 ns ticks.
+fn ticks(time: windows::Win32::Foundation::FILETIME) -> u64 {
+    (u64::from(time.dwHighDateTime) << 32) | u64::from(time.dwLowDateTime)
+}
+
+/// Pure, tested: `GetSystemTimes`' three counts as busy and total. Kernel
+/// time includes idle time, so busy is kernel plus user, less idle.
+pub fn cpu_ticks(idle: u64, kernel: u64, user: u64) -> CpuTicks {
+    let total = kernel.saturating_add(user);
+    CpuTicks {
+        busy: total.saturating_sub(idle),
+        total,
+    }
+}
+
+/// Pure, tested: a NUL-terminated UTF-16 buffer as a string.
+pub fn wide_to_string(wide: &[u16]) -> String {
+    let len = wide.iter().position(|&c| c == 0).unwrap_or(wide.len());
+    String::from_utf16_lossy(&wide[..len])
 }
 
 /// Where Windows keeps the light/dark choice for the shell and for apps.
@@ -353,6 +558,40 @@ mod tests {
     fn unknown_percent_is_none_and_values_are_capped() {
         assert_eq!(decode_power_status(1, 0, 255, u32::MAX).percent, None);
         assert_eq!(decode_power_status(1, 0, 120, u32::MAX).percent, Some(100));
+    }
+
+    #[test]
+    fn processor_time_counts_kernel_without_idle() {
+        assert_eq!(
+            cpu_ticks(600, 800, 200),
+            CpuTicks {
+                busy: 400,
+                total: 1000
+            }
+        );
+    }
+
+    #[test]
+    fn wide_names_stop_at_the_terminator() {
+        let mut name = [0_u16; 8];
+        for (slot, c) in name.iter_mut().zip("zsh.exe".encode_utf16()) {
+            *slot = c;
+        }
+        assert_eq!(wide_to_string(&name), "zsh.exe");
+        assert_eq!(wide_to_string(&[]), "");
+    }
+
+    /// The real readings answer, and this test process is alive.
+    #[test]
+    fn real_activity_readings_answer() {
+        let activity = WindowsActivity;
+        assert_ne!(activity.processes().len(), 0);
+        assert!(activity.alive(std::process::id()));
+        assert!(!activity.alive(0));
+        assert!(activity.cpu().is_some_and(|t| t.total >= t.busy));
+        let _ = activity.transferred();
+        let _ = activity.full_screen();
+        let _ = activity.external_display();
     }
 
     #[test]

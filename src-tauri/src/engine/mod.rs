@@ -16,11 +16,12 @@ use parking_lot::{Condvar, Mutex, MutexGuard};
 
 use crate::core::history::Ended;
 use crate::core::schedule;
+use crate::core::watch::{self, Readings, Watcher};
 use crate::core::{
     BatteryState, GuardState, Mode, PauseReason, PlanRequest, Schedule, ScheduleState, Session,
-    SessionEvent, Settings, Snapshot,
+    SessionEvent, Settings, Snapshot, WatchState,
 };
-use crate::platform::{BatteryProbe, Clock, IdleProbe, PowerGuard};
+use crate::platform::{ActivityProbe, BatteryProbe, Clock, IdleProbe, PowerGuard};
 
 /// Something the app shell may want to react to.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -103,10 +104,14 @@ pub struct Platform {
     pub battery: Box<dyn BatteryProbe>,
     /// Reads how long since the last input, for the overnight guard.
     pub idle: Box<dyn IdleProbe>,
+    /// Reads what the machine is doing, for stay awake while….
+    pub activity: Box<dyn ActivityProbe>,
     /// Time source.
     pub clock: Arc<dyn Clock + Sync>,
 }
 
+// Independent facts the worker remembers between steps, not a state machine.
+#[allow(clippy::struct_excessive_bools)]
 struct State {
     session: Session,
     settings: Settings,
@@ -147,8 +152,22 @@ struct State {
     guard_question: Question,
     /// The sun set with the night and is waiting for the next touch.
     rise: Option<Rise>,
+    /// Stay awake while…: the samples rates are worked out from.
+    watcher: Watcher,
+    /// Where the watched conditions stood at the last evaluation.
+    watch: WatchState,
+    /// Processes the command line asked to stay awake for, until they exit.
+    pids: Vec<u32>,
+    /// The sun was clicked while a condition held: rest until it clears.
+    watch_skip: bool,
+    /// A condition was what held the laptop awake at the last evaluation,
+    /// so a stretch that ends now ended because it cleared.
+    watch_held: bool,
     shutdown: bool,
 }
+
+/// At most this many processes from the command line are watched at once.
+const MAX_PIDS: usize = 32;
 
 /// Why the overnight guard is asking.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -209,6 +228,7 @@ impl Engine {
             guard,
             battery,
             idle,
+            activity,
             clock,
         } = platform;
         // Launching inside a window is not the window opening: no event.
@@ -230,6 +250,11 @@ impl Engine {
                 guard_dismissed_for: None,
                 guard_question: Question::Hours,
                 rise: None,
+                watcher: Watcher::default(),
+                watch: WatchState::default(),
+                pids: Vec::new(),
+                watch_skip: false,
+                watch_held: false,
                 shutdown: false,
             }),
             wake: Condvar::new(),
@@ -241,7 +266,14 @@ impl Engine {
             let shared = Arc::clone(&shared);
             thread::Builder::new()
                 .name("keepmeawake-engine".into())
-                .spawn(move || run_loop(&shared, guard, battery.as_ref(), idle.as_ref()))
+                .spawn(move || {
+                    let probes = Probes {
+                        battery: battery.as_ref(),
+                        idle: idle.as_ref(),
+                        activity: activity.as_ref(),
+                    };
+                    run_loop(&shared, guard, probes);
+                })
                 .ok()
         };
         Self {
@@ -293,10 +325,24 @@ impl Engine {
             match view.window {
                 Some((_, end)) if !view.skipped => st.skip_until = Some(end),
                 Some(_) => st.skip_until = None,
+                // A condition holds: rest until it clears, or undo that.
+                None if st.watch.reason.is_some() => st.watch_skip = !st.watch_skip,
                 None => {
                     st.session.apply(default_plan(&st.settings), now);
                 }
             }
+        })
+    }
+
+    /// Stays awake while the process `pid` runs (the command line's
+    /// `--run`), as a condition: below a manual session and a schedule
+    /// window. Forgotten once it exits.
+    pub fn watch_pid(&self, pid: u32) -> Snapshot {
+        self.mutate(|st| {
+            if !st.pids.contains(&pid) && st.pids.len() < MAX_PIDS {
+                st.pids.push(pid);
+            }
+            st.watch_skip = false;
         })
     }
 
@@ -472,12 +518,7 @@ fn unix_ms(at: &DateTime<Local>) -> u64 {
     u64::try_from(at.timestamp_millis()).unwrap_or(0)
 }
 
-fn run_loop(
-    shared: &Arc<Shared>,
-    mut guard: Box<dyn PowerGuard>,
-    battery: &dyn BatteryProbe,
-    idle: &dyn IdleProbe,
-) {
+fn run_loop(shared: &Arc<Shared>, mut guard: Box<dyn PowerGuard>, probes: Probes<'_>) {
     let mut st = shared.state.lock();
     loop {
         if st.shutdown {
@@ -497,7 +538,6 @@ fn run_loop(
         st.dirty = false;
         let now = shared.clock.now();
         let unix_now = shared.clock.unix_ms();
-        let probes = Probes { battery, idle };
         let events = step(&mut st, guard.as_mut(), probes, now, unix_now, shared);
         let deadline = next_wake(&st, now, unix_now);
 
@@ -549,7 +589,12 @@ fn next_wake(st: &State, now: Instant, unix_now: u64) -> Option<Instant> {
         .map(|at| now + Duration::from_millis(at.saturating_sub(unix_now)));
     // Waiting for a touch: the sun is down, so nothing else would look.
     let touch = st.rise.map(|_| now + policy::BATTERY_POLL);
-    [usual, warning, guard, touch].into_iter().flatten().min()
+    // Something is watched: look again, sun up or down.
+    let watching = watches(st).then(|| now + policy::WATCH_POLL);
+    [usual, warning, guard, touch, watching]
+        .into_iter()
+        .flatten()
+        .min()
 }
 
 /// What the worker reads from the machine on each step.
@@ -557,6 +602,49 @@ fn next_wake(st: &State, now: Instant, unix_now: u64) -> Option<Instant> {
 struct Probes<'a> {
     battery: &'a dyn BatteryProbe,
     idle: &'a dyn IdleProbe,
+    activity: &'a dyn ActivityProbe,
+}
+
+/// Any condition is on, or a process from the command line is watched:
+/// the machine has to be read.
+fn watches(st: &State) -> bool {
+    st.settings.watch.any() || !st.pids.is_empty()
+}
+
+/// Stay awake while…, for one step: reads only what is switched on, and
+/// works out which condition holds. Returns whether one holds the laptop
+/// awake (it holds, and the sun was not clicked to skip it).
+fn watch_step(st: &mut State, activity: &dyn ActivityProbe, now: Instant) -> bool {
+    if !watches(st) {
+        // Nothing on: forget the samples, so switching one on starts clean.
+        st.watcher = Watcher::default();
+        st.watch = WatchState::default();
+        st.watch_skip = false;
+        return false;
+    }
+    let settings = &st.settings.watch;
+    st.pids.retain(|pid| activity.alive(*pid));
+    let readings = Readings {
+        running: if settings.apps.is_empty() {
+            Vec::new()
+        } else {
+            watch::matching(&settings.apps, &activity.processes())
+        },
+        pid: st.pids.first().copied(),
+        transferred: settings.transfers.then(|| activity.transferred()).flatten(),
+        cpu: settings.busy.then(|| activity.cpu()).flatten(),
+        full_screen: settings.full_screen && activity.full_screen(),
+        // Only a laptop has a built-in display to be docked away from.
+        display: settings.display && st.battery.present && activity.external_display(),
+    };
+    let mut state = st.watcher.observe(settings, &readings, st.battery, now);
+    if state.reason.is_none() {
+        // The condition that was skipped cleared: the next one counts again.
+        st.watch_skip = false;
+    }
+    state.skipped = st.watch_skip && state.reason.is_some();
+    st.watch = state;
+    st.watch.reason.is_some() && !st.watch_skip
 }
 
 /// The guard is watching the current session: Always, the guard or Set
@@ -751,9 +839,12 @@ fn step(
         });
     }
     let rested = overnight_guard(st, probes.idle, now, unix_now, &mut events);
-    let active = st.session.is_active() || st.phase == Phase::Holding;
-
     st.battery = probes.battery.read();
+    let watch_holds = watch_step(st, probes.activity, now);
+    // Cleared, not skipped: a click on the sun is the user ending it.
+    let watch_cleared = st.watch_held && st.watch.reason.is_none();
+    let active = st.session.is_active() || st.phase == Phase::Holding || watch_holds;
+
     let (desired, paused) = policy::decide(active, &st.settings, st.battery);
     let previously_paused = st.paused;
     match guard.apply(desired) {
@@ -776,8 +867,10 @@ fn step(
         (false, true) => events.push(EngineEvent::SessionStarted {
             mode: if st.session.is_active() {
                 st.session.mode()
-            } else {
+            } else if st.phase == Phase::Holding {
                 Mode::Scheduled
+            } else {
+                Mode::Watching
             },
             paused: st.paused,
             at_unix_ms: unix_now,
@@ -787,6 +880,7 @@ fn step(
                 rested,
                 expired,
                 window_closed,
+                watch_cleared,
                 was_due,
                 previously_paused,
             },
@@ -795,6 +889,8 @@ fn step(
         _ => {}
     }
     st.awake = active;
+    // What holds it now is a condition, and nothing above it.
+    st.watch_held = watch_holds && !st.session.is_active() && st.phase != Phase::Holding;
     st.due_end_unix = match st.session.deadline() {
         Some(deadline) => {
             Some(unix_now.saturating_add(millis(deadline.saturating_duration_since(now))))
@@ -815,6 +911,8 @@ struct Sunset {
     expired: bool,
     /// The schedule window holding it closed.
     window_closed: bool,
+    /// The condition holding it cleared.
+    watch_cleared: bool,
     /// When it was due to end on its own, as of the step before (Unix ms).
     was_due: Option<u64>,
     /// Why it was paused at the step before, if it was.
@@ -829,6 +927,8 @@ fn sunset(s: Sunset, unix_now: u64) -> EngineEvent {
         Ended::Timer
     } else if s.window_closed {
         Ended::Schedule
+    } else if s.watch_cleared {
+        Ended::Watch
     } else {
         Ended::User
     };
@@ -879,6 +979,7 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
             && st.session.mode() == Mode::Indefinite,
         rises_on_touch: st.rise.is_some() && !st.session.is_active(),
         guard_watching: guard_watches(st),
+        watch: st.watch.clone(),
         settings: st.settings.clone(),
         app_version: shared.app_version.clone(),
     };
@@ -890,6 +991,8 @@ fn build_snapshot(st: &State, shared: &Shared) -> Snapshot {
         snapshot.ends_at_unix_ms = Some(end);
         snapshot.remaining_secs = Some(end.saturating_sub(unix_now).div_ceil(1000));
         snapshot.plan_secs = Some(end.saturating_sub(start) / 1000);
+    } else if !st.session.is_active() && st.watch.reason.is_some() && !st.watch_skip {
+        snapshot.mode = Mode::Watching;
     }
     snapshot
 }
@@ -904,13 +1007,16 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
-    use crate::platform::fakes::{FakeBattery, FakeIdle, FakePowerGuard, ManualClock};
+    use crate::platform::fakes::{
+        FakeActivity, FakeBattery, FakeIdle, FakePowerGuard, ManualClock,
+    };
 
     struct Rig {
         engine: Engine,
         guard: FakePowerGuard,
         battery: FakeBattery,
         idle: FakeIdle,
+        activity: FakeActivity,
         clock: ManualClock,
         events: mpsc::Receiver<EngineEvent>,
     }
@@ -930,12 +1036,14 @@ mod tests {
         // Someone is at the keyboard unless a test says otherwise.
         let idle = FakeIdle::default();
         idle.set(Some(Duration::from_secs(1)));
+        let activity = FakeActivity::default();
         let (tx, rx) = mpsc::channel();
         let engine = Engine::start_with(
             Platform {
                 guard: Box::new(guard.clone()),
                 battery: Box::new(battery.clone()),
                 idle: Box::new(idle.clone()),
+                activity: Box::new(activity.clone()),
                 clock: Arc::new(clock.clone()),
             },
             settings,
@@ -949,6 +1057,7 @@ mod tests {
             guard,
             battery,
             idle,
+            activity,
             clock,
             events: rx,
         }
@@ -2178,6 +2287,7 @@ mod tests {
                     minutes_left: None,
                 })),
                 idle: Box::new(FakeIdle::default()),
+                activity: Box::new(FakeActivity::default()),
                 clock: Arc::new(ManualClock::new()),
             },
             Settings::default(),
@@ -2205,5 +2315,164 @@ mod tests {
             thread::sleep(Duration::from_millis(5));
         }
         engine.shutdown();
+    }
+
+    // Stay awake while…
+
+    fn watching(f: impl FnOnce(&mut crate::core::WatchSettings)) -> Settings {
+        // The guard is out of the way: these tests are about conditions.
+        let mut settings = Settings {
+            overnight_guard_hours: None,
+            ..Settings::default()
+        };
+        f(&mut settings.watch);
+        settings
+    }
+
+    fn endings(events: &[EngineEvent]) -> Vec<Ended> {
+        events
+            .iter()
+            .filter_map(|e| match e {
+                EngineEvent::SessionEnded { ended, .. } => Some(*ended),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Waits for the stretch to end, and says why it did. Events come after
+    /// the step's snapshot, so `look` has returned before they arrive.
+    fn next_ending(r: &Rig) -> Ended {
+        let events = events_until(r, |e| matches!(e, EngineEvent::SessionEnded { .. }));
+        endings(&events)[0]
+    }
+
+    #[test]
+    fn a_running_app_raises_the_sun_and_its_exit_lowers_it() {
+        let r = rig(watching(|w| w.apps = vec!["Xcode".into()]));
+        r.activity
+            .set(|a| a.processes = vec!["zsh".into(), "Xcode".into()]);
+        let (snap, _) = look(&r, 10);
+        assert_eq!(snap.mode, Mode::Watching);
+        assert_eq!(
+            snap.watch.reason,
+            Some(crate::core::WatchReason::App {
+                name: "Xcode".into()
+            })
+        );
+        assert!(snap.guards.system);
+        let started = events_until(&r, |e| matches!(e, EngineEvent::SessionStarted { .. }));
+        assert!(matches!(
+            started.last(),
+            Some(EngineEvent::SessionStarted {
+                mode: Mode::Watching,
+                ..
+            })
+        ));
+
+        r.activity.set(|a| a.processes = vec!["zsh".into()]);
+        let (snap, _) = look(&r, 11);
+        assert_eq!(snap.mode, Mode::Off);
+        assert!(!snap.guards.system);
+        assert_eq!(next_ending(&r), Ended::Watch);
+    }
+
+    #[test]
+    fn a_manual_session_outranks_a_condition() {
+        let r = rig(watching(|w| w.apps = vec!["Xcode".into()]));
+        r.activity.set(|a| a.processes = vec!["Xcode".into()]);
+        look(&r, 10);
+        r.engine.set_plan(PlanRequest::For { seconds: 600 });
+        let (snap, _) = look(&r, 11);
+        assert_eq!(snap.mode, Mode::Timed);
+        r.engine.set_plan(PlanRequest::Off);
+        // Everything the Off step sent arrives before this look's snapshot.
+        let (snap, events) = look(&r, 12);
+        assert_eq!(snap.mode, Mode::Watching, "the condition takes over");
+        assert_eq!(endings(&events), Vec::<Ended>::new(), "the sun never set");
+    }
+
+    #[test]
+    fn the_sun_skips_a_condition_until_it_clears() {
+        let r = rig(watching(|w| w.apps = vec!["Xcode".into()]));
+        r.activity.set(|a| a.processes = vec!["Xcode".into()]);
+        look(&r, 10);
+        r.engine.toggle();
+        let (snap, _) = look(&r, 11);
+        assert_eq!(snap.mode, Mode::Off);
+        assert!(snap.watch.skipped);
+        assert_eq!(next_ending(&r), Ended::User);
+
+        // Undo by clicking again.
+        r.engine.toggle();
+        let (snap, _) = look(&r, 12);
+        assert_eq!(snap.mode, Mode::Watching);
+        r.engine.toggle();
+        look(&r, 13);
+
+        // The app quits: the skip is spent, and its next start counts.
+        r.activity.set(|a| a.processes.clear());
+        let (snap, _) = look(&r, 14);
+        assert!(!snap.watch.skipped);
+        r.activity.set(|a| a.processes = vec!["Xcode".into()]);
+        let (snap, _) = look(&r, 15);
+        assert_eq!(snap.mode, Mode::Watching);
+    }
+
+    #[test]
+    fn a_process_from_the_command_line_holds_until_it_exits() {
+        let r = rig(watching(|_| {}));
+        r.activity.set(|a| a.alive = vec![4120]);
+        r.engine.watch_pid(4120);
+        let (snap, _) = look(&r, 10);
+        assert_eq!(snap.mode, Mode::Watching);
+        assert_eq!(
+            snap.watch.reason,
+            Some(crate::core::WatchReason::Process { pid: 4120 })
+        );
+        r.activity.set(|a| a.alive.clear());
+        let (snap, _) = look(&r, 11);
+        assert_eq!(snap.mode, Mode::Off);
+        assert_eq!(next_ending(&r), Ended::Watch);
+        assert!(r.engine.shared.state.lock().pids.is_empty(), "forgotten");
+    }
+
+    #[test]
+    fn a_transfer_holds_and_lingers_on_the_engines_clock() {
+        let r = rig(watching(|w| w.transfers = true));
+        r.activity.set(|a| a.transferred = Some(0));
+        look(&r, 10);
+        r.clock.advance(Duration::from_secs(30));
+        r.activity.set(|a| a.transferred = Some(30_000_000));
+        let (snap, _) = look(&r, 11);
+        assert_eq!(snap.mode, Mode::Watching);
+        assert_eq!(snap.watch.transfer_bps, Some(1_000_000));
+        r.clock.advance(Duration::from_secs(30));
+        let (snap, _) = look(&r, 12);
+        assert_eq!(snap.mode, Mode::Watching, "lingers while quiet");
+        r.clock.advance(Duration::from_secs(121));
+        let (snap, _) = look(&r, 13);
+        assert_eq!(snap.mode, Mode::Off);
+        assert_eq!(next_ending(&r), Ended::Watch);
+    }
+
+    #[test]
+    fn nothing_is_read_and_nothing_wakes_with_every_condition_off() {
+        let r = rig(watching(|_| {}));
+        look(&r, 10);
+        r.engine.set_plan(PlanRequest::Indefinite);
+        look(&r, 11);
+        r.engine.set_plan(PlanRequest::Off);
+        look(&r, 12);
+        assert_eq!(r.activity.reads(), 0);
+        assert_eq!(r.engine.next_wake(), None, "resting, nothing to look at");
+    }
+
+    #[test]
+    fn a_watched_condition_looks_again_every_poll_while_resting() {
+        let r = rig(watching(|w| w.busy = true));
+        look(&r, 10);
+        let now = r.clock.now();
+        assert_eq!(r.engine.next_wake(), Some(now + policy::WATCH_POLL));
+        assert!(r.activity.reads() > 0);
     }
 }

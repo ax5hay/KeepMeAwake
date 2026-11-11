@@ -42,6 +42,11 @@ pub fn decide(
     )
 }
 
+/// How often the machine is read while stay awake while… has anything on,
+/// sun up or down: the battery poll's pace, well inside the minutes an OS
+/// waits before idle sleep.
+pub const WATCH_POLL: Duration = BATTERY_POLL;
+
 /// How long the overnight guard waits for an answer after it asks whether
 /// anyone is there, before it lets an unattended Always session go.
 pub const GUARD_GRACE: Duration = Duration::from_secs(10 * 60);

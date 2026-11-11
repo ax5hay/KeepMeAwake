@@ -25,7 +25,8 @@ use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
 use core_foundation::number::CFNumber;
 use core_foundation::string::{CFString, CFStringRef};
 
-use super::{BatteryProbe, IdleProbe, PlatformError, PowerGuard};
+use super::{ActivityProbe, BatteryProbe, IdleProbe, PlatformError, PowerGuard};
+use crate::core::watch::CpuTicks;
 use crate::core::{BatteryState, GuardState};
 
 /// Name macOS shows next to our process in `pmset -g assertions`.
@@ -75,6 +76,38 @@ unsafe extern "C" {
         state: EventSourceState,
         event_type: EventType,
     ) -> f64;
+    fn CGWindowListCopyWindowInfo(option: u32, relative_to: u32) -> CFArrayRef;
+    fn CGGetActiveDisplayList(max: u32, displays: *mut u32, count: *mut u32) -> i32;
+    fn CGDisplayIsBuiltin(display: u32) -> u32;
+    fn CGDisplayBounds(display: u32) -> CgRect;
+}
+
+/// `CGRect`, as CoreGraphics lays it out on a 64-bit Mac.
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct CgRect {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+/// `kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements`.
+const ON_SCREEN_WINDOWS: u32 = (1 << 0) | (1 << 4);
+/// Displays looked at; nobody has more.
+const MAX_DISPLAYS: usize = 16;
+/// `IFT_ETHER`: the interface type of Wi-Fi and Ethernet on a Mac. Tunnels,
+/// bridges and loopback carry the same bytes again, so they are left out.
+const IFT_ETHER: u8 = 0x6;
+/// `HOST_CPU_LOAD_INFO`'s four counters: user, system, idle, nice.
+const CPU_STATES: usize = 4;
+const CPU_STATE_IDLE: usize = 2;
+
+// Mach, declared here because the libc crate marks its own copies
+// deprecated in favour of another crate; both come from libSystem.
+unsafe extern "C" {
+    fn mach_host_self() -> u32;
+    fn host_statistics(host: u32, flavor: i32, info: *mut i32, count: *mut u32) -> i32;
 }
 
 /// `kIOPSPowerSourceStateKey`: `"AC Power"`, `"Battery Power"` or `"Off Line"`.
@@ -262,6 +295,270 @@ pub fn minutes_from_estimate(secs: f64) -> Option<u32> {
     Some((secs / 60.0).round().min(f64::from(u32::MAX)) as u32)
 }
 
+/// What the Mac is doing, for stay awake while…. Each reading is one
+/// read-only call; nothing here touches another process.
+#[derive(Debug)]
+pub struct MacActivity {
+    /// This task's send right to the host port, taken once: each
+    /// `mach_host_self` adds a reference that would otherwise pile up.
+    host: u32,
+}
+
+impl MacActivity {
+    /// Takes the host port once, for the processor readings.
+    pub fn new() -> Self {
+        // SAFETY: no arguments; returns a port name for this task.
+        let host = unsafe { mach_host_self() };
+        Self { host }
+    }
+}
+
+impl Default for MacActivity {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// The names of every process running now. Also what the app picker
+/// offers, so it needs no probe of its own.
+pub fn list_processes() -> Vec<String> {
+    // SAFETY: a null buffer of size 0 asks only for the count.
+    let count = unsafe { libc::proc_listallpids(std::ptr::null_mut(), 0) };
+    let Ok(count) = usize::try_from(count) else {
+        return Vec::new();
+    };
+    // Room for processes started between the two calls.
+    let mut pids: Vec<libc::pid_t> = vec![0; count + 64];
+    let bytes = i32::try_from(pids.len() * size_of::<libc::pid_t>()).unwrap_or(i32::MAX);
+    // SAFETY: the buffer holds `bytes` bytes of pid_t, as passed.
+    let listed = unsafe { libc::proc_listallpids(pids.as_mut_ptr().cast(), bytes) };
+    pids.truncate(usize::try_from(listed).unwrap_or(0).min(pids.len()));
+    let mut name = [0_u8; 256];
+    pids.iter()
+        .filter(|pid| **pid > 0)
+        .filter_map(|pid| {
+            // SAFETY: `name` is writable for the length passed.
+            let len = unsafe {
+                libc::proc_name(
+                    *pid,
+                    name.as_mut_ptr().cast(),
+                    u32::try_from(name.len()).ok()?,
+                )
+            };
+            let len = usize::try_from(len).ok().filter(|len| *len > 0)?;
+            Some(String::from_utf8_lossy(&name[..len.min(name.len())]).into_owned())
+        })
+        .collect()
+}
+
+impl ActivityProbe for MacActivity {
+    fn processes(&self) -> Vec<String> {
+        list_processes()
+    }
+
+    fn alive(&self, pid: u32) -> bool {
+        // pid 0 would ask about the whole process group: never.
+        let Ok(pid) = libc::pid_t::try_from(pid) else {
+            return false;
+        };
+        if pid <= 0 {
+            return false;
+        }
+        // SAFETY: signal 0 sends nothing; it only checks the pid exists.
+        let sent = unsafe { libc::kill(pid, 0) };
+        sent == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+    }
+
+    fn transferred(&self) -> Option<u64> {
+        let mut mib = [libc::CTL_NET, libc::PF_ROUTE, 0, 0, libc::NET_RT_IFLIST2, 0];
+        let mut len: libc::size_t = 0;
+        // SAFETY: a null buffer asks only for the size needed.
+        let sized = unsafe {
+            libc::sysctl(
+                mib.as_mut_ptr(),
+                6,
+                std::ptr::null_mut(),
+                &raw mut len,
+                std::ptr::null_mut(),
+                0,
+            )
+        };
+        if sized != 0 || len == 0 {
+            return None;
+        }
+        // Room for an interface that appears between the two calls.
+        len += 1024;
+        let mut buf = vec![0_u8; len];
+        // SAFETY: `buf` is writable for `len` bytes, as passed.
+        let read = unsafe {
+            libc::sysctl(
+                mib.as_mut_ptr(),
+                6,
+                buf.as_mut_ptr().cast(),
+                &raw mut len,
+                std::ptr::null_mut(),
+                0,
+            )
+        };
+        if read != 0 {
+            return None;
+        }
+        buf.truncate(len);
+        Some(sum_interface_bytes(&buf))
+    }
+
+    fn cpu(&self) -> Option<CpuTicks> {
+        let mut ticks = [0_i32; CPU_STATES];
+        let mut count = u32::try_from(CPU_STATES).ok()?;
+        // SAFETY: `ticks` holds HOST_CPU_LOAD_INFO_COUNT integers, as
+        // `count` says; `host` is this task's host port.
+        let code = unsafe {
+            host_statistics(
+                self.host,
+                libc::HOST_CPU_LOAD_INFO,
+                ticks.as_mut_ptr(),
+                &raw mut count,
+            )
+        };
+        if code != 0 {
+            return None;
+        }
+        // The counters are unsigned in the kernel.
+        let ticks = ticks.map(|t| u64::from(t.cast_unsigned()));
+        Some(CpuTicks {
+            busy: ticks.iter().sum::<u64>() - ticks[CPU_STATE_IDLE],
+            total: ticks.iter().sum(),
+        })
+    }
+
+    fn full_screen(&self) -> bool {
+        let displays = displays();
+        if displays.is_empty() {
+            return false;
+        }
+        let bounds: Vec<CgRect> = displays
+            .iter()
+            // SAFETY: a display id from CGGetActiveDisplayList.
+            .map(|id| unsafe { CGDisplayBounds(*id) })
+            .collect();
+        // SAFETY: plain flags in; the array is owned (create rule) below.
+        let list = unsafe { CGWindowListCopyWindowInfo(ON_SCREEN_WINDOWS, 0) };
+        if list.is_null() {
+            return false;
+        }
+        // SAFETY: non-null CFArray of CFDictionary, released by the wrapper.
+        let list: CFArray<CFDictionary<CFString, CFType>> =
+            unsafe { CFArray::wrap_under_create_rule(list) };
+        let ours = i64::from(std::process::id());
+        let number = |window: &CFDictionary<CFString, CFType>, key: &'static str| {
+            window
+                .find(CFString::from_static_string(key))
+                .and_then(|value| value.downcast::<CFNumber>())
+        };
+        list.iter().any(|window| {
+            let layer = number(&window, "kCGWindowLayer").and_then(|n| n.to_i64());
+            let owner = number(&window, "kCGWindowOwnerPID").and_then(|n| n.to_i64());
+            if layer != Some(0) || owner == Some(ours) {
+                return false;
+            }
+            let Some(rect) = window
+                .find(CFString::from_static_string("kCGWindowBounds"))
+                .and_then(|value| value.downcast::<CFDictionary>())
+            else {
+                return false;
+            };
+            // SAFETY: the bounds dictionary's keys are CFStrings and its
+            // values CFNumbers; re-typed without changing ownership.
+            let rect: CFDictionary<CFString, CFType> =
+                unsafe { CFDictionary::wrap_under_get_rule(rect.as_concrete_TypeRef()) };
+            let side = |key: &'static str| {
+                rect.find(CFString::from_static_string(key))
+                    .and_then(|value| value.downcast::<CFNumber>())
+                    .and_then(|n| n.to_f64())
+            };
+            let (Some(x), Some(y), Some(width), Some(height)) =
+                (side("X"), side("Y"), side("Width"), side("Height"))
+            else {
+                return false;
+            };
+            covers_a_display(
+                CgRect {
+                    x,
+                    y,
+                    width,
+                    height,
+                },
+                &bounds,
+            )
+        })
+    }
+
+    fn external_display(&self) -> bool {
+        displays()
+            .iter()
+            // SAFETY: a display id from CGGetActiveDisplayList.
+            .any(|id| unsafe { CGDisplayIsBuiltin(*id) } == 0)
+    }
+}
+
+/// The displays in use now.
+fn displays() -> Vec<u32> {
+    let mut ids = [0_u32; MAX_DISPLAYS];
+    let mut count: u32 = 0;
+    let max = u32::try_from(MAX_DISPLAYS).unwrap_or(0);
+    // SAFETY: `ids` holds `max` display ids, as passed; `count` is writable.
+    let code = unsafe { CGGetActiveDisplayList(max, ids.as_mut_ptr(), &raw mut count) };
+    if code != 0 {
+        return Vec::new();
+    }
+    ids[..usize::try_from(count).unwrap_or(0).min(MAX_DISPLAYS)].to_vec()
+}
+
+/// Pure, tested: a window covers a whole display, give or take a point of
+/// rounding: full screen, as a video, a game or slides are.
+fn covers_a_display(window: CgRect, displays: &[CgRect]) -> bool {
+    let near = |a: f64, b: f64| (a - b).abs() < 1.0;
+    displays.iter().any(|d| {
+        d.width > 0.0
+            && near(window.x, d.x)
+            && near(window.y, d.y)
+            && near(window.width, d.width)
+            && near(window.height, d.height)
+    })
+}
+
+/// Pure, tested: the bytes in and out of every Wi-Fi and Ethernet
+/// interface in a `NET_RT_IFLIST2` reply. Each message starts with its
+/// length; only `RTM_IFINFO2` ones carry counters.
+pub fn sum_interface_bytes(buf: &[u8]) -> u64 {
+    let mut total: u64 = 0;
+    let mut offset = 0;
+    while offset + size_of::<libc::if_msghdr>() <= buf.len() {
+        // SAFETY: at least a header's worth of bytes remains at `offset`;
+        // read unaligned, as the kernel packs messages back to back.
+        let header: libc::if_msghdr =
+            unsafe { std::ptr::read_unaligned(buf.as_ptr().add(offset).cast()) };
+        let step = usize::from(header.ifm_msglen);
+        if step == 0 {
+            break;
+        }
+        if i32::from(header.ifm_type) == libc::RTM_IFINFO2
+            && offset + size_of::<libc::if_msghdr2>() <= buf.len()
+        {
+            // SAFETY: a whole if_msghdr2 remains at `offset`, read unaligned.
+            let info: libc::if_msghdr2 =
+                unsafe { std::ptr::read_unaligned(buf.as_ptr().add(offset).cast()) };
+            if info.ifm_flags & libc::IFF_LOOPBACK == 0 && info.ifm_data.ifi_type == IFT_ETHER {
+                total = total
+                    .saturating_add(info.ifm_data.ifi_ibytes)
+                    .saturating_add(info.ifm_data.ifi_obytes);
+            }
+        }
+        offset += step;
+    }
+    total
+}
+
 /// Time since the last keyboard, mouse or trackpad input, from the HID
 /// system's event source. Never sends input; needs no permission.
 #[derive(Debug, Default, Clone, Copy)]
@@ -350,6 +647,84 @@ mod tests {
                 minutes_left: None,
             }
         );
+    }
+
+    #[test]
+    fn a_window_the_size_of_a_display_is_full_screen() {
+        let screen = CgRect {
+            x: 0.0,
+            y: 0.0,
+            width: 1512.0,
+            height: 982.0,
+        };
+        let second = CgRect {
+            x: 1512.0,
+            y: 0.0,
+            width: 2560.0,
+            height: 1440.0,
+        };
+        let displays = [screen, second];
+        assert!(covers_a_display(screen, &displays));
+        assert!(covers_a_display(
+            CgRect {
+                x: 1512.4,
+                ..second
+            },
+            &displays
+        ));
+        // A zoomed window stops at the menu bar: not full screen.
+        let zoomed = CgRect {
+            y: 33.0,
+            height: 949.0,
+            ..screen
+        };
+        assert!(!covers_a_display(zoomed, &displays));
+        assert!(!covers_a_display(screen, &[]));
+    }
+
+    #[test]
+    fn interface_bytes_skip_loopback_and_tunnels() {
+        fn message(flags: i32, kind: u8, ibytes: u64, obytes: u64) -> Vec<u8> {
+            // SAFETY: if_msghdr2 is plain old data; all zeroes is valid.
+            let mut info: libc::if_msghdr2 = unsafe { std::mem::zeroed() };
+            info.ifm_msglen = u16::try_from(size_of::<libc::if_msghdr2>()).unwrap();
+            info.ifm_type = u8::try_from(libc::RTM_IFINFO2).unwrap();
+            info.ifm_flags = flags;
+            info.ifm_data.ifi_type = kind;
+            info.ifm_data.ifi_ibytes = ibytes;
+            info.ifm_data.ifi_obytes = obytes;
+            // SAFETY: viewing a plain struct as its bytes.
+            unsafe {
+                std::slice::from_raw_parts(
+                    (&raw const info).cast::<u8>(),
+                    size_of::<libc::if_msghdr2>(),
+                )
+            }
+            .to_vec()
+        }
+        let mut buf = message(0, IFT_ETHER, 1_000, 500);
+        buf.extend(message(libc::IFF_LOOPBACK, 0x18, 9_000, 9_000));
+        buf.extend(message(0, 0xff, 7_000, 7_000)); // a tunnel
+        buf.extend(message(0, IFT_ETHER, 20, 30));
+        assert_eq!(sum_interface_bytes(&buf), 1_550);
+        assert_eq!(sum_interface_bytes(&[]), 0);
+        assert_eq!(sum_interface_bytes(&buf[..10]), 0);
+    }
+
+    /// The real readings answer, and this test process is alive.
+    #[test]
+    fn real_activity_readings_answer() {
+        let activity = MacActivity::new();
+        let processes = activity.processes();
+        assert_ne!(processes.len(), 0);
+        assert!(activity.alive(std::process::id()));
+        assert!(!activity.alive(0));
+        assert!(!activity.alive(u32::MAX));
+        let cpu = activity.cpu().expect("host_statistics answers");
+        assert!(cpu.total >= cpu.busy && cpu.total > 0);
+        assert!(activity.transferred().is_some());
+        let _ = activity.full_screen();
+        let _ = activity.external_display();
     }
 
     #[test]

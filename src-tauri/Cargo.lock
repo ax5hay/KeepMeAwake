@@ -2242,6 +2242,7 @@ dependencies = [
  "chrono",
  "core-foundation 0.10.1",
  "keyring",
+ "libc",
  "log",
  "parking_lot 0.13.0",
  "reqwest",

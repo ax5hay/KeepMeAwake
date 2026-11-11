@@ -21,6 +21,9 @@ pub enum Mode {
     /// No manual session, but a schedule window is open and not skipped.
     /// Never produced by [`Session::mode`]; the engine derives it.
     Scheduled,
+    /// No manual session and no schedule window, but a watched condition
+    /// holds (stay awake while…). Derived by the engine, like `Scheduled`.
+    Watching,
 }
 
 /// Something notable that happened inside the state machine.

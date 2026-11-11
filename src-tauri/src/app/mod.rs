@@ -107,6 +107,7 @@ pub fn run() {
             commands::get_update,
             commands::check_for_update,
             commands::install_update,
+            commands::running_apps,
         ])
         .setup(|app| setup(app.handle()).map_err(Into::into))
         .build(tauri::generate_context!())
@@ -330,7 +331,9 @@ fn make_idle() -> Box<dyn IdleProbe> {
 #[cfg(windows)]
 fn make_platform() -> Platform {
     use crate::platform::NullPowerGuard;
-    use crate::platform::windows::{WindowsBattery, WindowsIdle, WindowsPowerGuard};
+    use crate::platform::windows::{
+        WindowsActivity, WindowsBattery, WindowsIdle, WindowsPowerGuard,
+    };
 
     let guard: Box<dyn crate::platform::PowerGuard> = match WindowsPowerGuard::new() {
         Ok(guard) => Box::new(guard),
@@ -343,6 +346,7 @@ fn make_platform() -> Platform {
         guard,
         battery: Box::new(WindowsBattery),
         idle: Box::new(WindowsIdle),
+        activity: Box::new(WindowsActivity),
         clock: Arc::new(SystemClock),
     }
 }
@@ -350,7 +354,7 @@ fn make_platform() -> Platform {
 #[cfg(target_os = "macos")]
 fn make_platform() -> Platform {
     use crate::platform::NullPowerGuard;
-    use crate::platform::macos::{MacBattery, MacIdle, MacPowerGuard};
+    use crate::platform::macos::{MacActivity, MacBattery, MacIdle, MacPowerGuard};
 
     let guard: Box<dyn crate::platform::PowerGuard> = match MacPowerGuard::new() {
         Ok(guard) => Box::new(guard),
@@ -363,17 +367,19 @@ fn make_platform() -> Platform {
         guard,
         battery: Box::new(MacBattery),
         idle: Box::new(MacIdle),
+        activity: Box::new(MacActivity::new()),
         clock: Arc::new(SystemClock),
     }
 }
 
 #[cfg(not(any(windows, target_os = "macos")))]
 fn make_platform() -> Platform {
-    use crate::platform::{AlwaysOnMains, NoIdle, NullPowerGuard};
+    use crate::platform::{AlwaysOnMains, NoActivity, NoIdle, NullPowerGuard};
     Platform {
         guard: Box::new(NullPowerGuard),
         battery: Box::new(AlwaysOnMains),
         idle: Box::new(NoIdle),
+        activity: Box::new(NoActivity),
         clock: Arc::new(SystemClock),
     }
 }

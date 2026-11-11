@@ -31,6 +31,19 @@ pub fn set_plan(state: State<'_, AppState>, request: PlanRequest) -> Snapshot {
     state.engine.set_plan(request)
 }
 
+/// The apps running now, for the picker under Stay awake while…: one name
+/// each, sorted. Async so the process list is never read on the main thread.
+#[tauri::command]
+pub async fn running_apps() -> Vec<String> {
+    #[cfg(target_os = "macos")]
+    let names = crate::platform::macos::list_processes();
+    #[cfg(windows)]
+    let names = crate::platform::windows::list_processes();
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let names: Vec<String> = Vec::new();
+    crate::core::watch::app_choices(&names)
+}
+
 /// Flip between off and the default plan.
 #[tauri::command]
 pub fn toggle_session(state: State<'_, AppState>) -> Snapshot {

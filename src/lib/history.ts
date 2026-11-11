@@ -26,6 +26,8 @@ const ENDED: Readonly<Record<Ended, string>> = {
   idle: 'idle',
   sleep: 'sleep',
   crash: 'crash',
+  // The app, the download or the display it stayed awake for went away.
+  watch: 'condition',
 };
 
 const PAUSED_BY: Readonly<Record<PauseReason, string>> = {

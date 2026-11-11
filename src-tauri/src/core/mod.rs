@@ -9,8 +9,10 @@ pub mod schedule;
 pub mod session;
 pub mod settings;
 pub mod snapshot;
+pub mod watch;
 
 pub use plan::PlanRequest;
 pub use session::{Mode, Session, SessionEvent};
 pub use settings::{AiSettings, AlmanacSettings, Provider, Schedule, Settings};
 pub use snapshot::{BatteryState, GuardState, PauseReason, ScheduleState, Snapshot};
+pub use watch::{WatchReason, WatchSettings, WatchState};

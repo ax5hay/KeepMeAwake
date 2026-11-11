@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::session::Mode;
 use super::settings::Settings;
+use super::watch::WatchState;
 
 /// Why an active session is currently not holding the machine awake.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -98,6 +99,9 @@ pub struct Snapshot {
     /// The overnight guard is watching this session: an Always session,
     /// the guard on, and nobody said I'm here for it.
     pub guard_watching: bool,
+    /// Stay awake while…: which condition holds, and the live readings.
+    #[serde(default)]
+    pub watch: WatchState,
     /// User preferences, so the UI has a single source of truth.
     pub settings: Settings,
     /// Application version, for the About section.
@@ -130,6 +134,7 @@ mod tests {
             guard_night: false,
             rises_on_touch: false,
             guard_watching: false,
+            watch: crate::core::WatchState::default(),
             settings: Settings::default(),
             app_version: "0.0.0".into(),
         }

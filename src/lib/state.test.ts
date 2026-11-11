@@ -25,6 +25,7 @@ const base: Snapshot = {
   guard_night: false,
   rises_on_touch: false,
   guard_watching: false,
+  watch: { reason: null, skipped: false, transfer_bps: null, cpu_percent: null, running: [] },
   settings: {
     version: 1,
     keep_display_on: true,
@@ -78,6 +79,14 @@ const base: Snapshot = {
     sounds: false,
     check_for_updates: true,
     last_update_check_unix_ms: 0,
+    watch: {
+      apps: [],
+      transfers: false,
+      busy: false,
+      full_screen: false,
+      display: false,
+      plugged_in: false,
+    },
   },
   app_version: '0.1.0',
 };

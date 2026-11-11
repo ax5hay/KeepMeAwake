@@ -36,6 +36,8 @@ pub enum Ended {
     Sleep,
     /// No clean end for a reason the app cannot name.
     Crash,
+    /// The condition it was kept awake for (stay awake while…) cleared.
+    Watch,
 }
 
 /// A stretch inside an entry during which the sun was up but not holding.

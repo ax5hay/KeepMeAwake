@@ -5,7 +5,7 @@
  */
 
 /** `scheduled`: no manual session, but a schedule window is open and not skipped. */
-export type Mode = 'off' | 'indefinite' | 'timed' | 'scheduled';
+export type Mode = 'off' | 'indefinite' | 'timed' | 'scheduled' | 'watching';
 
 export type PauseReason = 'low_battery' | 'on_battery' | 'power_request_failed';
 
@@ -93,6 +93,36 @@ export interface Settings {
   check_for_updates: boolean;
   /** When it last asked, Unix ms; 0 for never. Written by the app, not the UI. */
   last_update_check_unix_ms: number;
+  watch: WatchSettings;
+}
+
+/** Stay awake while…: conditions that keep the laptop awake on their own. */
+export interface WatchSettings {
+  apps: string[];
+  transfers: boolean;
+  busy: boolean;
+  full_screen: boolean;
+  display: boolean;
+  plugged_in: boolean;
+}
+
+/** Why a watched condition holds the laptop awake. */
+export type WatchReason =
+  | { kind: 'app'; name: string }
+  | { kind: 'process'; pid: number }
+  | { kind: 'transfer' }
+  | { kind: 'busy' }
+  | { kind: 'full_screen' }
+  | { kind: 'display' }
+  | { kind: 'plugged_in' };
+
+/** Where the watched conditions stand, with the live readings. */
+export interface WatchState {
+  reason: WatchReason | null;
+  skipped: boolean;
+  transfer_bps: number | null;
+  cpu_percent: number | null;
+  running: string[];
 }
 
 /**
@@ -231,6 +261,7 @@ export interface Snapshot {
   rises_on_touch: boolean;
   /** The overnight guard watches this session: Always, guard on, not kept up. */
   guard_watching: boolean;
+  watch: WatchState;
   settings: Settings;
   app_version: string;
 }
@@ -242,7 +273,8 @@ export type PlanRequest =
   | { kind: 'until'; unix_ms: number };
 
 /** How an awake stretch ended. Mirrors `core::history::Ended`. */
-export type Ended = 'user' | 'timer' | 'schedule' | 'battery' | 'idle' | 'sleep' | 'crash';
+export type Ended =
+  'user' | 'timer' | 'schedule' | 'battery' | 'idle' | 'sleep' | 'crash' | 'watch';
 
 /** A stretch inside an entry during which the sun was up but not holding. */
 export interface Pause {

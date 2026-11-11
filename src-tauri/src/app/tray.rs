@@ -13,7 +13,7 @@ use tauri::{AppHandle, Manager, Runtime};
 
 use super::update::UpdateInfo;
 use super::{AppState, window};
-use crate::core::{Mode, PlanRequest, Snapshot};
+use crate::core::{Mode, PlanRequest, Snapshot, WatchReason};
 
 /// Identifier used to look the tray up for updates.
 pub const TRAY_ID: &str = "main";
@@ -350,6 +350,10 @@ fn status_line_at(snapshot: &Snapshot, now_unix_ms: u64) -> String {
             (true, Some(end)) => {
                 format!("Skipping today's schedule until {}", when(end, now_unix_ms))
             }
+            _ if snapshot.watch.skipped => match &snapshot.watch.reason {
+                Some(reason) => format!("Sleeping normally \u{b7} {}", skipping_until(reason)),
+                None => "Sleeping normally".to_owned(),
+            },
             _ => match schedule.next_start_unix_ms.filter(|_| schedule.enabled) {
                 Some(next) => format!(
                     "Sleeping normally \u{b7} awake again at {}",
@@ -368,6 +372,37 @@ fn status_line_at(snapshot: &Snapshot, now_unix_ms: u64) -> String {
             Some(secs) => format!("Awake, {} left", format_duration(secs)),
             None => "Awake".to_owned(),
         },
+        (Mode::Watching, None) => match &snapshot.watch.reason {
+            Some(reason) => format!("Awake {}", awake_while(reason)),
+            None => "Awake".to_owned(),
+        },
+    }
+}
+
+/// `while Xcode runs`: why a watched condition keeps the laptop awake.
+/// The window says the same in `format.ts`.
+pub fn awake_while(reason: &WatchReason) -> String {
+    match reason {
+        WatchReason::App { name } => format!("while {name} runs"),
+        WatchReason::Process { pid } => format!("while process {pid} runs"),
+        WatchReason::Transfer => "while the network is busy".to_owned(),
+        WatchReason::Busy => "while the computer is busy".to_owned(),
+        WatchReason::FullScreen => "while something is full screen".to_owned(),
+        WatchReason::Display => "while a display is connected".to_owned(),
+        WatchReason::PluggedIn => "while plugged in".to_owned(),
+    }
+}
+
+/// `skipping until Xcode quits`: the sun was clicked while a condition held.
+pub fn skipping_until(reason: &WatchReason) -> String {
+    match reason {
+        WatchReason::App { name } => format!("skipping until {name} quits"),
+        WatchReason::Process { pid } => format!("skipping until process {pid} ends"),
+        WatchReason::Transfer => "skipping until the network is quiet".to_owned(),
+        WatchReason::Busy => "skipping until the computer is calm".to_owned(),
+        WatchReason::FullScreen => "skipping until full screen ends".to_owned(),
+        WatchReason::Display => "skipping until the display is unplugged".to_owned(),
+        WatchReason::PluggedIn => "skipping until it is unplugged".to_owned(),
     }
 }
 
@@ -442,6 +477,7 @@ mod tests {
             guard_night: false,
             rises_on_touch: false,
             guard_watching: false,
+            watch: crate::core::WatchState::default(),
             settings: Settings::default(),
             app_version: String::new(),
         }
