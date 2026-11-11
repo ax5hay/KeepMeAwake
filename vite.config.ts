@@ -32,6 +32,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    // The theme tests read the stylesheets themselves.
+    css: true,
     include: ['src/**/*.test.ts'],
     setupFiles: ['src/test/setup.ts'],
     coverage: { reporter: ['text', 'lcov'], include: ['src/lib/**'] },

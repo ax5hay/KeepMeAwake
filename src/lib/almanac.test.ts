@@ -175,6 +175,52 @@ describe('what a day reads as', () => {
   });
 });
 
+describe('a weekday that is not worked', () => {
+  // Five weeks from Monday 5 October 2026, worked Monday to Thursday.
+  const october = (date: number, hour: number) => new Date(2026, 9, date, hour).getTime();
+  const weeks = [5, 12, 19, 26, 33];
+  const monToThu = weeks.flatMap((monday) =>
+    [0, 1, 2, 3].map((i) => span(october(monday + i, 9), october(monday + i, 17))),
+  );
+  const now = october(40, 12);
+
+  it('reads its empty days as days off, not a leave every week', () => {
+    const reading = read(book(monToThu), office, now);
+    for (const monday of weeks) {
+      const friday = reading.dayAt(october(monday + 4, 12));
+      expect(friday.working).toBe(true);
+      expect(friday.usual_off).toBe(true);
+      expect(friday.kind).toBe('rest');
+    }
+    expect(tally(monthOf(reading, 2026, 9)).leaves).toBe(0);
+  });
+
+  it('still reads one missed day as leave, and a week away as leave', () => {
+    const spans = monToThu.filter(
+      (s) => s.from_unix_ms !== october(13, 9) && s.from_unix_ms < october(26, 0),
+    );
+    const worksFridays = [
+      ...spans,
+      ...[9, 16, 23].map((date) => span(october(date, 9), october(date, 17))),
+    ];
+    const reading = read(book(worksFridays), office, now);
+    expect(reading.dayAt(october(13, 12)).kind).toBe('leave');
+    // The week of the 26th: nobody here at all.
+    for (const date of [26, 27, 28, 29, 30]) {
+      expect(reading.dayAt(october(date, 12)).kind).toBe('leave');
+    }
+  });
+
+  it('does not decide from fewer than three weeks, or against a leave you marked', () => {
+    const two = monToThu.filter((s) => s.from_unix_ms < october(19, 0));
+    const early = read(book(two), office, october(19, 12));
+    expect(early.dayAt(october(9, 12)).kind).toBe('leave');
+    const marked = read(book(monToThu, { '2026-10-16': 'leave' }), office, now);
+    expect(marked.dayAt(october(16, 12)).kind).toBe('leave');
+    expect(marked.dayAt(october(9, 12)).kind).toBe('leave');
+  });
+});
+
 describe('a day corrected by hand', () => {
   const read9 = [span(at(9, 9), at(9, 12)), span(at(9, 14), at(9, 23, 30))];
   const next = span(at(10, 7), at(10, 12));

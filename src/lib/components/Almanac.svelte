@@ -241,6 +241,7 @@
       ahead: reading !== null && d.start > reading.today.start,
       marked: d.mark !== null,
       fixed: d.fixed,
+      usual_off: d.usual_off,
       first: d.first === null ? null : formatClock(d.first),
       last: d.last === null ? null : formatClock(d.last),
       over: d.over_ms >= 60_000 ? formatWorked(d.over_ms) : null,

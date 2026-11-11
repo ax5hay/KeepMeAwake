@@ -9,7 +9,30 @@ export type Mode = 'off' | 'indefinite' | 'timed' | 'scheduled';
 
 export type PauseReason = 'low_battery' | 'on_battery' | 'power_request_failed';
 
-export type Theme = 'system' | 'light' | 'dark';
+/**
+ * The colours the window wears: the app's own three, then palettes to
+ * choose. Each but `system` names a block of tokens in the stylesheet.
+ */
+export type Theme =
+  | 'system'
+  | 'light'
+  | 'dark'
+  | 'solarized_light'
+  | 'solarized_dark'
+  | 'gruvbox'
+  | 'nord'
+  | 'dracula'
+  | 'catppuccin'
+  | 'tokyo_night'
+  | 'monokai'
+  | 'terminal'
+  | 'blueprint'
+  | 'pocket'
+  | 'newsprint'
+  | 'vaporwave'
+  | 'hot_dog_stand'
+  | 'bubblegum'
+  | 'highlighter';
 
 export type StartupPlan = 'off' | 'indefinite' | 'default_duration';
 

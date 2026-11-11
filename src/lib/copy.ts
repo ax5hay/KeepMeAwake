@@ -285,6 +285,8 @@ export interface DayFacts {
   marked: boolean;
   /** Its hours were entered by hand. */
   fixed: boolean;
+  /** A working day by the setting that the record says is not worked. */
+  usual_off?: boolean;
   /** First and last touch, already as clock times. */
   first: string | null;
   last: string | null;
@@ -313,7 +315,9 @@ export function dayDetail(day: DayFacts): string {
         ? 'Leave, marked by you.'
         : 'No activity on a working day: counted as leave.';
     case 'rest':
-      return 'Not a working day.';
+      return day.usual_off
+        ? 'A day you do not usually work: a day off, not leave.'
+        : 'Not a working day.';
     case 'ahead':
       return 'In the future.';
     default:
@@ -383,11 +387,18 @@ export const ALMANAC_BEGINS = 'The first day is being written.';
 /** Settings → Almanac → Keep an almanac. */
 export const ALMANAC_HINT = 'Your hours, leave and nights.';
 
+/** Settings → Theme, under the name of the one worn. */
+export const THEME_HINT = 'Colours only. The sun stays the one accent.';
+
+/** The way back to the app's own two. */
+export const THEME_RESET = 'Back to System';
+
 /** Settings → Almanac → Working hours. */
 export const WORK_HOURS_HINT = 'Past midnight is fine. Time outside them counts as over.';
 
-/** Settings → Almanac → Empty working days are leave. */
-export const EMPTY_LEAVE_HINT = 'Off on a machine you rarely use.';
+/** Settings → Almanac → Count missed working days as leave. */
+export const EMPTY_LEAVE = 'Count missed working days as leave';
+export const EMPTY_LEAVE_HINT = 'Weekends and days off never count.';
 
 /** AI's features with no API key: said wherever they are. */
 export const AI_LOCKED = 'Locked: needs an API key.';

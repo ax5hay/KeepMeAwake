@@ -1,6 +1,7 @@
 /*
-  Design tokens. Two palettes, paper and night, both built from warm neutrals
-  with a single accent: the sun. Nothing else in the UI is coloured.
+  Design tokens. The app's own two palettes, paper and night, are built from
+  warm neutrals with a single accent: the sun. Nothing else in the UI is
+  coloured. The themes one can choose besides them are in themes.css.
 */
 
 @font-face {
@@ -23,6 +24,21 @@
   --font-display: 'Fraunces', 'Georgia', 'Times New Roman', serif;
   --font-ui: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, system-ui, sans-serif;
 
+  --radius: 10px;
+  --radius-sm: 6px;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-fast: 140ms;
+  --t-mid: 320ms;
+  --t-slow: 720ms;
+}
+
+/*
+  A palette is chosen by a bare attribute, on the page or on any element
+  inside it (a swatch in Settings wears its own). The rest are in themes.css.
+*/
+:root,
+[data-theme='light'] {
   /* Paper */
   --paper: #f4f0e7;
   --paper-2: #ebe6da;
@@ -45,18 +61,10 @@
   --stars: 0.14;
   --shadow: 0 1px 2px rgb(28 27 24 / 0.08);
 
-  --radius: 10px;
-  --radius-sm: 6px;
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --t-fast: 140ms;
-  --t-mid: 320ms;
-  --t-slow: 720ms;
-
   color-scheme: light;
 }
 
-:root[data-theme='dark'] {
+[data-theme='dark'] {
   /* Night */
   --paper: #0f1216;
   --paper-2: #161b21;

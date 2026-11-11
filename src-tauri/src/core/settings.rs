@@ -6,17 +6,76 @@ use serde::{Deserialize, Serialize};
 /// Current on-disk schema version. Bump when a field changes meaning.
 pub const SETTINGS_VERSION: u32 = 1;
 
-/// Which colour scheme the UI uses.
+/// Which colours the window wears. The first three are the app's own; the
+/// rest are palettes to choose, each a set of the same tokens in the UI's
+/// stylesheet, named there by the same word as here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum Theme {
-    /// Follow Windows.
+    /// Paper by day and Night by night, following the OS.
     #[default]
     System,
-    /// Always light.
+    /// Paper, always.
     Light,
-    /// Always dark.
+    /// Night, always.
     Dark,
+    /// Solarized, on its light base.
+    SolarizedLight,
+    /// Solarized, on its dark base.
+    SolarizedDark,
+    /// Gruvbox, dark.
+    Gruvbox,
+    /// Nord.
+    Nord,
+    /// Dracula.
+    Dracula,
+    /// Catppuccin, the Mocha flavour.
+    Catppuccin,
+    /// Tokyo Night.
+    TokyoNight,
+    /// Monokai.
+    Monokai,
+    /// Green phosphor, with an amber sun.
+    Terminal,
+    /// White line on cyanotype blue.
+    Blueprint,
+    /// The four greens of a handheld screen.
+    Pocket,
+    /// Black on white, with a red sun.
+    Newsprint,
+    /// Pink and cyan on violet.
+    Vaporwave,
+    /// Red and yellow, after the old joke.
+    HotDogStand,
+    /// Pink, all of it.
+    Bubblegum,
+    /// Marker yellow, with a pink sun.
+    Highlighter,
+}
+
+impl Theme {
+    /// Every theme, in the order the picker shows them.
+    pub const ALL: [Self; 19] = [
+        Self::System,
+        Self::Light,
+        Self::Dark,
+        Self::SolarizedLight,
+        Self::SolarizedDark,
+        Self::Gruvbox,
+        Self::Nord,
+        Self::Dracula,
+        Self::Catppuccin,
+        Self::TokyoNight,
+        Self::Monokai,
+        Self::Terminal,
+        Self::Blueprint,
+        Self::Pocket,
+        Self::Newsprint,
+        Self::Vaporwave,
+        Self::HotDogStand,
+        Self::Bubblegum,
+        Self::Highlighter,
+    ];
 }
 
 /// What happens when the app launches.
@@ -702,5 +761,19 @@ mod tests {
             serde_json::to_string(&Theme::System).unwrap(),
             r#""system""#
         );
+    }
+
+    #[test]
+    fn every_theme_has_a_name_of_its_own_and_reads_back() {
+        let names: Vec<String> = Theme::ALL
+            .iter()
+            .map(|theme| serde_json::to_string(theme).unwrap())
+            .collect();
+        for (theme, name) in Theme::ALL.iter().zip(&names) {
+            assert_eq!(serde_json::from_str::<Theme>(name).unwrap(), *theme);
+            assert_eq!(names.iter().filter(|other| *other == name).count(), 1);
+        }
+        assert!(names.contains(&r#""hot_dog_stand""#.to_owned()));
+        assert!(names.contains(&r#""tokyo_night""#.to_owned()));
     }
 }

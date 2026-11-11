@@ -73,6 +73,11 @@ export interface Day {
   hours: Stretch;
   /** A working weekday, by the setting. */
   working: boolean;
+  /**
+   * A working weekday by the setting, but one the record says is not
+   * worked: empty week after week while the rest of the week is not.
+   */
+  usual_off: boolean;
   kind: Kind;
   /** What was said about it, if anything. */
   mark: Mark | null;
@@ -242,6 +247,12 @@ export function corrected(almanac: Almanac, turn: number): Span[] {
   return [...spans, ...entered].sort((a, b) => a.from_unix_ms - b.from_unix_ms);
 }
 
+/** How many weeks each side of a day are asked whether its weekday is worked. */
+export const OFF_WEEKS = 4;
+
+/** How many of them must say it is not, with none saying it is. */
+export const OFF_FROM = 3;
+
 /** Reads `almanac` as it stands at `now`. */
 export function read(almanac: Almanac, settings: AlmanacSettings, now: number): Reading {
   const turn = dayTurn(settings);
@@ -270,6 +281,38 @@ export function read(almanac: Almanac, settings: AlmanacSettings, now: number): 
   const todayStart = dayStart(now, turn);
   const cache = new Map<string, Day>();
 
+  const workedOn = (start: number): boolean =>
+    (stretches.get(dayKey(start)) ?? []).reduce((sum, s) => sum + (s.to - s.from), 0) >=
+    WORKED_FROM_MS;
+
+  /** Somebody worked in the week holding `start`, on some other day of it. */
+  function weekWorked(start: number): boolean {
+    const weekday = (new Date(start).getDay() + 6) % 7;
+    for (let i = 0; i < 7; i += 1) {
+      if (i !== weekday && workedOn(shiftDay(start, i - weekday))) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Whether the weekday of the empty day at `start` is one that is not
+   * worked, whatever the setting says: the same weekday was empty in at
+   * least `OFF_FROM` of the weeks around it, in weeks that were worked,
+   * and in none of them was it worked or taken as leave. A week nobody
+   * worked at all says nothing either way, so a holiday stays leave.
+   */
+  function usuallyOff(start: number): boolean {
+    if (began === null || start < began || !weekWorked(start)) return false;
+    let empty = 0;
+    for (let week = -OFF_WEEKS; week <= OFF_WEEKS; week += 1) {
+      const other = shiftDay(start, week * 7);
+      if (week === 0 || other < began || other >= todayStart) continue;
+      if (workedOn(other) || almanac.marks[dayKey(other)] === 'leave') return false;
+      if (weekWorked(other)) empty += 1;
+    }
+    return empty >= OFF_FROM;
+  }
+
   function dayAt(ms: number): Day {
     const start = dayStart(ms, turn);
     const key = dayKey(start);
@@ -283,12 +326,14 @@ export function read(almanac: Almanac, settings: AlmanacSettings, now: number): 
     const within = inside.reduce((sum, s) => sum + overlap(s, hours), 0);
     const mark = almanac.marks[key] ?? null;
     const today = start === todayStart;
+    const empty = worked_ms < WORKED_FROM_MS;
+    const usual_off = working && empty && start < todayStart && usuallyOff(start);
     let kind: Kind;
     if (mark === 'leave') kind = 'leave';
-    else if (worked_ms >= WORKED_FROM_MS) kind = 'worked';
+    else if (!empty) kind = 'worked';
     else if (start > todayStart) kind = 'ahead';
     else if (today) kind = 'nothing';
-    else if (!working) kind = 'rest';
+    else if (!working || usual_off) kind = 'rest';
     else if (
       settings.empty_days_are_leave &&
       mark !== 'clear' &&
@@ -309,6 +354,7 @@ export function read(almanac: Almanac, settings: AlmanacSettings, now: number): 
       last: lastStretch?.to ?? null,
       hours,
       working,
+      usual_off,
       kind,
       mark,
       fixed: key in (almanac.fixes ?? {}),

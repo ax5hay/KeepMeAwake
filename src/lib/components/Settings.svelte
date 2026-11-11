@@ -8,6 +8,8 @@
   import HotkeyField from './HotkeyField.svelte';
   import Row from './Row.svelte';
   import Segmented from './Segmented.svelte';
+  import ThemePicker from './ThemePicker.svelte';
+  import { themeLabel } from '$lib/theme';
   import Stepper from './Stepper.svelte';
   import Switch from './Switch.svelte';
   import {
@@ -30,8 +32,11 @@
     AI_SERVICE_HINT,
     AI_PROMISE,
     ALMANAC_HINT,
+    THEME_HINT,
+    THEME_RESET,
     BREAK_HINT,
     AUTHOR,
+    EMPTY_LEAVE,
     EMPTY_LEAVE_HINT,
     INSTALL_UPDATE,
     OVERNIGHT_GUARD_HINT,
@@ -56,14 +61,7 @@
   import { formatStop, minutesToTime, timeToMinutes } from '$lib/format';
   import { isMac } from '$lib/platform';
   import { store } from '$lib/state.svelte';
-  import type {
-    AlmanacSettings,
-    Provider,
-    Notifications,
-    Schedule,
-    StartupPlan,
-    Theme,
-  } from '$lib/types';
+  import type { AlmanacSettings, Provider, Notifications, Schedule, StartupPlan } from '$lib/types';
 
   const settings = $derived(store.settings);
 
@@ -222,12 +220,6 @@
     { value: '120', label: '2h' },
   ];
 
-  const themeOptions: ReadonlyArray<{ value: Theme; label: string }> = [
-    { value: 'system', label: 'System' },
-    { value: 'light', label: 'Paper' },
-    { value: 'dark', label: 'Night' },
-  ];
-
   const startupOptions: ReadonlyArray<{ value: StartupPlan; label: string }> = [
     { value: 'off', label: 'Resting' },
     { value: 'indefinite', label: 'Awake' },
@@ -383,10 +375,10 @@
             />
           </div>
         </Row>
-        <Row label="Empty working days are leave" hint={EMPTY_LEAVE_HINT}>
+        <Row label={EMPTY_LEAVE} hint={EMPTY_LEAVE_HINT}>
           <Switch
             checked={settings.almanac.empty_days_are_leave}
-            label="Empty working days are leave"
+            label={EMPTY_LEAVE}
             onchange={(v) => setAlmanac({ empty_days_are_leave: v })}
           />
         </Row>
@@ -558,14 +550,25 @@
           onchange={(v) => void store.updateSettings({ free_memory_when_hidden: v })}
         />
       </Row>
-      <Row label="Appearance">
-        <Segmented
-          options={themeOptions}
-          value={settings.theme}
-          label="Appearance"
-          onchange={(v) => void store.updateSettings({ theme: v })}
-        />
+    </section>
+
+    <section id="settings-theme">
+      <h2 class="eyebrow">Theme</h2>
+      <Row label={themeLabel(settings.theme)} hint={THEME_HINT}>
+        {#if settings.theme !== 'system'}
+          <button
+            type="button"
+            class="link"
+            onclick={() => void store.updateSettings({ theme: 'system' })}
+          >
+            {THEME_RESET}
+          </button>
+        {/if}
       </Row>
+      <ThemePicker
+        value={settings.theme}
+        onchange={(theme) => void store.updateSettings({ theme })}
+      />
     </section>
 
     <section>
@@ -684,6 +687,23 @@
 </div>
 
 <style>
+  .link {
+    padding: 3px 0;
+    font-size: 12px;
+    color: var(--ink-2);
+    text-decoration: underline;
+    text-decoration-color: var(--hair-strong);
+    text-underline-offset: 2px;
+    transition:
+      color var(--t-fast) var(--ease),
+      text-decoration-color var(--t-fast) var(--ease);
+  }
+
+  .link:hover {
+    color: var(--ink);
+    text-decoration-color: var(--ink);
+  }
+
   .scroll {
     flex: 1;
     min-height: 0;

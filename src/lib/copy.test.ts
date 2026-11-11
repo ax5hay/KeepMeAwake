@@ -297,6 +297,9 @@ describe('almanac copy', () => {
       'Leave, marked by you.',
     );
     expect(dayDetail({ ...empty, kind: 'rest' })).toBe('Not a working day.');
+    expect(dayDetail({ ...empty, kind: 'rest', usual_off: true })).toBe(
+      'A day you do not usually work: a day off, not leave.',
+    );
     expect(dayDetail({ ...empty, kind: 'ahead', ahead: true })).toBe('In the future.');
     expect(dayDetail({ ...empty, kind: 'nothing', today: true })).toBe('No activity yet today.');
     expect(dayDetail({ ...empty, kind: 'nothing', marked: true })).toBe(

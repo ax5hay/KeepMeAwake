@@ -1,0 +1,428 @@
+/*
+  The themes beyond Paper and Night. Each is the same set of tokens and
+  nothing else, so a theme can change every colour and no layout. One accent
+  still: the sun. A selector here is a bare attribute, not `:root`, so a
+  swatch in Settings can wear a theme of its own.
+*/
+
+/* Borrowed: palettes many people already live in. */
+
+[data-theme='solarized_light'] {
+  /* Solarized Light */
+  --paper: #fdf6e3;
+  --paper-2: #eee8d5;
+  --ink: #073642;
+  --ink-2: #586e75;
+  --ink-3: #93a1a1;
+  --hair: rgb(7 54 66 / 0.14);
+  --hair-strong: rgb(7 54 66 / 0.34);
+  --sun: #b58900;
+  --sun-dim: #d6c68c;
+  --sky-off: #e6e0cb;
+  --sky-on: #e2ecdf;
+  --sky-paused: #e8e2d0;
+  --ground-off: #ece5d0;
+  --ground-on: #f1e7c6;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(7 54 66 / 0.08);
+
+  color-scheme: light;
+}
+
+[data-theme='solarized_dark'] {
+  /* Solarized Dark */
+  --paper: #002b36;
+  --paper-2: #073642;
+  --ink: #eee8d5;
+  --ink-2: #93a1a1;
+  --ink-3: #586e75;
+  --hair: rgb(238 232 213 / 0.12);
+  --hair-strong: rgb(238 232 213 / 0.3);
+  --sun: #cb9b1b;
+  --sun-dim: #5c5a2a;
+  --sky-off: #01323e;
+  --sky-on: #0a4250;
+  --sky-paused: #05303a;
+  --ground-off: #012730;
+  --ground-on: #062f38;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='gruvbox'] {
+  /* Gruvbox */
+  --paper: #282828;
+  --paper-2: #32302f;
+  --ink: #ebdbb2;
+  --ink-2: #bdae93;
+  --ink-3: #7c6f64;
+  --hair: rgb(235 219 178 / 0.12);
+  --hair-strong: rgb(235 219 178 / 0.3);
+  --sun: #fabd2f;
+  --sun-dim: #7c6a3a;
+  --sky-off: #1d2021;
+  --sky-on: #2f3b3a;
+  --sky-paused: #2a2a28;
+  --ground-off: #242321;
+  --ground-on: #32302a;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='nord'] {
+  /* Nord */
+  --paper: #2e3440;
+  --paper-2: #3b4252;
+  --ink: #eceff4;
+  --ink-2: #b8c0cf;
+  --ink-3: #7b88a1;
+  --hair: rgb(236 239 244 / 0.12);
+  --hair-strong: rgb(236 239 244 / 0.3);
+  --sun: #ebcb8b;
+  --sun-dim: #7d745f;
+  --sky-off: #2b303b;
+  --sky-on: #3d4a5f;
+  --sky-paused: #353a45;
+  --ground-off: #292e39;
+  --ground-on: #323845;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='dracula'] {
+  /* Dracula */
+  --paper: #282a36;
+  --paper-2: #343746;
+  --ink: #f8f8f2;
+  --ink-2: #bfc1d0;
+  --ink-3: #6272a4;
+  --hair: rgb(248 248 242 / 0.12);
+  --hair-strong: rgb(248 248 242 / 0.3);
+  --sun: #ffb86c;
+  --sun-dim: #7a644f;
+  --sky-off: #21222c;
+  --sky-on: #3b3a5a;
+  --sky-paused: #2d2f3b;
+  --ground-off: #232530;
+  --ground-on: #2c2d3a;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='catppuccin'] {
+  /* Catppuccin */
+  --paper: #1e1e2e;
+  --paper-2: #292a3c;
+  --ink: #cdd6f4;
+  --ink-2: #a6adc8;
+  --ink-3: #6c7086;
+  --hair: rgb(205 214 244 / 0.12);
+  --hair-strong: rgb(205 214 244 / 0.3);
+  --sun: #f9e2af;
+  --sun-dim: #7f7663;
+  --sky-off: #181825;
+  --sky-on: #2a2b45;
+  --sky-paused: #232334;
+  --ground-off: #1a1a28;
+  --ground-on: #232331;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='tokyo_night'] {
+  /* Tokyo Night */
+  --paper: #1a1b26;
+  --paper-2: #24283b;
+  --ink: #c0caf5;
+  --ink-2: #a9b1d6;
+  --ink-3: #565f89;
+  --hair: rgb(192 202 245 / 0.12);
+  --hair-strong: rgb(192 202 245 / 0.3);
+  --sun: #e0af68;
+  --sun-dim: #6f5f47;
+  --sky-off: #16161e;
+  --sky-on: #232b4d;
+  --sky-paused: #1f2030;
+  --ground-off: #15161f;
+  --ground-on: #1d1f2c;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='monokai'] {
+  /* Monokai */
+  --paper: #272822;
+  --paper-2: #32332b;
+  --ink: #f8f8f2;
+  --ink-2: #cfcfc2;
+  --ink-3: #75715e;
+  --hair: rgb(248 248 242 / 0.12);
+  --hair-strong: rgb(248 248 242 / 0.3);
+  --sun: #e6db74;
+  --sun-dim: #77724a;
+  --sky-off: #1e1f1a;
+  --sky-on: #3a3b2e;
+  --sky-paused: #2b2c26;
+  --ground-off: #22231d;
+  --ground-on: #2d2e25;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+/* Play: a place the horizon could be. */
+
+[data-theme='terminal'] {
+  /* Terminal */
+  --paper: #050a05;
+  --paper-2: #0b140b;
+  --ink: #33ff66;
+  --ink-2: #1fb84a;
+  --ink-3: #14732f;
+  --hair: rgb(51 255 102 / 0.12);
+  --hair-strong: rgb(51 255 102 / 0.3);
+  --sun: #ffb000;
+  --sun-dim: #6e4d00;
+  --sky-off: #040804;
+  --sky-on: #0a1a0d;
+  --sky-paused: #070d07;
+  --ground-off: #030603;
+  --ground-on: #081208;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='blueprint'] {
+  /* Blueprint */
+  --paper: #173f7a;
+  --paper-2: #1d4a8c;
+  --ink: #eef4ff;
+  --ink-2: #b9cdf0;
+  --ink-3: #7f9bcf;
+  --hair: rgb(238 244 255 / 0.12);
+  --hair-strong: rgb(238 244 255 / 0.3);
+  --sun: #ffd75e;
+  --sun-dim: #8a8f7a;
+  --sky-off: #143a72;
+  --sky-on: #1f52a0;
+  --sky-paused: #1a437f;
+  --ground-off: #12356a;
+  --ground-on: #183f7c;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='pocket'] {
+  /* Pocket */
+  --paper: #9bbc0f;
+  --paper-2: #8bac0f;
+  --ink: #0f380f;
+  --ink-2: #306230;
+  --ink-3: #557d1c;
+  --hair: rgb(15 56 15 / 0.14);
+  --hair-strong: rgb(15 56 15 / 0.34);
+  --sun: #0f380f;
+  --sun-dim: #306230;
+  --sky-off: #8bac0f;
+  --sky-on: #9bbc0f;
+  --sky-paused: #8bac0f;
+  --ground-off: #86a50e;
+  --ground-on: #8bac0f;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(15 56 15 / 0.08);
+
+  color-scheme: light;
+}
+
+[data-theme='newsprint'] {
+  /* Newsprint */
+  --paper: #f7f6f2;
+  --paper-2: #eceae4;
+  --ink: #111111;
+  --ink-2: #4a4a4a;
+  --ink-3: #8c8c8c;
+  --hair: rgb(17 17 17 / 0.14);
+  --hair-strong: rgb(17 17 17 / 0.34);
+  --sun: #d92b1e;
+  --sun-dim: #d9a39e;
+  --sky-off: #e6e4de;
+  --sky-on: #f0eee8;
+  --sky-paused: #e2e0da;
+  --ground-off: #dddbd4;
+  --ground-on: #e6e3db;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(17 17 17 / 0.08);
+
+  color-scheme: light;
+}
+
+/* Loud: on purpose. */
+
+[data-theme='vaporwave'] {
+  /* Vaporwave */
+  --paper: #241046;
+  --paper-2: #31175c;
+  --ink: #f9e8ff;
+  --ink-2: #8fe8f2;
+  --ink-3: #7d62b0;
+  --hair: rgb(249 232 255 / 0.12);
+  --hair-strong: rgb(249 232 255 / 0.3);
+  --sun: #ff71ce;
+  --sun-dim: #7d3f7f;
+  --sky-off: #1c0b3a;
+  --sky-on: #3a1a78;
+  --sky-paused: #2a1450;
+  --ground-off: #170a30;
+  --ground-on: #12304f;
+  --grain-blend: screen;
+  --grain-opacity: 0.05;
+  --afterglow-off: 0.1;
+  --afterglow-on: 0.12;
+  --stars: 0.5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='hot_dog_stand'] {
+  /* Hot Dog Stand */
+  --paper: #f01414;
+  --paper-2: #ff3b2f;
+  --ink: #000000;
+  --ink-2: #1a0000;
+  --ink-3: #4a0000;
+  --hair: rgb(0 0 0 / 0.14);
+  --hair-strong: rgb(0 0 0 / 0.34);
+  --sun: #ffe600;
+  --sun-dim: #b8870a;
+  --sky-off: #d01010;
+  --sky-on: #ff2a2a;
+  --sky-paused: #c21a1a;
+  --ground-off: #b00c0c;
+  --ground-on: #ffe600;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+
+  color-scheme: light;
+}
+
+[data-theme='bubblegum'] {
+  /* Bubblegum */
+  --paper: #ffd6e8;
+  --paper-2: #ffc2dc;
+  --ink: #5a1a4a;
+  --ink-2: #94477f;
+  --ink-3: #c183ad;
+  --hair: rgb(90 26 74 / 0.14);
+  --hair-strong: rgb(90 26 74 / 0.34);
+  --sun: #ff3d9a;
+  --sun-dim: #f09cc4;
+  --sky-off: #e9cfe6;
+  --sky-on: #c9f0ff;
+  --sky-paused: #f0c9dc;
+  --ground-off: #ffc2dc;
+  --ground-on: #ffb3d4;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(90 26 74 / 0.08);
+
+  color-scheme: light;
+}
+
+[data-theme='highlighter'] {
+  /* Highlighter */
+  --paper: #fbff4a;
+  --paper-2: #f1f52e;
+  --ink: #111111;
+  --ink-2: #3f4000;
+  --ink-3: #7c7f1a;
+  --hair: rgb(17 17 17 / 0.14);
+  --hair-strong: rgb(17 17 17 / 0.34);
+  --sun: #ff2d95;
+  --sun-dim: #f2a0b0;
+  --sky-off: #eef23a;
+  --sky-on: #fdff7a;
+  --sky-paused: #e6e944;
+  --ground-off: #e4e82c;
+  --ground-on: #f0f43a;
+  --grain-blend: multiply;
+  --grain-opacity: 0.08;
+  --afterglow-off: 0.16;
+  --afterglow-on: 0.1;
+  --stars: 0.14;
+  --shadow: 0 1px 2px rgb(17 17 17 / 0.08);
+
+  color-scheme: light;
+}
