@@ -197,6 +197,15 @@ export function afterEndOptions(mac: boolean): ReadonlyArray<{ value: AfterEnd; 
   ];
 }
 
+/** The same rows, named shortly for the wide window's Watching column. */
+export const WATCH_SHORT = {
+  transfers: 'Downloads and uploads',
+  busy: 'A busy processor',
+  full_screen: 'Full screen',
+  display: 'An external display',
+  plugged_in: 'Plugged in',
+} as const;
+
 /** The field that adds an app, and its button. */
 export const ADD_APP = 'Add an app';
 export const ADD_APP_PLACEHOLDER = 'Xcode, cargo, Blender…';
@@ -563,6 +572,9 @@ export const PRINT_MONTH = 'Print month';
 export const MINI_TITLE = 'Mini window: just the sun, above other windows';
 export const MINI_BACK = 'Back to the whole window';
 
+/** The title bar's way into the wide window. */
+export const WIDE_TITLE = 'Wide window: the whole day, and everything under it';
+
 /** Settings → Theme → After dark. */
 export const AFTER_DARK = 'After dark';
 export const AFTER_DARK_HINT = 'Switch to a different theme in the evening.';
@@ -736,6 +748,7 @@ export function tips(mac: boolean): readonly Tip[] {
       { keys: 'Space', does: 'Turn staying awake on or off' },
       { keys: 'Esc', does: 'Back, or close the window' },
       { keys: '⌘,', does: 'Settings' },
+      { keys: '⌘E', does: 'Wide window, and back' },
       { keys: '?', does: 'All keyboard shortcuts' },
       { keys: '⌘W', does: 'Close to the menu bar' },
       { keys: '⌘Q', does: 'Quit' },
@@ -748,6 +761,7 @@ export function tips(mac: boolean): readonly Tip[] {
     { keys: 'Space', does: 'Turn staying awake on or off' },
     { keys: 'Esc', does: 'Back, or close to the tray' },
     { keys: 'Ctrl+,', does: 'Settings' },
+    { keys: 'Ctrl+E', does: 'Wide window, and back' },
     { keys: '?', does: 'All keyboard shortcuts' },
     { keys: 'Tray · left click', does: 'Open this window' },
     { keys: 'Tray · right click', does: 'Every action, as a menu' },

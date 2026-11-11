@@ -46,4 +46,19 @@ describe('windowAction', () => {
     expect(windowAction(press, 'INPUT', false)).toBeNull();
     expect(windowAction({ ...press, ctrlKey: true }, 'BODY', false)).toBeNull();
   });
+
+  it('opens the wide window with Cmd+E on a Mac and Ctrl+E elsewhere', () => {
+    const press = (key: string, mods: Partial<KeyPress> = {}): KeyPress => ({
+      key,
+      ctrlKey: false,
+      metaKey: false,
+      altKey: false,
+      shiftKey: false,
+      ...mods,
+    });
+    expect(windowAction(press('e', { metaKey: true }), 'BODY', true)).toBe('wide');
+    expect(windowAction(press('e', { ctrlKey: true }), 'BODY', false)).toBe('wide');
+    expect(windowAction(press('e', { ctrlKey: true }), 'BODY', true)).toBeNull();
+    expect(windowAction(press('e'), 'BODY', false)).toBeNull();
+  });
 });

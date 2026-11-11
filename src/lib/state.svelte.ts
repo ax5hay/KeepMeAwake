@@ -373,10 +373,33 @@ export class AppStore {
     return this.snapshot?.settings ?? null;
   }
 
+  /** The window is wide: the day drawn across it. Remembered in settings. */
+  wide = $state(false);
+
+  /** The wide window, or back to the usual one. */
+  async setWide(on: boolean): Promise<void> {
+    try {
+      await this.#api.setWide(on);
+      this.wide = on;
+      this.mini = false;
+      this.sheet = null;
+      this.view = 'home';
+      if (on) void this.loadHistory();
+      await this.updateSettings({ wide: on });
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
   /** The window as the sun alone, or back to all of it. */
   async setMini(on: boolean): Promise<void> {
     try {
       await this.#api.setMini(on);
+      // Mini comes back as the usual window, not wide.
+      if (on && this.wide) {
+        this.wide = false;
+        void this.updateSettings({ wide: false });
+      }
       this.mini = on;
       this.sheet = null;
       if (on) this.view = 'home';
@@ -579,6 +602,14 @@ export class AppStore {
     }
     this.snapshot = snapshot;
     this.now = Date.now();
+    if (before === null) {
+      // The window opens the size it was closed at.
+      this.wide = snapshot.settings.wide;
+      if (this.wide) void this.loadHistory();
+    } else if (this.wide && isAwake(before) !== isAwake(snapshot)) {
+      // The wide window draws the log: a stretch began or ended.
+      void this.loadHistory();
+    }
     this.#syncTicker();
     this.#freshen();
   }

@@ -1,8 +1,11 @@
 <script lang="ts">
   import { getCurrentWindow } from '@tauri-apps/api/window';
 
-  import { ALMANAC_TITLE, CREDIT, MINI_TITLE, PLATFORM_COPY } from '$lib/copy';
+  import { ALMANAC_TITLE, CREDIT, MINI_TITLE, PLATFORM_COPY, WIDE_TITLE } from '$lib/copy';
+  import { isMac } from '$lib/platform';
   import { store } from '$lib/state.svelte';
+
+  const WIDE_KEY = isMac ? '⌘E' : 'Ctrl+E';
 
   const win = getCurrentWindow();
 </script>
@@ -30,6 +33,23 @@
       <svg viewBox="0 0 16 16" aria-hidden="true">
         <rect x="2.5" y="3.5" width="11" height="9" rx="1.4" />
         <rect class="solid" x="8" y="7.5" width="4" height="3.5" rx="0.6" />
+      </svg>
+    </button>
+    <button
+      type="button"
+      class="ctl"
+      aria-label={store.wide ? 'Usual window' : 'Wide window'}
+      aria-pressed={store.wide}
+      title={store.wide ? `Usual window (${WIDE_KEY})` : `${WIDE_TITLE} (${WIDE_KEY})`}
+      onclick={() => void store.setWide(!store.wide)}
+    >
+      <!-- Two corners pulling apart; drawn back in while wide. -->
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        {#if store.wide}
+          <path d="M6.5 2.5v4h-4M9.5 13.5v-4h4M6.2 6.2 2.5 2.5M9.8 9.8l3.7 3.7" />
+        {:else}
+          <path d="M2.5 6.5v-4h4M13.5 9.5v4h-4M2.8 2.8l3.7 3.7M13.2 13.2 9.5 9.5" />
+        {/if}
       </svg>
     </button>
     <button

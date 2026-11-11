@@ -5,6 +5,7 @@
   import Almanac from '$lib/components/Almanac.svelte';
   import Home from '$lib/components/Home.svelte';
   import Mini from '$lib/components/Mini.svelte';
+  import Wide from '$lib/components/Wide.svelte';
   import Settings from '$lib/components/Settings.svelte';
   import Sheets from '$lib/components/Sheets.svelte';
   import Timesheet from '$lib/components/Timesheet.svelte';
@@ -98,6 +99,7 @@
         if (store.sheet !== null) store.sheet = null;
         else if (store.mini) void store.setMini(false);
         else if (store.view !== 'home') store.view = 'home';
+        else if (store.wide) void store.setWide(false);
         else void getCurrentWindow().close();
         break;
       case 'toggle':
@@ -119,6 +121,9 @@
       case 'minimise':
         void getCurrentWindow().minimize();
         break;
+      case 'wide':
+        if (!store.mini) void store.setWide(!store.wide);
+        break;
     }
   }
 </script>
@@ -127,6 +132,16 @@
 
 {#if store.mini}
   {#if store.ready}<Mini />{/if}
+{:else if store.wide}
+  <TitleBar />
+  <main class="wide" class:ready={store.ready}>
+    {#if store.ready}
+      <Wide />
+      {#if store.sheet !== null}
+        <Sheets />
+      {/if}
+    {/if}
+  </main>
 {:else}
   <TitleBar />
 

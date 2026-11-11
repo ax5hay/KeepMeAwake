@@ -14,7 +14,8 @@ export interface KeyPress {
 }
 
 /** What a shortcut asks the window to do. */
-export type WindowAction = 'toggle' | 'back-or-close' | 'settings' | 'close' | 'minimise' | 'keys';
+export type WindowAction =
+  'toggle' | 'back-or-close' | 'settings' | 'close' | 'minimise' | 'keys' | 'wide';
 
 /**
  * The action for `event`, or `null`. `target` is the focused element's tag
@@ -29,6 +30,9 @@ export function windowAction(event: KeyPress, target: string, mac: boolean): Win
   if (plainCmd && key === 'w') return 'close';
   if (plainCmd && key === 'm') return 'minimise';
   if (event.key === ',' && (event.ctrlKey || event.metaKey)) return 'settings';
+  // ⌘E on a Mac, Ctrl+E elsewhere: the wide window, and back.
+  const plainCtrl = !mac && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
+  if (key === 'e' && (plainCmd || plainCtrl)) return 'wide';
   if (event.key === ' ' && !typing && target !== 'BUTTON') return 'toggle';
   // `?` is Shift+/ on most layouts; either way it is the key sheet.
   if (event.key === '?' && !typing && !event.ctrlKey && !event.metaKey && !event.altKey)

@@ -36,6 +36,11 @@ const PAUSED_BY: Readonly<Record<PauseReason, string>> = {
   power_request_failed: 'refused',
 };
 
+/** How a stretch ended, in the word History uses: `timer`, `you`. */
+export function endedWord(ended: Ended): string {
+  return ENDED[ended];
+}
+
 /** Shown for an end the stretch never had. */
 const NO_END = '–';
 
