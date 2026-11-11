@@ -229,32 +229,33 @@ on Windows is listed under **Where to start**.
 
 ## Done this cycle
 
-| Date       | What                                                                                                         | By               |
-| ---------- | ------------------------------------------------------------------------------------------------------------ | ---------------- |
-| 2026-11-07 | 0.1.0 built end to end; docs, CI, specs for 0.2 and 0.3; roadmap to 0.5                                      | Claude Fable 5.1 |
-| 2026-11-07 | 0.2 built: schedule, notifications, global hotkey, taskbar-aware tray icons; engine wake-up fix              | Claude Opus 5.5  |
-| 2026-11-07 | Repo moved to `ax5hay` and made public; every link updated; bundle metadata made honest                      | Claude Fable 5.1 |
-| 2026-11-07 | macOS scoped: `specs/macos.md`, Mac setup in `development.md`, two-track handoff                             | Claude Fable 5.1 |
-| 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release            | Claude Opus 5.5  |
-| 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep                  | Claude Opus 5.5  |
-| 2026-11-07 | Sunset warning: spec, built (6 commits) on the Mac, reviewed; two-machine rule written into the docs         | Claude Opus 5.5  |
-| 2026-11-07 | Overnight guard specced; Mac session wrapped up, Windows start list rewritten                                | Claude Opus 5.5  |
-| 2026-11-07 | Windows PC set up; the Mac's macOS, history and sunset work checked on Windows; History screenshots          | Claude Opus 5.5  |
-| 2026-11-07 | Overnight guard built on Windows (6 commits + 2 review fixes), CI green on both runners                      | Claude Opus 5.5  |
-| 2026-11-07 | Settings button as sliders (a gear read as a sun); Home's doors into Settings; Home shots recaptured         | Claude Opus 5.5  |
-| 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)                  | Claude Opus 5.5  |
-| 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                               | Claude Opus 5.5  |
-| 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                         | Claude Opus 5.5  |
-| 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards            | Claude Fable 5.2 |
-| 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Sleep when I'm away (4 commits)           | Claude Fable 5.2 |
-| 2026-11-10 | v0.4.0 released (full, latest). Claude behind three locks; Check for updates; break reminder; month as CSV   | Claude Fable 5.2 |
-| 2026-11-11 | AI by any service (Claude, OpenAI, other); product names back; v0.5.0 released (full, latest)                | Claude Fable 5.2 |
-| 2026-11-11 | Themes (27, on four shelves); a weekday nobody works reads as a day off; both unreleased                     | Claude Fable 5.2 |
-| 2026-11-12 | Windows installers redrawn; README rewritten; v0.6.0 released (full, latest)                                 | Claude Fable 5.2 |
-| 2026-11-12 | Twelve small things built; v0.7.0 released (full, latest)                                                    | Claude Fable 5.2 |
-| 2026-11-12 | Mac: old clone reset to the rewritten history; repo About and topics set; README checked on github.com       | Claude Opus 5.5  |
-| 2026-11-12 | Plain words everywhere: window, tray, toasts, installer, README, guide, repo description; rules in design.md | Claude Opus 5.5  |
-| 2026-11-12 | 0.8 on the Mac: six specs and their builds (battery aware, stay awake while, when it ends, CLI, sleep, wide) | Claude Opus 5.5  |
+| Date       | What                                                                                                                         | By               |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 2026-11-07 | 0.1.0 built end to end; docs, CI, specs for 0.2 and 0.3; roadmap to 0.5                                                      | Claude Fable 5.1 |
+| 2026-11-07 | 0.2 built: schedule, notifications, global hotkey, taskbar-aware tray icons; engine wake-up fix                              | Claude Opus 5.5  |
+| 2026-11-07 | Repo moved to `ax5hay` and made public; every link updated; bundle metadata made honest                                      | Claude Fable 5.1 |
+| 2026-11-07 | macOS scoped: `specs/macos.md`, Mac setup in `development.md`, two-track handoff                                             | Claude Fable 5.1 |
+| 2026-11-07 | macOS built (12 commits), reviewed and fixed; own license; GitHub repo extras; v0.2.0 pre-release                            | Claude Opus 5.5  |
+| 2026-11-07 | Session history built (5 commits) on the Mac, reviewed; stretches end when due across sleep                                  | Claude Opus 5.5  |
+| 2026-11-07 | Sunset warning: spec, built (6 commits) on the Mac, reviewed; two-machine rule written into the docs                         | Claude Opus 5.5  |
+| 2026-11-07 | Overnight guard specced; Mac session wrapped up, Windows start list rewritten                                                | Claude Opus 5.5  |
+| 2026-11-07 | Windows PC set up; the Mac's macOS, history and sunset work checked on Windows; History screenshots                          | Claude Opus 5.5  |
+| 2026-11-07 | Overnight guard built on Windows (6 commits + 2 review fixes), CI green on both runners                                      | Claude Opus 5.5  |
+| 2026-11-07 | Settings button as sliders (a gear read as a sun); Home's doors into Settings; Home shots recaptured                         | Claude Opus 5.5  |
+| 2026-11-07 | UI pass: the guard on Home, five fixes (Esc, errors, stale history, presets, paused extend)                                  | Claude Opus 5.5  |
+| 2026-11-07 | Auto-update built (6 commits + a runtime fix), key in secrets; v0.3.0 released                                               | Claude Opus 5.5  |
+| 2026-11-07 | v0.3.0 made the full, latest release; the updater endpoint serves it                                                         | Claude Opus 5.5  |
+| 2026-11-10 | Almanac: spec, built (7 commits) on Windows; days, hours over, leave and the night read backwards                            | Claude Fable 5.2 |
+| 2026-11-10 | Schedule fix (equal times); today on Home; days corrected by hand; Sleep when I'm away (4 commits)                           | Claude Fable 5.2 |
+| 2026-11-10 | v0.4.0 released (full, latest). Claude behind three locks; Check for updates; break reminder; month as CSV                   | Claude Fable 5.2 |
+| 2026-11-11 | AI by any service (Claude, OpenAI, other); product names back; v0.5.0 released (full, latest)                                | Claude Fable 5.2 |
+| 2026-11-11 | Themes (27, on four shelves); a weekday nobody works reads as a day off; both unreleased                                     | Claude Fable 5.2 |
+| 2026-11-12 | Windows installers redrawn; README rewritten; v0.6.0 released (full, latest)                                                 | Claude Fable 5.2 |
+| 2026-11-12 | Twelve small things built; v0.7.0 released (full, latest)                                                                    | Claude Fable 5.2 |
+| 2026-11-12 | Mac: old clone reset to the rewritten history; repo About and topics set; README checked on github.com                       | Claude Opus 5.5  |
+| 2026-11-12 | Plain words everywhere: window, tray, toasts, installer, README, guide, repo description; rules in design.md                 | Claude Opus 5.5  |
+| 2026-11-12 | 0.8 on the Mac: six specs and their builds (battery aware, stay awake while, when it ends, CLI, sleep, wide)                 | Claude Opus 5.5  |
+| 2026-11-12 | Thresholds as settings; desktops open wide with a nudge to standard; social preview uploaded; v0.8.0 released (full, latest) | Claude Opus 5.5  |
 
 ## 0.8, built on the Mac
 
