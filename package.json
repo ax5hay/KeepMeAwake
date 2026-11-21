@@ -35,14 +35,14 @@
     "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/api": "^2.12.5",
     "@tauri-apps/plugin-autostart": "^2.7.0",
-    "@tauri-apps/plugin-opener": "^2.7.2"
+    "@tauri-apps/plugin-opener": "^2.7.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
-    "@tauri-apps/cli": "^2.12.4",
+    "@tauri-apps/cli": "^2.12.5",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/svelte": "^5.4.2",
     "@types/node": "^24.19.2",
